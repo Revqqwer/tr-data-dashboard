@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TR Veri Panosu</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridstack@10.3.1/dist/gridstack.min.css" />
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <span class="logo-text">TR<span class="logo-accent">Data</span></span>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="#" class="nav-item active" data-page="dth">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+      DTH
+    </a>
+    <a href="#" class="nav-item" data-page="menkul">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+      Menkul Kıymet
+    </a>
+    <a href="#" class="nav-item" data-page="kredi">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+      Krediler
+    </a>
+    <a href="#" class="nav-item" data-page="kredi-detay">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 16l4-4 4 4 4-6"/></svg>
+      Kredi Detay
+    </a>
+    <a href="#" class="nav-item" data-page="butce">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      Bütçe Dengesi
+    </a>
+    <a href="#" class="nav-item" data-page="dis-ticaret">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l4-8 4 4 4-6 4 10"/><path d="M3 21h18"/></svg>
+      Dış Ticaret
+    </a>
+    <a href="#" class="nav-item" data-page="odeme-dengesi">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+      Ödemeler Dengesi
+    </a>
+    <a href="#" class="nav-item" data-page="turizm">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a7 7 0 0 1 7 7c0 4.5-7 13-7 13S5 13.5 5 9a7 7 0 0 1 7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+      Turizm
+    </a>
+    <a href="#" class="nav-item" data-page="konut">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Konut
+    </a>
+    <a href="#" class="nav-item" data-page="enflasyon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-5 4 3 4-6"/></svg>
+      Enflasyon
+    </a>
+    <a href="#" class="nav-item" data-page="makro">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
+      Makro Tahmin
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <span>Kaynak: TCMB EVDS</span>
+  </div>
+</aside>
+
+<main class="main">
+
+  <!-- ── DTH TOPBAR ── -->
+  <header class="topbar" id="topbar-dth">
+    <div class="topbar-title">
+      <h1>Döviz Tevdiat Hesapları</h1>
+      <span class="topbar-sub">TCMB EVDS · Haftalık · Milyon USD</span>
+    </div>
+    <div class="topbar-actions">
+      <select id="rangeSelect" class="range-select">
+        <option value="52">Son 1 Yıl</option>
+        <option value="104">Son 2 Yıl</option>
+        <option value="156">Son 3 Yıl</option>
+        <option value="0" selected>Tüm Veri</option>
+      </select>
+      <button class="refresh-btn" id="refreshBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+        Yenile
+      </button>
+    </div>
+  </header>
+
+  <!-- ── MENKUL TOPBAR ── -->
+  <header class="topbar hidden" id="topbar-menkul">
+    <div class="topbar-title">
+      <h1>Menkul Kıymet Akımları</h1>
+      <span class="topbar-sub">TCMB EVDS · Haftalık · Milyon USD</span>
+    </div>
+    <div class="topbar-actions">
+      <button class="refresh-btn" id="refreshBtnMenkul">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+        Yenile
+      </button>
+    </div>
+  </header>
+
+  <!-- ── KREDİ TOPBAR ── -->
+  <header class="topbar hidden" id="topbar-kredi">
+    <div class="topbar-title">
+      <h1>Bankacılık Kredi Verileri</h1>
+      <span class="topbar-sub">BDDK Haftalık Bülten · Milyon TL</span>
+    </div>
+    <div class="topbar-actions">
+      <select id="rangeSelectKredi" class="range-select">
+        <option value="52">Son 1 Yıl</option>
+        <option value="104">Son 2 Yıl</option>
+        <option value="156">Son 3 Yıl</option>
+        <option value="0" selected>Tüm Veri</option>
+      </select>
+      <button class="refresh-btn" id="refreshBtnKredi">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+        Yenile
+      </button>
+    </div>
+  </header>
+
+  <!-- ── KREDİ DETAY TOPBAR ── -->
+  <header class="topbar hidden" id="topbar-kredi-detay">
+    <div class="topbar-title">
+      <h1>Tüketici Kredi Alt Kalemleri</h1>
+      <span class="topbar-sub">BDDK Haftalık Bülten · Milyon TL</span>
+    </div>
+    <div class="topbar-actions">
+      <select id="rangeSelectKrediDetay" class="range-select">
+        <option value="52">Son 1 Yıl</option>
+        <option value="104">Son 2 Yıl</option>
+        <option value="156">Son 3 Yıl</option>
+        <option value="0" selected>Tüm Veri</option>
+      </select>
+      <button class="refresh-btn" id="refreshBtnKrediDetay">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+        Yenile
+      </button>
+    </div>
+  </header>
+
+  <!-- ── BÜTÇE TOPBAR ── -->
+  <header class="topbar hidden" id="topbar-butce">
+    <div class="topbar-title">
+      <h1>Kamu Maliyesi – Bütçe Dengesi</h1>
+      <span class="topbar-sub">Hazine ve Maliye Bakanlığı · EVDS · Aylık · Bin TL</span>
+    </div>
+    <div class="topbar-actions">
+      <select id="rangeSelectButce" class="range-select">
+        <option value="36">Son 3 Yıl</option>
+        <option value="60">Son 5 Yıl</option>
+        <option value="120">Son 10 Yıl</option>
+        <option value="0" selected>Tüm Veri</option>
+      </select>
+      <button class="refresh-btn" id="refreshBtnButce">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+        Yenile
+      </button>
+    </div>
+  </header>
+
+  <header class="topbar hidden" id="topbar-odeme-dengesi">
+    <div class="topbar-title">
+      <h1>Ödemeler Dengesi</h1>
+      <span class="topbar-sub">TCMB EVDS · Aylık · Mn USD</span>
+    </div>
+    <div class="topbar-actions">
+      <select id="rangeSelectBoP" class="range-select">
+        <option value="12">Son 1 Yıl</option>
+        <option value="36">Son 3 Yıl</option>
+        <option value="60">Son 5 Yıl</option>
+        <option value="0" selected>Tüm Veri</option>
+      </select>
+      <button class="refresh-btn" id="refreshBtnBoP">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+        Yenile
+      </button>
+    </div>
+  </header>
+
+  <header class="topbar hidden" id="topbar-konut">
+    <div class="topbar-title">
+      <h1>Konut Piyasası</h1>
+      <span class="topbar-sub">TCMB EVDS · TÜİK kaynaklı · Aylık · 2017=100 baz</span>
+    </div>
+    <div class="topbar-actions">
+      <select id="rangeSelectKonut" class="range-select">
+        <option value="60">Son 5 Yıl</option>
+        <option value="84">Son 7 Yıl</option>
+        <option value="0" selected>Tüm Veri</option>
+      </select>
+      <button class="refresh-btn" id="refreshBtnKonut">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+        Yenile
+      </button>
+    </div>
+  </header>
+
+  <header class="topbar hidden" id="topbar-makro">
+    <div class="topbar-title">
+      <h1>Makro Tahmin Tablosu</h1>
+      <span class="topbar-sub">TCMB EVDS · TÜİK · Aylık · CPI Endeks + Kur + Faiz</span>
+    </div>
+    <div class="topbar-actions">
+      <button class="refresh-btn" id="refreshBtnMakro">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+        Yenile
+      </button>
+    </div>
+  </header>
+
+  <header class="topbar hidden" id="topbar-enflasyon">
+    <div class="topbar-title">
+      <h1>Enflasyon – TÜFE</h1>
+      <span class="topbar-sub">TÜİK · EVDS · Aylık · 2025=100 baz yılı</span>
+    </div>
+    <div class="topbar-actions">
+      <select id="enflasyonAySelect" class="range-select" style="min-width:140px"></select>
+      <button class="refresh-btn" id="refreshBtnEnflasyon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+        Yenile
+      </button>
+    </div>
+  </header>
+
+  <header class="topbar hidden" id="topbar-turizm">
+    <div class="topbar-title">
+      <h1>Turizm İstatistikleri</h1>
+      <span class="topbar-sub">TCMB EVDS · TUİK kaynaklı · Aylık</span>
+    </div>
+    <div class="topbar-actions">
+      <select id="rangeSelectTurizm" class="range-select">
+        <option value="36">Son 3 Yıl</option>
+        <option value="60">Son 5 Yıl</option>
+        <option value="120">Son 10 Yıl</option>
+        <option value="0" selected>Tüm Veri</option>
+      </select>
+      <button class="refresh-btn" id="refreshBtnTurizm">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+        Yenile
+      </button>
+    </div>
+  </header>
+
+  <header class="topbar hidden" id="topbar-dis-ticaret">
+    <div class="topbar-title">
+      <h1>Dış Ticaret İstatistikleri</h1>
+      <span class="topbar-sub">TCMB EVDS · Aylık · Mn USD</span>
+    </div>
+    <div class="topbar-actions">
+      <select id="rangeSelectDT" class="range-select">
+        <option value="36">Son 3 Yıl</option>
+        <option value="60">Son 5 Yıl</option>
+        <option value="120">Son 10 Yıl</option>
+        <option value="0" selected>Tüm Veri</option>
+      </select>
+      <button class="refresh-btn" id="refreshBtnDT">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+        Yenile
+      </button>
+    </div>
+  </header>
+
+  <!-- ── LOADING ── -->
+  <div id="loadingState" class="loading-state">
+    <div class="spinner"></div>
+    <p>Veri yükleniyor...</p>
+  </div>
+
+  <!-- ══ SAYFA 1: DTH ══ -->
+  <div class="grid-stack page-content hidden" id="page-dth">
+
+    <div class="grid-stack-item" gs-w="12" gs-h="6" gs-x="0" gs-y="0">
+      <div class="grid-stack-item-content chart-card">
+        <div class="chart-header">
+          <h2>DTH Stok Düzeyleri</h2>
+          <div class="legend">
+            <span class="legend-item toggle-legend" data-chart="dthChart" data-idx="0" style="cursor:pointer"><span class="dot" style="background:#3b7ef8"></span>Toplam</span>
+            <span class="legend-item toggle-legend" data-chart="dthChart" data-idx="1" style="cursor:pointer"><span class="dot" style="background:#10b981"></span>Bireysel</span>
+            <span class="legend-item toggle-legend" data-chart="dthChart" data-idx="2" style="cursor:pointer"><span class="dot" style="background:#f59e0b"></span>Tüzel</span>
+          </div>
+        </div>
+        <div class="chart-wrap" data-canvas="dthChart"><canvas id="dthChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="grid-stack-item" gs-w="12" gs-h="6" gs-x="0" gs-y="6">
+      <div class="grid-stack-item-content chart-card">
+        <div class="chart-header">
+          <h2>Değişim</h2>
+          <div class="header-right">
+            <div class="legend">
+              <span class="legend-item"><span class="dot" style="background:#10b981"></span>Bireysel</span>
+              <span class="legend-item"><span class="dot" style="background:#f59e0b"></span>Tüzel</span>
+            </div>
+            <div class="toggle-group">
+              <button class="toggle-btn active" id="btnHaftalik">Haftalık</button>
+              <button class="toggle-btn" id="btnAylik">Aylık</button>
+            </div>
+          </div>
+        </div>
+        <div class="chart-wrap" data-canvas="changeChart"><canvas id="changeChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="grid-stack-item" gs-w="6" gs-h="6" gs-x="0" gs-y="12">
+      <div class="grid-stack-item-content chart-card">
+        <div class="chart-header">
+          <h2>Birey / Tüzel Rasyosu</h2>
+        </div>
+        <div class="chart-wrap" data-canvas="ratioChart"><canvas id="ratioChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="grid-stack-item" gs-w="6" gs-h="6" gs-x="6" gs-y="12">
+      <div class="grid-stack-item-content chart-card">
+        <div class="chart-header">
+          <h2>Birey – Tüzel Spread</h2>
+        </div>
+        <div class="chart-wrap" data-canvas="spreadChart"><canvas id="spreadChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="grid-stack-item" gs-w="12" gs-h="6" gs-x="0" gs-y="18">
+      <div class="grid-stack-item-content chart-card">
+        <div class="chart-header">
+          <h2>13 Haftalık Kümülatif Değişim</h2>
+          <div class="legend" id="cumLegend">
+            <span class="legend-item toggle-legend" data-chart="cumChart" data-idx="0" style="cursor:pointer"><span class="dot" style="background:#3b7ef8"></span>Toplam</span>
+            <span class="legend-item toggle-legend" data-chart="cumChart" data-idx="1" style="cursor:pointer"><span class="dot" style="background:#10b981"></span>Bireysel</span>
+            <span class="legend-item toggle-legend" data-chart="cumChart" data-idx="2" style="cursor:pointer"><span class="dot" style="background:#f59e0b"></span>Tüzel</span>
+          </div>
+        </div>
+        <div class="chart-wrap" data-canvas="cumChart"><canvas id="cumChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="grid-stack-item" gs-w="12" gs-h="2" gs-x="0" gs-y="24" gs-no-move="true" gs-no-resize="true">
+      <div class="grid-stack-item-content">
+        <div class="source-note-card">
+          <div><strong>Kaynak:</strong> TCMB EVDS (evds3.tcmb.gov.tr) · Haftalık yayım · Birim: Milyar USD</div>
+          <div><strong>Seriler:</strong> <code>TP.HPBITABLO4.2</code> Toplam DTH &nbsp;·&nbsp; <code>TP.HPBITABLO4.3</code> Bireysel DTH &nbsp;·&nbsp; <code>TP.HPBITABLO4.8</code> Tüzel DTH</div>
+          <div><strong>Hesaplamalar:</strong> <em>Değişim</em> — ardışık dönem farkı (haftalık seç. = 1 hafta, aylık seç. = 4 hafta) &nbsp;·&nbsp; <em>13H kümülatif</em> — son 13 haftalık değişimlerin toplamı &nbsp;·&nbsp; <em>Bireysel/Tüzel rasyosu</em> — Bireysel ÷ Tüzel &nbsp;·&nbsp; <em>Spread</em> — Bireysel − Tüzel</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══ SAYFA 2: MENKUL KIYMET ══ -->
+  <div class="grid-stack page-content hidden" id="page-menkul">
+
+    <div class="grid-stack-item" gs-w="12" gs-h="6" gs-x="0" gs-y="0">
+      <div class="grid-stack-item-content chart-card">
+        <div class="chart-header">
+          <h2>13 Haftalık Hisse &amp; DİBS Flow</h2>
+          <div class="legend">
+            <span class="legend-item toggle-legend" data-chart="cumFlowChart" data-idx="0" style="cursor:pointer"><span class="dot" style="background:#3b7ef8"></span>Hisse</span>
+            <span class="legend-item toggle-legend" data-chart="cumFlowChart" data-idx="1" style="cursor:pointer"><span class="dot" style="background:#a855f7"></span>DİBS</span>
+          </div>
+        </div>
+        <div class="chart-wrap" data-canvas="cumFlowChart"><canvas id="cumFlowChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="grid-stack-item" gs-w="12" gs-h="7" gs-x="0" gs-y="6">
+      <div class="grid-stack-item-content chart-card">
+        <div class="chart-header">
+          <h2>Yabancı Hisse ve Tahvil Alımı</h2>
+          <div class="header-right">
+            <div class="legend">
+              <span class="legend-item"><span class="dot" style="background:#3b7ef8"></span>Hisse</span>
+              <span class="legend-item"><span class="dot" style="background:#a855f7"></span>DİBS</span>
+            </div>
+            <div class="toggle-group">
+              <button class="toggle-btn" id="btnFlow3Ay">Son 3 Ay</button>
+              <button class="toggle-btn active" id="btnFlow1Yil">Son 1 Yıl</button>
+              <button class="toggle-btn" id="btnFlowYtd">YTD</button>
+              <button class="toggle-btn" id="btnFlowTum">Tüm Veri</button>
+            </div>
+          </div>
+        </div>
+        <div class="chart-wrap" data-canvas="flowChart"><canvas id="flowChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="grid-stack-item" gs-w="12" gs-h="7" gs-x="0" gs-y="13">
+      <div class="grid-stack-item-content chart-card">
+        <div class="chart-header">
+          <h2>Kümülatif Hisse &amp; DİBS Alımı</h2>
+          <div class="header-right">
+            <div class="legend">
+              <span class="legend-item toggle-legend" data-chart="cumStartChart" data-idx="0" style="cursor:pointer"><span class="dot" style="background:#3b7ef8"></span>Hisse</span>
+              <span class="legend-item toggle-legend" data-chart="cumStartChart" data-idx="1" style="cursor:pointer"><span class="dot" style="background:#a855f7"></span>DİBS</span>
+            </div>
+            <div class="date-input-wrap">
+              <label class="date-label">Başlangıç tarihi:</label>
+              <input type="date" id="cumStartDate" class="date-input" />
+            </div>
+          </div>
+        </div>
+        <div class="chart-wrap" data-canvas="cumStartChart"><canvas id="cumStartChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="grid-stack-item" gs-w="12" gs-h="2" gs-x="0" gs-y="20" gs-no-move="true" gs-no-resize="true">
+      <div class="grid-stack-item-content">
+        <div class="source-note-card">
+          <div><strong>Kaynak:</strong> TCMB EVDS (evds3.tcmb.gov.tr) · Haftalık yayım · Birim: Milyon USD</div>
+          <div><strong>Seriler:</strong> <code>TP.MKNETHAR.M7</code> Yabancı Yatırımcı Hisse Senedi Net Alımı &nbsp;·&nbsp; <code>TP.MKNETHAR.M8</code> Yabancı Yatırımcı DİBS Net Alımı</div>
+          <div><strong>Hesaplamalar:</strong> <em>13H kümülatif</em> — son 13 haftanın toplam net akımı &nbsp;·&nbsp; <em>Kümülatif (tarihten itibaren)</em> — seçilen başlangıç tarihinden birikimli net akım toplamı &nbsp;·&nbsp; Pozitif değer = net alım, negatif değer = net satış</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══ SAYFA 3: KREDİLER ══ -->
+  <div class="grid-stack page-content hidden" id="page-kredi">
+
+    <!-- 4: Yıllık büyüme -->
+    <div class="grid-stack-item" gs-w="12" gs-h="6" gs-x="0" gs-y="0">
+      <div class="grid-stack-item-content chart-card">
+        <div class="chart-header">
+          <h2>Yıllık Büyüme (YoY %)</h2>
+          <div class="legend">
+            <span class="legend-item toggle-legend" data-chart="krediYoyChart" data-idx="0" style="cursor:pointer"><span class="dot" style="background:#10b981"></span>Tüketici</span>
+            <span class="legend-item toggle-legend" data-chart="krediYoyChart" data-idx="1" style="cursor:pointer"><span class="dot" style="background:#3b7ef8"></span>Ticari</span>
+          </div>
+        </div>
+        <div class="chart-wrap" data-canvas="krediYoyChart"><canvas id="krediYoyChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- 5: 13 haftalık büyüme -->
+    <div class="grid-stack-item" gs-w="12" gs-h="6" gs-x="0" gs-y="6">
+      <div class="grid-stack-item-content chart-card">
+        <div class="chart-header">
+          <h2>13 Haftalık Büyüme (%)</h2>
+          <div class="legend">
+            <span class="legend-item toggle-legend" data-chart="kredi13wChart" data-idx="0" style="cursor:pointer"><span class="dot" style="background:#10b981"></span>Tüketici</span>
+            <span class="legend-item toggle-legend" data-chart="kredi13wChart" data-idx="1" style="cursor:pointer"><span class="dot" style="background:#3b7ef8"></span>Ticari</span>
+          </div>
+        </div>
+        <div class="chart-wrap" data-canvas="kredi13wChart"><canvas id="kredi13wChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- 6: Tüketici aylık & yıllık -->
+    <div class="grid-stack-item" gs-w="6" gs-h="6" gs-x="0" gs-y="12">
+      <div class="grid-stack-item-content chart-card">
+        <div class="chart-header">
+          <h2>Tüketici Kredileri – Büyüme</h2>
+          <div class="legend">
+            <span class="legend-item"><span class="dot" style="background:#10b981"></span>Aylık %</span>
+            <span class="legend-item"><span class="dot" style="background:#a855f7"></span>Yıllık %</span>
+          </div>
+        </div>
+        <div class="chart-wrap" data-canvas="tukMomYoyChart"><canvas id="tukMomYoyChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- 7: Ticari aylık & yıllık -->
+    <div class="grid-stack-item" gs-w="6" gs-h="6" gs-x="6" gs-y="12">
+      <div class="grid-stack-item-content chart-card">
+        <div class="chart-header">
+          <h2>Ticari Krediler – Büyüme</h2>
+          <div class="legend">
+            <span class="legend-item"><span class="dot" style="background:#3b7ef8"></span>Aylık %</span>
+            <span class="legend-item"><span class="dot" style="background:#f59e0b"></span>Yıllık %</span>
+          </div>
+        </div>
+        <div class="chart-wrap" data-canvas="ticMomYoyChart"><canvas id="ticMomYoyChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Ticari USD (mevcut) -->
+    <div class="grid-stack-item" gs-w="12" gs-h="6" gs-x="0" gs-y="18">
+      <div class="grid-stack-item-content chart-card">
+        <div class="chart-header">
+          <h2>Ticari Krediler (USD)</h2>
+        </div>
+        <div class="chart-wrap" data-canvas="krediUsdChart"><canvas id="krediUsdChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="grid-stack-item" gs-w="12" gs-h="2" gs-x="0" gs-y="24" gs-no-move="true" gs-no-resize="true">
+      <div class="grid-stack-item-content">
+        <div class="source-note-card">
+          <div><strong>Kaynak:</strong> BDDK Haftalık Bülten (bddk.org.tr/bultenhaftalik) · Haftalık yayım · Birim: Milyon TL</div>
+          <div><strong>Seriler:</strong> Tüketici Kredileri ve Bireysel Kredi Kartları &nbsp;·&nbsp; Ticari ve Diğer Krediler &nbsp;·&nbsp; Ticari YP kısmı: TCMB günlük kuru (<code>TP.DK.USD.A</code>) ile USD'ye çevrilmiştir</div>
+          <div><strong>Hesaplamalar:</strong> <em>YoY %</em> — yılın aynı haftasına göre değişim &nbsp;·&nbsp; <em>Aylık %</em> — 4 hafta öncesine göre değişim &nbsp;·&nbsp; <em>13H %</em> — son 13 haftalık kümülatif büyüme (yıllıklaştırılmamış)</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══ SAYFA 4: KREDİ DETAY ══ -->
+  <div class="grid-stack page-content hidden" id="page-kredi-detay">
+
+    <!-- Konut: YoY + Aylık -->
+    <div class="grid-stack-item" gs-w="6" gs-h="7" gs-x="0" gs-y="0">
+      <div class="grid-stack-item-content chart-card">
+        <div class="chart-header">
+          <h2>Konut Kredisi – Büyüme</h2>
+          <div class="legend">
+            <span class="legend-item toggle-legend" data-chart="kdKonutChart" data-idx="0" style="cursor:pointer"><span class="dot" style="background:#3b7ef8"></span>YoY %</span>
+            <span class="legend-item toggle-legend" data-chart="kdKonutChart" data-idx="1" style="cursor:pointer"><span class="dot" style="background:#93c5fd"></span>Aylık %</span>
+            <span class="legend-item toggle-legend" data-chart="kdKonutChart" data-idx="2" style="cursor:pointer"><span class="dot" style="background:#64748b"></span>13H %</span>
+          </div>
+        </div>
+        <div class="chart-wrap" data-canvas="kdKonutChart"><canvas id="kdKonutChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- İhtiyaç: YoY + Aylık -->
+    <div class="grid-stack-item" gs-w="6" gs-h="7" gs-x="6" gs-y="0">
+      <div class="grid-stack-item-content chart-card">
+        <div class="chart-header">
+          <h2>İhtiyaç Kredisi – Büyüme</h2>
+          <div class="legend">
+            <span class="legend-item toggle-legend" data-chart="kdIhtiyacChart" data-idx="0" style="cursor:pointer"><span class="dot" style="background:#f59e0b"></span>YoY %</span>
+            <span class="legend-item toggle-legend" data-chart="kdIhtiyacChart" data-idx="1" style="cursor:pointer"><span class="dot" style="background:#fcd34d"></span>Aylık %</span>
+            <span class="legend-item toggle-legend" data-chart="kdIhtiyacChart" data-idx="2" style="cursor:pointer"><span class="dot" style="background:#64748b"></span>13H %</span>
+          </div>
+        </div>
+        <div class="chart-wrap" data-canvas="kdIhtiyacChart"><canvas id="kdIhtiyacChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Taşıt: YoY + Aylık -->
+    <div class="grid-stack-item" gs-w="6" gs-h="7" gs-x="0" gs-y="7">
+      <div class="grid-stack-item-content chart-card">
+        <div class="chart-header">
+          <h2>Taşıt Kredisi – Büyüme</h2>
+          <div class="legend">
+            <span class="legend-item toggle-legend" data-chart="kdTasitChart" data-idx="0" style="cursor:pointer"><span class="dot" style="background:#10b981"></span>YoY %</span>
+            <span class="legend-item toggle-legend" data-chart="kdTasitChart" data-idx="1" style="cursor:pointer"><span class="dot" style="background:#6ee7b7"></span>Aylık %</span>
+            <span class="legend-item toggle-legend" data-chart="kdTasitChart" data-idx="2" style="cursor:pointer"><span class="dot" style="background:#64748b"></span>13H %</span>
+          </div>
+        </div>
+        <div class="chart-wrap" data-canvas="kdTasitChart"><canvas id="kdTasitChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- KOBİ: YoY + Aylık -->
+    <div class="grid-stack-item" gs-w="6" gs-h="7" gs-x="6" gs-y="7">
+      <div class="grid-stack-item-content chart-card">
+        <div class="chart-header">
+          <h2>KOBİ Kredileri – Büyüme</h2>
+          <div class="legend">
+            <span class="legend-item toggle-legend" data-chart="kdKobiYoyChart" data-idx="0" style="cursor:pointer"><span class="dot" style="background:#f472b6"></span>YoY %</span>
+            <span class="legend-item toggle-legend" data-chart="kdKobiYoyChart" data-idx="1" style="cursor:pointer"><span class="dot" style="background:#fbcfe8"></span>Aylık %</span>
+          </div>
+        </div>
+        <div class="chart-wrap" data-canvas="kdKobiYoyChart"><canvas id="kdKobiYoyChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- KK Taksitli vs Taksitsiz YoY -->
+    <div class="grid-stack-item" gs-w="6" gs-h="7" gs-x="0" gs-y="14">
+      <div class="grid-stack-item-content chart-card">
+        <div class="chart-header">
+          <h2>Bireysel KK – YoY Büyüme</h2>
+          <div class="legend">
+            <span class="legend-item toggle-legend" data-chart="kdKkYoyChart" data-idx="0" style="cursor:pointer"><span class="dot" style="background:#6366f1"></span>Taksitli YoY %</span>
+            <span class="legend-item toggle-legend" data-chart="kdKkYoyChart" data-idx="1" style="cursor:pointer"><span class="dot" style="background:#ec4899"></span>Taksitsiz YoY %</span>
+            <span class="legend-item toggle-legend" data-chart="kdKkYoyChart" data-idx="2" style="cursor:pointer"><span class="dot" style="background:#64748b"></span>KK Toplam 13H %</span>
+          </div>
+        </div>
+        <div class="chart-wrap" data-canvas="kdKkYoyChart"><canvas id="kdKkYoyChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- 13 Haftalık Büyüme -->
+    <div class="grid-stack-item" gs-w="6" gs-h="7" gs-x="6" gs-y="14">
+      <div class="grid-stack-item-content chart-card">
+        <div class="chart-header">
+          <h2>13 Haftalık Büyüme (%)</h2>
+          <div class="legend">
+            <span class="legend-item toggle-legend" data-chart="kd13wChart" data-idx="0" style="cursor:pointer"><span class="dot" style="background:#3b7ef8"></span>Konut</span>
+            <span class="legend-item toggle-legend" data-chart="kd13wChart" data-idx="1" style="cursor:pointer"><span class="dot" style="background:#10b981"></span>Taşıt</span>
+            <span class="legend-item toggle-legend" data-chart="kd13wChart" data-idx="2" style="cursor:pointer"><span class="dot" style="background:#f59e0b"></span>İhtiyaç</span>
+            <span class="legend-item toggle-legend" data-chart="kd13wChart" data-idx="3" style="cursor:pointer"><span class="dot" style="background:#a855f7"></span>KK Toplam</span>
+            <span class="legend-item toggle-legend" data-chart="kd13wChart" data-idx="4" style="cursor:pointer"><span class="dot" style="background:#f472b6"></span>KOBİ</span>
+          </div>
+        </div>
+        <div class="chart-wrap" data-canvas="kd13wChart"><canvas id="kd13wChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="grid-stack-item" gs-w="12" gs-h="2" gs-x="0" gs-y="21" gs-no-move="true" gs-no-resize="true">
+      <div class="grid-stack-item-content">
+        <div class="source-note-card">
+          <div><strong>Kaynak:</strong> BDDK Haftalık Bülten (bddk.org.tr/bultenhaftalik) · Haftalık yayım · Birim: Milyon TL</div>
+          <div><strong>Seriler:</strong> Konut Kredisi &nbsp;·&nbsp; Taşıt Kredisi &nbsp;·&nbsp; İhtiyaç Kredisi &nbsp;·&nbsp; Bireysel KK Taksitli &nbsp;·&nbsp; Bireysel KK Taksitsiz &nbsp;·&nbsp; KK Toplam &nbsp;·&nbsp; KOBİ Kredileri</div>
+          <div><strong>Hesaplamalar:</strong> <em>YoY %</em> — yılın aynı haftasına göre değişim &nbsp;·&nbsp; <em>Aylık %</em> — 4 hafta öncesine göre değişim &nbsp;·&nbsp; <em>13H %</em> — son 13 haftalık kümülatif büyüme (yıllıklaştırılmamış)</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══ SAYFA 5: BÜTÇE DENGESİ ══ -->
+  <div class="grid-stack page-content hidden" id="page-butce">
+
+    <!-- Nakit Denge – Dolar Bazında -->
+    <div class="grid-stack-item" gs-w="6" gs-h="7" gs-x="0" gs-y="0">
+      <div class="grid-stack-item-content chart-card">
+        <div class="chart-header">
+          <h2>Nakit Denge – 12A Kümülatif (Mn USD)</h2>
+        </div>
+        <div class="chart-wrap" data-canvas="butceUsdChart"><canvas id="butceUsdChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- YTD Açık – Yıllara Göre -->
+    <div class="grid-stack-item" gs-w="6" gs-h="7" gs-x="6" gs-y="0">
+      <div class="grid-stack-item-content chart-card">
+        <div class="chart-header">
+          <h2 id="butceYtdTitle">YTD Nakit Açık – Yıllara Göre (Mn USD)</h2>
+        </div>
+        <div class="chart-wrap" data-canvas="butceYtdChart"><canvas id="butceYtdChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Faiz/Gelir Oranı -->
+    <div class="grid-stack-item" gs-w="12" gs-h="7" gs-x="0" gs-y="7">
+      <div class="grid-stack-item-content chart-card">
+        <div class="chart-header">
+          <h2>Faiz Harcamaları / Bütçe Geliri – 12A Hareketli Toplam (%)</h2>
+        </div>
+        <div class="chart-wrap" data-canvas="butceFaizChart"><canvas id="butceFaizChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Faiz YoY -->
+    <div class="grid-stack-item" gs-w="12" gs-h="7" gs-x="0" gs-y="14">
+      <div class="grid-stack-item-content chart-card">
+        <div class="chart-header">
+          <h2>Faiz Harcamaları – 12A Hareketli Toplam YoY (%)</h2>
+        </div>
+        <div class="chart-wrap" data-canvas="butceFaizYoyChart"><canvas id="butceFaizYoyChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Tablo -->
+    <div class="grid-stack-item" gs-w="12" gs-h="7" gs-x="0" gs-y="21">
+      <div class="grid-stack-item-content chart-card table-card">
+        <div class="chart-header">
+          <h2 id="butceTableTitle">Bütçe Dengesi (Bin TL)</h2>
+          <div class="legend">
+            <select id="butceTableField" class="range-select" style="font-size:12px;padding:4px 10px">
+              <option value="denge" selected>Bütçe Dengesi</option>
+              <option value="gelir">Gelir</option>
+              <option value="gider">Gider</option>
+            </select>
+          </div>
+        </div>
+        <div id="butceTableWrap" class="butce-table-wrap"></div>
+      </div>
+    </div>
+
+    <div class="grid-stack-item" gs-w="12" gs-h="3" gs-x="0" gs-y="28" gs-no-move="true" gs-no-resize="true">
+      <div class="grid-stack-item-content">
+        <div class="source-note-card">
+          <div><strong>Kaynak:</strong> Hazine ve Maliye Bakanlığı / TCMB EVDS (evds3.tcmb.gov.tr) · Aylık yayım · Birim: Bin TL &nbsp;·&nbsp; 2006–2012 dönemi ek Excel kaynağından yüklenmiştir</div>
+          <div><strong>Seriler:</strong> <code>TP.KB.GEN01</code> Bütçe Geliri &nbsp;·&nbsp; <code>TP.KB.GEN12</code> Bütçe Giderleri &nbsp;·&nbsp; <code>TP.KB.GEN35</code> Bütçe Dengesi &nbsp;·&nbsp; <code>TP.KB.GEN39</code> Nakit Denge &nbsp;·&nbsp; <code>TP.KB.GEN17</code> Faiz Harcamaları</div>
+          <div><strong>Hesaplamalar:</strong> <em>USD bazlı 12A kümülatif</em> — aylık değer TCMB günlük kuru (<code>TP.DK.USD.A</code>) ile USD'ye çevrilip son 12 ay toplanır &nbsp;·&nbsp; <em>Faiz/Gelir oranı</em> — 12A toplam faiz ÷ 12A toplam gelir × 100 &nbsp;·&nbsp; <em>Faiz YoY %</em> — cari 12A toplam ÷ bir önceki yılın aynı döneminin 12A toplamı − 1</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══ SAYFA 6: ÖDEMELER DENGESİ ══ -->
+  <div class="grid-stack page-content hidden" id="page-odeme-dengesi">
+
+    <div class="grid-stack-item" gs-w="12" gs-h="11" gs-x="0" gs-y="0">
+      <div class="grid-stack-item-content chart-card table-card">
+        <div class="chart-header">
+          <h2>Ödemeler Dengesi – Aylık (Mn USD)</h2>
+        </div>
+        <div id="bopTableWrap" class="bop-wrap"></div>
+      </div>
+    </div>
+
+    <!-- 12A MA Grafikler — Satır 1 -->
+    <div class="grid-stack-item" gs-w="6" gs-h="5" gs-x="0" gs-y="11">
+      <div class="grid-stack-item-content chart-card">
+        <div class="chart-header"><h2>Dış Ticaret Dengesi – 12A Hareketli Toplam (Mn USD)</h2></div>
+        <div class="chart-wrap" data-canvas="bop12DisticChart"><canvas id="bop12DisticChart"></canvas></div>
+      </div>
+    </div>
+    <div class="grid-stack-item" gs-w="6" gs-h="5" gs-x="6" gs-y="11">
+      <div class="grid-stack-item-content chart-card">
+        <div class="chart-header"><h2>Hizmet Dengesi – 12A Hareketli Toplam (Mn USD)</h2></div>
+        <div class="chart-wrap" data-canvas="bop12HizmetChart"><canvas id="bop12HizmetChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- 12A MA Grafikler — Satır 2 -->
+    <div class="grid-stack-item" gs-w="6" gs-h="5" gs-x="0" gs-y="16">
+      <div class="grid-stack-item-content chart-card">
+        <div class="chart-header"><h2>Birincil Gelir Dengesi – 12A Hareketli Toplam (Mn USD)</h2></div>
+        <div class="chart-wrap" data-canvas="bop12BirincilChart"><canvas id="bop12BirincilChart"></canvas></div>
+      </div>
+    </div>
+    <div class="grid-stack-item" gs-w="6" gs-h="5" gs-x="6" gs-y="16">
+      <div class="grid-stack-item-content chart-card">
+        <div class="chart-header"><h2>Net Hata &amp; Noksan – 12A Hareketli Toplam (Mn USD)</h2></div>
+        <div class="chart-wrap" data-canvas="bop12NetHataChart"><canvas id="bop12NetHataChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- 12A MA Grafikler — Satır 3 -->
+    <div class="grid-stack-item" gs-w="6" gs-h="5" gs-x="0" gs-y="21">
+      <div class="grid-stack-item-content chart-card">
+        <div class="chart-header"><h2>Finans Hesabı – 12A Hareketli Toplam (Mn USD)</h2></div>
+        <div class="chart-wrap" data-canvas="bop12FinansChart"><canvas id="bop12FinansChart"></canvas></div>
+      </div>
+    </div>
+    <div class="grid-stack-item" gs-w="6" gs-h="5" gs-x="6" gs-y="21">
+      <div class="grid-stack-item-content chart-card">
+        <div class="chart-header"><h2>Rezervler – 12A Hareketli Toplam (Mn USD)</h2></div>
+        <div class="chart-wrap" data-canvas="bop12RezervChart"><canvas id="bop12RezervChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- 12A MA Grafikler — Satır 4 -->
+    <div class="grid-stack-item" gs-w="6" gs-h="5" gs-x="0" gs-y="26">
+      <div class="grid-stack-item-content chart-card">
+        <div class="chart-header"><h2>Diğer Yatırımlar – 12A Hareketli Toplam (Mn USD)</h2></div>
+        <div class="chart-wrap" data-canvas="bop12DigerChart"><canvas id="bop12DigerChart"></canvas></div>
+      </div>
+    </div>
+    <div class="grid-stack-item" gs-w="6" gs-h="5" gs-x="6" gs-y="26">
+      <div class="grid-stack-item-content chart-card">
+        <div class="chart-header"><h2>Portföy Yatırımları – 12A Hareketli Toplam (Mn USD)</h2></div>
+        <div class="chart-wrap" data-canvas="bop12PortfoyChart"><canvas id="bop12PortfoyChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Yıllara Göre Cari Açıklar — Özet Tablo -->
+    <div class="grid-stack-item" gs-w="12" gs-h="6" gs-x="0" gs-y="31">
+      <div class="grid-stack-item-content chart-card table-card">
+        <div class="chart-header">
+          <h2>Yıllara Göre Cari İşlemler – Aylık (Mn USD)</h2>
+        </div>
+        <div id="bopYtdTableWrap" class="butce-table-wrap"></div>
+      </div>
+    </div>
+
+    <!-- Yıllara Göre Cari Açıklar — YTD Kümülatif Grafik -->
+    <div class="grid-stack-item" gs-w="12" gs-h="10" gs-x="0" gs-y="37">
+      <div class="grid-stack-item-content chart-card">
+        <div class="chart-header">
+          <h2>Yıllara Göre Cari Açıklar – YTD Kümülatif (Mn USD)</h2>
+        </div>
+        <div class="chart-wrap" data-canvas="bopYtdChart"><canvas id="bopYtdChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Portföy Yatırımları — Varlık & Yükümlülük (12A) -->
+    <div class="grid-stack-item" gs-w="6" gs-h="5" gs-x="0" gs-y="47">
+      <div class="grid-stack-item-content chart-card">
+        <div class="chart-header"><h2>Portföy – Türk Yatırımcı Yurt Dışı (12A) <span style="font-size:11px;color:var(--text-muted);font-weight:400">Q115</span></h2></div>
+        <div class="chart-wrap" data-canvas="bop12PfVarlikChart"><canvas id="bop12PfVarlikChart"></canvas></div>
+      </div>
+    </div>
+    <div class="grid-stack-item" gs-w="6" gs-h="5" gs-x="6" gs-y="47">
+      <div class="grid-stack-item-content chart-card">
+        <div class="chart-header"><h2>Portföy – Yabancı Yatırımcı Türkiye (12A) <span style="font-size:11px;color:var(--text-muted);font-weight:400">Q119</span></h2></div>
+        <div class="chart-wrap" data-canvas="bop12PfYukumChart"><canvas id="bop12PfYukumChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Doğrudan Yatırımlar — Varlık & Yükümlülük (12A) -->
+    <div class="grid-stack-item" gs-w="6" gs-h="5" gs-x="0" gs-y="52">
+      <div class="grid-stack-item-content chart-card">
+        <div class="chart-header"><h2>DYY – Türklerin Y.Dışı Yat. (12A) <span style="font-size:11px;color:var(--text-muted);font-weight:400">Q103</span></h2></div>
+        <div class="chart-wrap" data-canvas="bop12DydVarlikChart"><canvas id="bop12DydVarlikChart"></canvas></div>
+      </div>
+    </div>
+    <div class="grid-stack-item" gs-w="6" gs-h="5" gs-x="6" gs-y="52">
+      <div class="grid-stack-item-content chart-card">
+        <div class="chart-header"><h2>DYY – Yabancıların TR'ye Yat. (12A) <span style="font-size:11px;color:var(--text-muted);font-weight:400">Q108</span></h2></div>
+        <div class="chart-wrap" data-canvas="bop12DydYukumChart"><canvas id="bop12DydYukumChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Net Portföy Akışı: Yabancı TR - Türk YDışı (12A) -->
+    <div class="grid-stack-item" gs-w="12" gs-h="6" gs-x="0" gs-y="57">
+      <div class="grid-stack-item-content chart-card">
+        <div class="chart-header">
+          <h2>Portföy Yatırımları – Karşılaştırma (12A Hareketli Toplam) &nbsp;<span style="font-size:11px;color:var(--text-muted);font-weight:400">Q119 Yabancı TR &nbsp;·&nbsp; Q115 Türk Yurt Dışı &nbsp;·&nbsp; Mn USD</span></h2>
+        </div>
+        <div class="chart-wrap" data-canvas="bop12NetPfChart"><canvas id="bop12NetPfChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Kaynakça -->
+    <div class="grid-stack-item" gs-w="12" gs-h="3" gs-x="0" gs-y="63" gs-no-move="true" gs-no-resize="true">
+      <div class="grid-stack-item-content">
+        <div class="source-note-card">
+          <div><strong>Kaynak:</strong> TCMB EVDS (evds3.tcmb.gov.tr) · Aylık yayım · Birim: Milyon USD &nbsp;·&nbsp; Tüm seri kodları <em>TP.ODEAYRSUNUM6</em> ön ekini taşır</div>
+          <div><strong>Seriler:</strong> <code>Q1</code> Cari &nbsp;·&nbsp; <code>Q4</code> Dış Ticaret &nbsp;·&nbsp; <code>Q20</code> Hizmet &nbsp;·&nbsp; <code>Q68</code> Birincil Gelir &nbsp;·&nbsp; <code>Q92</code> İkincil Gelir &nbsp;·&nbsp; <code>Q99</code> Sermaye &nbsp;·&nbsp; <code>Q210</code> Net Hata &nbsp;·&nbsp; <code>Q101</code> Finans &nbsp;·&nbsp; <code>Q204</code> Rezervler &nbsp;·&nbsp; <code>Q136</code> Diğer Yat. &nbsp;·&nbsp; <code>Q114</code> Portföy &nbsp;·&nbsp; <code>Q102</code> Doğrudan &nbsp;·&nbsp; <code>Q115</code> Portföy Varlık &nbsp;·&nbsp; <code>Q119</code> Portföy Yüküm. &nbsp;·&nbsp; <code>Q103</code> DYY Varlık &nbsp;·&nbsp; <code>Q108</code> DYY Yüküm.</div>
+          <div><strong>Birincil Gelir</strong> (<code>Q68</code>): Yabancılar bizden daha fazla faiz &amp; kâr götürüyor &nbsp;·&nbsp; <strong>Diğer Yat.</strong> (<code>Q136</code>): Dış kredi / banka borçlanması &nbsp;·&nbsp; <strong>Portföy Varlık</strong> (<code>Q115</code>): Türk yatırımcıların yurt dışı menkul kıymet alımları &nbsp;·&nbsp; <strong>Portföy Yüküm.</strong> (<code>Q119</code>): Yabancıların Türk hisse &amp; tahvil alımları &nbsp;·&nbsp; <strong>DYY Varlık</strong> (<code>Q103</code>): Türklerin yurt dışında doğrudan yatırımları &nbsp;·&nbsp; <strong>DYY Yüküm.</strong> (<code>Q108</code>): Yabancıların Türkiye'ye doğrudan yatırımları</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══ SAYFA 7: TURİZM ══ -->
+  <div class="grid-stack page-content hidden" id="page-turizm">
+
+    <!-- Kişi Başı Harcama -->
+    <div class="grid-stack-item" gs-w="12" gs-h="7" gs-x="0" gs-y="0">
+      <div class="grid-stack-item-content chart-card">
+        <div class="chart-header">
+          <h2>Kişi Başı Ortalama Harcama Tutarı (USD)</h2>
+        </div>
+        <div class="chart-wrap" data-canvas="turizmKisiBasiChart"><canvas id="turizmKisiBasiChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Ziyaretçi Sayısı -->
+    <div class="grid-stack-item" gs-w="12" gs-h="7" gs-x="0" gs-y="7">
+      <div class="grid-stack-item-content chart-card">
+        <div class="chart-header">
+          <h2>Toplam Ziyaretçi Sayısı</h2>
+        </div>
+        <div class="chart-wrap" data-canvas="turizmZiyaretciChart"><canvas id="turizmZiyaretciChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Seyahat Geliri Tablosu -->
+    <div class="grid-stack-item" gs-w="12" gs-h="7" gs-x="0" gs-y="14">
+      <div class="grid-stack-item-content chart-card table-card">
+        <div class="chart-header">
+          <h2>Toplam Seyahat Geliri – Aylık (Mn USD)</h2>
+        </div>
+        <div id="turizmTableWrap" class="butce-table-wrap"></div>
+      </div>
+    </div>
+
+    <!-- Kaynakça -->
+    <div class="grid-stack-item" gs-w="12" gs-h="2" gs-x="0" gs-y="21" gs-no-move="true" gs-no-resize="true">
+      <div class="grid-stack-item-content">
+        <div class="source-note-card">
+          <div><strong>Kaynak:</strong> TCMB EVDS (evds3.tcmb.gov.tr) · TUİK kaynaklı · Aylık yayım</div>
+          <div><strong>Seriler:</strong> <code>TP.SGEGI.K1</code> Toplam Seyahat Geliri (Mn USD) &nbsp;·&nbsp; <code>TP.SGEGI.K3</code> Toplam Ziyaretçi Sayısı (Kişi) &nbsp;·&nbsp; <code>TP.SGEGI.K4</code> Kişi Başı Ortalama Harcama Tutarı (USD)</div>
+          <div><strong>Not:</strong> Tabloda Toplam sütunu mevcut 12 aylık toplam, YTD sütunu ise cari yıl için veri bulunan aylara ait kümülatif toplamı gösterir.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══ SAYFA 7: DIŞ TİCARET ══ -->
+  <div class="grid-stack page-content hidden" id="page-dis-ticaret">
+
+    <!-- 12A Hareketli Toplam -->
+    <div class="grid-stack-item" gs-w="12" gs-h="7" gs-x="0" gs-y="0">
+      <div class="grid-stack-item-content chart-card">
+        <div class="chart-header">
+          <h2>İhracat / İthalat / Ticaret Açığı – 12A Hareketli Toplam (Mn USD)</h2>
+        </div>
+        <div class="chart-wrap" data-canvas="dtRoll12Chart"><canvas id="dtRoll12Chart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Hareketli Ortalamalar -->
+    <div class="grid-stack-item" gs-w="12" gs-h="7" gs-x="0" gs-y="7">
+      <div class="grid-stack-item-content chart-card">
+        <div class="chart-header">
+          <h2>Dış Ticaret Açığı – Hareketli Ortalamalar (Mn USD)</h2>
+        </div>
+        <div class="chart-wrap" data-canvas="dtMaChart"><canvas id="dtMaChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Tablo -->
+    <div class="grid-stack-item" gs-w="12" gs-h="7" gs-x="0" gs-y="14">
+      <div class="grid-stack-item-content chart-card table-card">
+        <div class="chart-header">
+          <h2>Dış Ticaret Açığı – Aylık (Mn USD)</h2>
+        </div>
+        <div id="dtTableWrap" class="butce-table-wrap"></div>
+      </div>
+    </div>
+
+    <div class="grid-stack-item" gs-w="12" gs-h="2" gs-x="0" gs-y="21" gs-no-move="true" gs-no-resize="true">
+      <div class="grid-stack-item-content">
+        <div class="source-note-card">
+          <div><strong>Kaynak:</strong> TCMB EVDS (evds3.tcmb.gov.tr) · Aylık yayım · Birim: Milyon USD</div>
+          <div><strong>Seriler:</strong> <code>TP.ODANA6.Q02</code> İhracat &nbsp;·&nbsp; <code>TP.ODANA6.Q03</code> İthalat &nbsp;·&nbsp; <em>Ticaret Açığı</em> = İhracat − İthalat (türetilmiş seri, negatif değer açık anlamına gelir)</div>
+          <div><strong>Hesaplamalar:</strong> <em>12A hareketli toplam</em> — son 12 ayın toplamı (herhangi bir ay null ise o nokta hesaplanmaz) &nbsp;·&nbsp; <em>N-aylık hareketli ortalama</em> — son N ayın basit aritmetik ortalaması</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══ SAYFA: KONUT ══ -->
+  <div class="grid-stack page-content hidden" id="page-konut">
+
+    <!-- 1: KFE TR + İstanbul YoY -->
+    <div class="grid-stack-item" gs-w="6" gs-h="6" gs-x="0" gs-y="0">
+      <div class="grid-stack-item-content chart-card">
+        <div class="chart-header"><h2>KFE – Türkiye &amp; İstanbul Yıllık Büyüme (%)</h2></div>
+        <div class="chart-wrap" data-canvas="konutKfeYoyChart"><canvas id="konutKfeYoyChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- 2: Yeni / Yeni Olmayan KFE YoY -->
+    <div class="grid-stack-item" gs-w="6" gs-h="6" gs-x="6" gs-y="0">
+      <div class="grid-stack-item-content chart-card">
+        <div class="chart-header"><h2>Yeni &amp; Yeni Olmayan Konut FE Yıllık Büyüme (%)</h2></div>
+        <div class="chart-wrap" data-canvas="konutYkfeYoyChart"><canvas id="konutYkfeYoyChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- 3: YKKE TR + İstanbul YoY -->
+    <div class="grid-stack-item" gs-w="6" gs-h="6" gs-x="0" gs-y="6">
+      <div class="grid-stack-item-content chart-card">
+        <div class="chart-header"><h2>Yeni Kiracı Kira Endeksi Yıllık Büyüme (%)</h2></div>
+        <div class="chart-wrap" data-canvas="konutYkkeYoyChart"><canvas id="konutYkkeYoyChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- 4: Konut Çarpanı (KFE İst / YKKE İst) -->
+    <div class="grid-stack-item" gs-w="6" gs-h="6" gs-x="6" gs-y="6">
+      <div class="grid-stack-item-content chart-card">
+        <div class="chart-header">
+          <h2>Konut Çarpanı &nbsp;<span style="font-size:11px;font-weight:400;color:var(--text-muted)">KFE İstanbul ÷ YKKE İstanbul</span></h2>
+        </div>
+        <div class="chart-wrap" data-canvas="konutCarpanChart"><canvas id="konutCarpanChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- 5: Konut Satışları – Aylık -->
+    <div class="grid-stack-item" gs-w="6" gs-h="6" gs-x="0" gs-y="12">
+      <div class="grid-stack-item-content chart-card">
+        <div class="chart-header"><h2>Konut Satışları – Aylık (adet)</h2></div>
+        <div class="chart-wrap" data-canvas="konutSatisChart"><canvas id="konutSatisChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- 6: Konut Satışları – 12 Aylık Hareketli Toplam -->
+    <div class="grid-stack-item" gs-w="6" gs-h="6" gs-x="6" gs-y="12">
+      <div class="grid-stack-item-content chart-card">
+        <div class="chart-header"><h2>Konut Satışları – 12 Aylık Hareketli Toplam</h2></div>
+        <div class="chart-wrap" data-canvas="konutSatis12aChart"><canvas id="konutSatis12aChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- 7: Toplam / İpotekli Rasyo -->
+    <div class="grid-stack-item" gs-w="6" gs-h="6" gs-x="0" gs-y="18">
+      <div class="grid-stack-item-content chart-card">
+        <div class="chart-header"><h2>Toplam Satış / İpotekli Satış Rasyosu</h2></div>
+        <div class="chart-wrap" data-canvas="konutSatisRasyoChart"><canvas id="konutSatisRasyoChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Kaynakça -->
+    <div class="grid-stack-item" gs-w="12" gs-h="2" gs-x="0" gs-y="24" gs-no-move="true" gs-no-resize="true">
+      <div class="grid-stack-item-content">
+        <div class="source-note-card">
+          <div><strong>Kaynak:</strong> TCMB EVDS · TÜİK · Aylık yayım &nbsp;·&nbsp; <strong>Seriler:</strong> <code>TP.KFE.TR</code> KFE-TR &nbsp;·&nbsp; <code>TP.KFE.TR10</code> KFE-İst &nbsp;·&nbsp; <code>TP.YKFE.TR</code> Yeni KFE &nbsp;·&nbsp; <code>TP.YOKFEND.TR</code> Y.Olmayan KFE &nbsp;·&nbsp; <code>TP.YKKE.TR</code> Kira-TR &nbsp;·&nbsp; <code>TP.YKKE.TR10</code> Kira-İst &nbsp;·&nbsp; <code>TP.AKONUTSAT1.KTRTOPLAM</code> Toplam Satış &nbsp;·&nbsp; <code>TP.AKONUTSAT2.KTRTOPLAM</code> İpotekli Satış</div>
+          <div><strong>Yıllık büyüme:</strong> (Endeks_t / Endeks_{t−12} − 1) × 100 &nbsp;·&nbsp; <strong>Konut Çarpanı:</strong> KFE İstanbul seviyesi ÷ YKKE İstanbul seviyesi — yükselen çarpan konutun kiraya göre pahalılaştığını gösterir &nbsp;·&nbsp; Kira endeksleri 2018'den itibaren mevcuttur</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══ SAYFA: ENFLASYON ══ -->
+  <div class="grid-stack page-content hidden" id="page-enflasyon">
+
+    <!-- Katkı Tablosu -->
+    <div class="grid-stack-item" gs-w="12" gs-h="10" gs-x="0" gs-y="0">
+      <div class="grid-stack-item-content chart-card table-card">
+        <div class="chart-header">
+          <h2 id="enflasyonTableTitle">Aylık TÜFE Katkı Analizi</h2>
+        </div>
+        <div id="enflasyonTableWrap" class="butce-table-wrap"></div>
+      </div>
+    </div>
+
+    <!-- Tarihsel Tablo: tüm aylar, her satır = 1 ay -->
+    <div class="grid-stack-item" gs-w="12" gs-h="16" gs-x="0" gs-y="10">
+      <div class="grid-stack-item-content chart-card table-card">
+        <div class="chart-header">
+          <h2>Aylık TÜFE – Alt Kalem Marjinal Etkileri (pp)</h2>
+          <div class="header-right">
+            <span style="font-size:11px;color:var(--text-muted)">Genel = MoM % &nbsp;·&nbsp; Alt kalemler = Katkı (pp) = Ağırlık × MoM &nbsp;·&nbsp; En güncel en üstte</span>
+          </div>
+        </div>
+        <div id="enflasyonHistTableWrap" class="butce-table-wrap"></div>
+      </div>
+    </div>
+
+    <!-- Kaynakça -->
+    <div class="grid-stack-item" gs-w="12" gs-h="2" gs-x="0" gs-y="26" gs-no-move="true" gs-no-resize="true">
+      <div class="grid-stack-item-content">
+        <div class="source-note-card">
+          <div><strong>Kaynak:</strong> TÜİK · TCMB EVDS · Seri grubu: <code>TP.TUKFIY2025</code> · Baz yıl: 2025=100 · Aylık yayım</div>
+          <div><strong>Ağırlıklar:</strong> TÜİK 2026 yılı resmi TÜFE sepet ağırlıkları (COICOP 2018) &nbsp;·&nbsp; <strong>Aylık Değ.:</strong> (Endeks_t / Endeks_{t-1} − 1) × 100 &nbsp;·&nbsp; <strong>Katkı (pp):</strong> Ağırlık × Aylık Değ. &nbsp;·&nbsp; Katkıların toplamı Genel MoM'a yakınsar</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══ SAYFA: MAKRO TAHMİN ══ -->
+  <div class="grid-stack page-content hidden" id="page-makro">
+    <div class="grid-stack-item" gs-w="12" gs-h="26" gs-x="0" gs-y="0" gs-no-move="true" gs-no-resize="true">
+      <div class="grid-stack-item-content chart-card table-card" style="display:flex;flex-direction:column;overflow:hidden;">
+        <div class="chart-header" style="flex-shrink:0;">
+          <h2>Tarihsel Veri &amp; Tahmin</h2>
+          <button id="addFcRowBtn" class="refresh-btn" style="font-size:11px;padding:5px 10px;margin-left:10px;">+ Tahmin Satırı</button>
+        </div>
+        <div id="makroTableWrap" style="overflow:auto;flex:1;"></div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gridstack@10.3.1/dist/gridstack-all.js"></script>
+<script src="/static/js/main.js"></script>
+</body>
+</html>
