@@ -325,7 +325,7 @@ function draw(ts) {
   if (scrollX >= STEP) {
     scrollX -= STEP;
     candles.push(genCandle(candles[candles.length - 1].close));
-    if (candles.length > initN + 60) candles.shift();
+    candles.shift(); // uzunluk sabit kalsin, atlama olmaz
   }
 
   // Background
