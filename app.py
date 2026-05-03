@@ -1,12 +1,29 @@
 from flask import Flask, jsonify, render_template, session, redirect, url_for, request
-import sqlite3
-import os
+import sqlite3, os, secrets, string
+from datetime import datetime
 
 app = Flask(__name__)
 app.secret_key = 'tr-3nfinans-gizli-anahtar-2024'
-LOGIN_PASSWORD  = '3nfinans'   # <-- bunu istediğin zaman değiştir
+ADMIN_SECRET   = '3n-admin-gizli'   # <-- admin panel URL'si: /admin/3n-admin-gizli
 
 DB_PATH = os.path.join(os.path.dirname(__file__), 'data', 'cache.db')
+
+
+def generate_code():
+    chars = string.ascii_uppercase + string.digits
+    return '3N-' + ''.join(secrets.choice(chars) for _ in range(6))
+
+
+def init_invite_table():
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute('''CREATE TABLE IF NOT EXISTS invite_codes (
+            code       TEXT PRIMARY KEY,
+            name       TEXT,
+            active     INTEGER DEFAULT 1,
+            created_at TEXT,
+            last_login TEXT
+        )''')
+init_invite_table()
 
 
 def query(sql):
@@ -23,9 +40,20 @@ def fmt(s):
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        if request.form.get('password') == LOGIN_PASSWORD:
-            session['logged_in'] = True
-            return redirect(url_for('index'))
+        code = request.form.get('code', '').strip().upper()
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.row_factory = sqlite3.Row
+            row = conn.execute(
+                'SELECT name, active FROM invite_codes WHERE code = ?', (code,)
+            ).fetchone()
+            if row and row['active'] == 1:
+                conn.execute(
+                    'UPDATE invite_codes SET last_login = ? WHERE code = ?',
+                    (datetime.now().strftime('%Y-%m-%d %H:%M'), code)
+                )
+                session['logged_in'] = True
+                session['user_name'] = row['name']
+                return redirect(url_for('index'))
         return render_template('login.html', error=True)
     if session.get('logged_in'):
         return redirect(url_for('index'))
@@ -36,6 +64,52 @@ def login():
 def logout():
     session.clear()
     return redirect(url_for('login'))
+
+
+# ── Admin paneli ──────────────────────────────────────────
+@app.route('/admin/<secret>')
+def admin(secret):
+    if secret != ADMIN_SECRET:
+        return redirect(url_for('login'))
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        codes = conn.execute(
+            'SELECT code, name, active, created_at, last_login FROM invite_codes ORDER BY created_at DESC'
+        ).fetchall()
+    return render_template('admin.html', codes=codes, secret=secret)
+
+
+@app.route('/admin/<secret>/add', methods=['POST'])
+def admin_add(secret):
+    if secret != ADMIN_SECRET:
+        return redirect(url_for('login'))
+    name = request.form.get('name', '').strip()
+    if name:
+        code = generate_code()
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.execute(
+                'INSERT INTO invite_codes (code, name, active, created_at) VALUES (?, ?, 1, ?)',
+                (code, name, datetime.now().strftime('%Y-%m-%d %H:%M'))
+            )
+    return redirect(url_for('admin', secret=secret))
+
+
+@app.route('/admin/<secret>/toggle/<code>')
+def admin_toggle(secret, code):
+    if secret != ADMIN_SECRET:
+        return redirect(url_for('login'))
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute('UPDATE invite_codes SET active = 1 - active WHERE code = ?', (code,))
+    return redirect(url_for('admin', secret=secret))
+
+
+@app.route('/admin/<secret>/delete/<code>')
+def admin_delete(secret, code):
+    if secret != ADMIN_SECRET:
+        return redirect(url_for('login'))
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute('DELETE FROM invite_codes WHERE code = ?', (code,))
+    return redirect(url_for('admin', secret=secret))
 
 
 @app.route('/')
