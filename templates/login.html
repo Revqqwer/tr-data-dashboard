@@ -257,169 +257,159 @@ const html = TICKERS.map(t =>
 ).join('');
 ti.innerHTML = html + html; // duplicate for seamless loop
 
-// ===== CANVAS ANIMATION =====
+// ===== CANVAS ANIMATION — pixel-by-pixel smooth scroll =====
 const canvas = document.getElementById('bg');
 const ctx    = canvas.getContext('2d');
 
-function resize() {
-  canvas.width  = window.innerWidth;
-  canvas.height = window.innerHeight;
-}
-resize();
-window.addEventListener('resize', resize);
+let W, H, prices1, prices2, vol_arr;
+let p1 = 100, p2 = 80;
 
-const CW = 13, GAP = 5, STEP = CW + GAP;
-let candles = [];
-let price   = 100;
-let scrollX = 0;
+function initArrays() {
+  W = canvas.width  = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+  const n = W + 4;
+  prices1  = []; prices2 = []; vol_arr = [];
+  p1 = 100; p2 = 80;
+  for (let i = 0; i < n; i++) {
+    p1 += (Math.random() - 0.475) * 1.4;
+    p2 += (Math.random() - 0.472) * 0.9;
+    prices1.push(p1);
+    prices2.push(p2);
+    vol_arr.push(0.2 + Math.random() * 0.8);
+  }
+}
+initArrays();
+window.addEventListener('resize', initArrays);
+
+// Her frame'de birikim; 1 tam piksel dolunca 1 eleman ekle/cikar
+let subPx = 0;
+const PX_PER_SEC = 28; // kac piksel / saniye scroll
 let lastTime = 0;
 
-function genCandle(p) {
-  const vol  = 1.2 + Math.random() * 1.8;
-  const chg  = (Math.random() - 0.47) * vol;
-  const open = p, close = p + chg;
-  return {
-    open, close,
-    high: Math.max(open, close) + Math.random() * 0.7,
-    low:  Math.min(open, close) - Math.random() * 0.7,
-    volume: 0.3 + Math.random() * 0.7,
-  };
+function addSample() {
+  p1 += (Math.random() - 0.475) * 1.4;
+  p2 += (Math.random() - 0.472) * 0.9;
+  prices1.shift(); prices1.push(p1);
+  prices2.shift(); prices2.push(p2);
+  vol_arr.shift(); vol_arr.push(0.2 + Math.random() * 0.8);
 }
 
-const initN = Math.ceil(window.innerWidth / STEP) + 30;
-for (let i = 0; i < initN; i++) {
-  candles.push(genCandle(price));
-  price = candles[candles.length - 1].close;
-}
-
-function range() {
-  const vals = candles.flatMap(c => [c.high, c.low]);
-  const mn = Math.min(...vals), mx = Math.max(...vals);
-  const pad = (mx - mn) * 0.12;
-  return { mn: mn - pad, mx: mx + pad };
-}
-
-function sy(p, mn, mx, H, top, bot) {
-  return top + (H - top - bot) * (1 - (p - mn) / (mx - mn));
-}
-
-// Floating particles (percentage numbers)
+// Floating particles
 const particles = [];
-for (let i = 0; i < 18; i++) {
+for (let i = 0; i < 16; i++) {
   particles.push({
     x: Math.random() * window.innerWidth,
     y: Math.random() * window.innerHeight,
-    vy: -(0.15 + Math.random() * 0.25),
+    vy: -(0.12 + Math.random() * 0.22),
     val: (Math.random() > 0.5 ? '+' : '-') + (Math.random() * 5).toFixed(2) + '%',
     up:  Math.random() > 0.5,
-    alpha: 0.08 + Math.random() * 0.14,
-    size: 10 + Math.random() * 7,
+    alpha: 0.07 + Math.random() * 0.1,
+    size: 11 + Math.random() * 6,
   });
 }
 
+function scaleArr(arr, yTop, yBot) {
+  const mn = Math.min(...arr), mx = Math.max(...arr);
+  const rng = mx - mn || 1;
+  const pad = rng * 0.1;
+  return v => yBot - ((v - mn + pad) / (rng + pad * 2)) * (yBot - yTop);
+}
+
 function draw(ts) {
-  const dt = ts - lastTime; lastTime = ts;
-  const W = canvas.width, H = canvas.height;
+  const dt = Math.min((ts - lastTime) / 1000, 0.05);
+  lastTime = ts;
 
-  scrollX += 0.35;
-  if (scrollX >= STEP) {
-    scrollX -= STEP;
-    candles.push(genCandle(candles[candles.length - 1].close));
-    candles.shift(); // uzunluk sabit kalsin, atlama olmaz
-  }
+  // Her saniye PX_PER_SEC kadar örnek ekle
+  subPx += PX_PER_SEC * dt;
+  while (subPx >= 1) { subPx -= 1; addSample(); }
 
-  // Background
   ctx.fillStyle = '#050a14';
   ctx.fillRect(0, 0, W, H);
 
   // Grid
-  ctx.strokeStyle = 'rgba(20,40,70,0.55)';
+  ctx.strokeStyle = 'rgba(20,40,70,0.5)';
   ctx.lineWidth = 1;
   for (let y = 0; y < H; y += 55) {
-    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
   }
   for (let x = 0; x < W; x += 75) {
-    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
   }
 
-  const TOP = 44, BOT_VOL = H * 0.17, VOL_TOP = H * 0.80;
-  const { mn, mx } = range();
+  const chartTop = 44, chartBot = H * 0.78, volTop = H * 0.84;
 
-  // MA line
-  const MA = 12;
+  // Ikinci cizgi (cyan) — arka planda
+  const sy2 = scaleArr(prices2, chartTop, chartBot);
   ctx.beginPath();
-  ctx.strokeStyle = 'rgba(240,180,41,0.65)';
+  for (let i = 0; i < prices2.length; i++) {
+    const x = i - subPx;
+    if (i === 0) ctx.moveTo(x, sy2(prices2[i]));
+    else         ctx.lineTo(x, sy2(prices2[i]));
+  }
+  ctx.strokeStyle = 'rgba(34,211,238,0.35)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Volume bars
+  const maxVol = Math.max(...vol_arr);
+  const volH   = H - volTop;
+  for (let i = 0; i < vol_arr.length; i++) {
+    const x  = i - subPx;
+    const bh = (vol_arr[i] / maxVol) * volH;
+    const up = i > 0 ? prices1[i] >= prices1[i-1] : true;
+    ctx.fillStyle = up ? 'rgba(34,197,94,0.22)' : 'rgba(239,68,68,0.22)';
+    ctx.fillRect(x - 1, H - bh, 3, bh);
+  }
+
+  // Ana cizgi (altin) + gradient dolgu
+  const sy1 = scaleArr(prices1, chartTop, chartBot);
+  ctx.beginPath();
+  for (let i = 0; i < prices1.length; i++) {
+    const x = i - subPx;
+    if (i === 0) ctx.moveTo(x, sy1(prices1[i]));
+    else         ctx.lineTo(x, sy1(prices1[i]));
+  }
+  // Dolgu icin kapat
+  ctx.lineTo(W, chartBot); ctx.lineTo(0, chartBot); ctx.closePath();
+  const grad = ctx.createLinearGradient(0, chartTop, 0, chartBot);
+  grad.addColorStop(0, 'rgba(240,180,41,0.18)');
+  grad.addColorStop(1, 'rgba(240,180,41,0.0)');
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Altin cizgi tekrar (stroke icin)
+  ctx.beginPath();
+  for (let i = 0; i < prices1.length; i++) {
+    const x = i - subPx;
+    if (i === 0) ctx.moveTo(x, sy1(prices1[i]));
+    else         ctx.lineTo(x, sy1(prices1[i]));
+  }
+  ctx.strokeStyle = 'rgba(240,180,41,0.8)';
   ctx.lineWidth = 2;
   ctx.shadowColor = '#f0b429';
-  ctx.shadowBlur  = 10;
-  let started = false;
-  for (let i = 0; i < candles.length; i++) {
-    if (i < MA - 1) continue;
-    const ma = candles.slice(i - MA + 1, i + 1)
-                      .reduce((s,c) => s + (c.open+c.close)/2, 0) / MA;
-    const x  = W - (candles.length - 1 - i) * STEP + scrollX;
-    const y  = sy(ma, mn, mx, H, TOP, H - VOL_TOP);
-    if (!started) { ctx.moveTo(x, y); started = true; }
-    else ctx.lineTo(x, y);
-  }
+  ctx.shadowBlur  = 8;
   ctx.stroke();
   ctx.shadowBlur = 0;
-
-  // Candles
-  const maxVol = Math.max(...candles.map(c => c.volume));
-  for (let i = 0; i < candles.length; i++) {
-    const c  = candles[i];
-    const x  = W - (candles.length - 1 - i) * STEP + scrollX;
-    if (x < -STEP || x > W + STEP) continue;
-
-    const up = c.close >= c.open;
-    const a  = 0.55 + (i / candles.length) * 0.35;
-    const green = `rgba(34,197,94,${a})`;
-    const red   = `rgba(239,68,68,${a})`;
-    const col   = up ? green : red;
-
-    const hy = sy(c.high,  mn, mx, H, TOP, H - VOL_TOP);
-    const ly = sy(c.low,   mn, mx, H, TOP, H - VOL_TOP);
-    const oy = sy(c.open,  mn, mx, H, TOP, H - VOL_TOP);
-    const cy = sy(c.close, mn, mx, H, TOP, H - VOL_TOP);
-
-    // Wick
-    ctx.strokeStyle = col; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(x, hy); ctx.lineTo(x, ly); ctx.stroke();
-
-    // Body
-    const by = Math.min(oy, cy), bh = Math.max(2, Math.abs(cy - oy));
-    ctx.fillStyle = up
-      ? `rgba(34,197,94,${a*0.45})`
-      : `rgba(239,68,68,${a*0.45})`;
-    ctx.fillRect(x - CW/2, by, CW, bh);
-    ctx.strokeRect(x - CW/2, by, CW, bh);
-
-    // Volume
-    const vh = (c.volume / maxVol) * (H - VOL_TOP);
-    ctx.fillStyle = up ? 'rgba(34,197,94,0.28)' : 'rgba(239,68,68,0.28)';
-    ctx.fillRect(x - CW/2, H - vh, CW, vh);
-  }
 
   // Floating particles
   particles.forEach(p => {
     p.y += p.vy;
     if (p.y < -20) { p.y = H + 10; p.x = Math.random() * W; }
-    ctx.font = `${p.size}px 'Segoe UI', monospace`;
+    ctx.font = `${p.size}px monospace`;
     ctx.fillStyle = p.up
       ? `rgba(34,197,94,${p.alpha})`
       : `rgba(239,68,68,${p.alpha})`;
     ctx.fillText(p.val, p.x, p.y);
   });
 
-  // Edge fade
-  const fadeW = 100;
-  const lg = ctx.createLinearGradient(0,0,fadeW,0);
+  // Kenar soluklastirma
+  const fw = 80;
+  const lg = ctx.createLinearGradient(0,0,fw,0);
   lg.addColorStop(0,'#050a14'); lg.addColorStop(1,'transparent');
-  ctx.fillStyle = lg; ctx.fillRect(0,0,fadeW,H);
-  const rg = ctx.createLinearGradient(W-fadeW,0,W,0);
+  ctx.fillStyle = lg; ctx.fillRect(0,0,fw,H);
+  const rg = ctx.createLinearGradient(W-fw,0,W,0);
   rg.addColorStop(0,'transparent'); rg.addColorStop(1,'#050a14');
-  ctx.fillStyle = rg; ctx.fillRect(W-fadeW,0,fadeW,H);
+  ctx.fillStyle = rg; ctx.fillRect(W-fw,0,fw,H);
 
   requestAnimationFrame(draw);
 }
