@@ -6,3 +6,4 @@ server_err.log
 *.rar
 *.zip
 *.bat
+.claude/
