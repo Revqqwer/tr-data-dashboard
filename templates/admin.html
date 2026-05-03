@@ -121,6 +121,47 @@
   </div>
 </form>
 
+<!-- Kullanıcı tablosu -->
+<h2 style="font-size:14px;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:14px;">Kayitli Kullanicilar</h2>
+<div class="table-wrap" style="margin-bottom:32px;">
+  {% if users %}
+  <table>
+    <thead>
+      <tr>
+        <th>Kullanici Adi</th>
+        <th>Abone Adi</th>
+        <th>Durum</th>
+        <th>Kayit</th>
+        <th>Son Giris</th>
+        <th>Islem</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for u in users %}
+      <tr>
+        <td style="font-weight:600;">{{ u.username }}</td>
+        <td>{{ u.name or '-' }}</td>
+        <td>
+          {% if u.active %}<span class="badge-active">Aktif</span>
+          {% else %}<span class="badge-passive">Pasif</span>{% endif %}
+        </td>
+        <td class="muted">{{ u.created_at or '-' }}</td>
+        <td class="muted">{{ u.last_login or 'Henuz yok' }}</td>
+        <td>
+          <a href="/admin/{{ secret }}/toggle-user/{{ u.id }}" class="btn btn-muted">
+            {% if u.active %}Engelle{% else %}Aktifestir{% endif %}
+          </a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">Henuz kayitli kullanici yok.</div>
+  {% endif %}
+</div>
+
+<h2 style="font-size:14px;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:14px;">Davet Kodlari</h2>
 <!-- Kod tablosu -->
 <div class="table-wrap">
   {% if codes %}
@@ -131,7 +172,7 @@
         <th>Abone</th>
         <th>Durum</th>
         <th>Olusturulma</th>
-        <th>Son Giris</th>
+        <th>Kullanan</th>
         <th>Islemler</th>
       </tr>
     </thead>
@@ -148,7 +189,7 @@
           {% endif %}
         </td>
         <td class="muted">{{ c.created_at or '-' }}</td>
-        <td class="muted">{{ c.last_login or 'Henuz giris yok' }}</td>
+        <td class="muted">{{ c.used_by or 'Kullanilmadi' }}</td>
         <td>
           <div class="actions">
             <a href="/admin/{{ secret }}/toggle/{{ c.code }}" class="btn btn-muted">
