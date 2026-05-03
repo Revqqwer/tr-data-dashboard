@@ -272,7 +272,7 @@ const CW = 13, GAP = 5, STEP = CW + GAP;
 let candles = [];
 let price   = 100;
 let scrollX = 0;
-let addTimer = 0, lastTime = 0;
+let lastTime = 0;
 
 function genCandle(p) {
   const vol  = 1.2 + Math.random() * 1.8;
@@ -322,9 +322,8 @@ function draw(ts) {
   const W = canvas.width, H = canvas.height;
 
   scrollX += 0.35;
-  addTimer += dt;
-  if (addTimer > 650 && scrollX >= STEP) {
-    addTimer = 0; scrollX -= STEP;
+  if (scrollX >= STEP) {
+    scrollX -= STEP;
     candles.push(genCandle(candles[candles.length - 1].close));
     if (candles.length > initN + 60) candles.shift();
   }
