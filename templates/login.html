@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3N Finans</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #050a14;
+      color: #e2e8f0;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    canvas#bg {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 0;
+    }
+
+    .overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: radial-gradient(ellipse at center,
+        rgba(5,10,20,0.2) 0%,
+        rgba(5,10,20,0.72) 100%);
+      z-index: 1;
+    }
+
+    /* ---- Ticker ---- */
+    .ticker {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 36px;
+      background: rgba(8, 16, 36, 0.92);
+      border-bottom: 1px solid rgba(240,180,41,0.25);
+      overflow: hidden;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+    }
+    .ticker-inner {
+      display: flex;
+      white-space: nowrap;
+      animation: ticker-scroll 50s linear infinite;
+    }
+    .ticker-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 0 22px;
+      font-size: 11.5px;
+      font-weight: 600;
+      letter-spacing: 0.4px;
+      border-right: 1px solid rgba(255,255,255,0.08);
+    }
+    .t-name { color: #64748b; }
+    .t-val  { color: #e2e8f0; }
+    .t-up   { color: #22c55e; }
+    .t-dn   { color: #ef4444; }
+    @keyframes ticker-scroll {
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+
+    /* ---- Card ---- */
+    .card {
+      position: relative;
+      z-index: 10;
+      background: rgba(8, 14, 28, 0.82);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(240,180,41,0.18);
+      border-radius: 18px;
+      padding: 52px 60px 48px;
+      width: 430px;
+      box-shadow:
+        0 0 80px rgba(240,180,41,0.07),
+        0 24px 64px rgba(0,0,0,0.55);
+    }
+
+    .logo { text-align: center; margin-bottom: 6px; }
+
+    .logo-3n {
+      font-size: 72px;
+      font-weight: 900;
+      color: #f0b429;
+      line-height: 1;
+      letter-spacing: -3px;
+      text-shadow: 0 0 48px rgba(240,180,41,0.55);
+    }
+    .logo-finans {
+      font-size: 17px;
+      font-weight: 300;
+      letter-spacing: 9px;
+      color: #94a3b8;
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+
+    .divider {
+      width: 56px;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #f0b429, transparent);
+      margin: 22px auto 18px;
+    }
+
+    .subtitle {
+      text-align: center;
+      font-size: 12px;
+      color: #475569;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 36px;
+    }
+
+    .form-group { margin-bottom: 14px; }
+    .form-group label {
+      display: block;
+      font-size: 10.5px;
+      letter-spacing: 1.8px;
+      text-transform: uppercase;
+      color: #475569;
+      margin-bottom: 8px;
+    }
+    .form-group input {
+      width: 100%;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 9px;
+      padding: 14px 16px;
+      color: #e2e8f0;
+      font-size: 15px;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .form-group input:focus {
+      border-color: rgba(240,180,41,0.45);
+      box-shadow: 0 0 0 3px rgba(240,180,41,0.1);
+    }
+
+    .btn-login {
+      width: 100%;
+      padding: 15px;
+      background: linear-gradient(135deg, #f0b429, #d99a14);
+      border: none;
+      border-radius: 9px;
+      color: #050a14;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all .2s;
+      margin-top: 10px;
+    }
+    .btn-login:hover {
+      background: linear-gradient(135deg, #f5c23e, #f0b429);
+      box-shadow: 0 6px 24px rgba(240,180,41,0.38);
+      transform: translateY(-1px);
+    }
+    .btn-login:active { transform: translateY(0); }
+
+    .error-msg {
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.3);
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: #ef4444;
+      font-size: 13px;
+      text-align: center;
+      margin-top: 14px;
+      animation: shake .3s ease;
+    }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      25%      { transform: translateX(-6px); }
+      75%      { transform: translateX(6px); }
+    }
+
+    .footer {
+      position: fixed;
+      bottom: 14px;
+      z-index: 10;
+      color: #1e293b;
+      font-size: 11px;
+      letter-spacing: 1px;
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="bg"></canvas>
+<div class="overlay"></div>
+
+<!-- Ticker tape -->
+<div class="ticker">
+  <div class="ticker-inner" id="tickerInner"></div>
+</div>
+
+<!-- Login card -->
+<div class="card">
+  <div class="logo">
+    <div class="logo-3n">3N</div>
+    <div class="logo-finans">Finans</div>
+  </div>
+  <div class="divider"></div>
+  <div class="subtitle">Turkiye Ekonomi Dashboard</div>
+
+  <form method="POST" action="/login">
+    <div class="form-group">
+      <label>Sifre</label>
+      <input type="password" name="password" placeholder="••••••••" autofocus>
+    </div>
+    <button type="submit" class="btn-login">Giris Yap</button>
+    {% if error %}
+    <div class="error-msg">Hatali sifre. Tekrar deneyin.</div>
+    {% endif %}
+  </form>
+</div>
+
+<div class="footer">&copy; 2025 3N Finans</div>
+
+<script>
+// ===== TICKER =====
+const TICKERS = [
+  { name:'USD/TRY',    val:'43.15',  chg:'+0.42%', up:true  },
+  { name:'EUR/TRY',    val:'47.82',  chg:'+0.31%', up:true  },
+  { name:'BIST 100',   val:'9.842',  chg:'-0.18%', up:false },
+  { name:'XAU/USD',    val:'3.321',  chg:'+1.05%', up:true  },
+  { name:'EUR/USD',    val:'1.1082', chg:'-0.08%', up:false },
+  { name:'BTC/USD',    val:'95.420', chg:'+2.14%', up:true  },
+  { name:'GBP/TRY',    val:'57.34',  chg:'+0.22%', up:true  },
+  { name:'ENFLASYON',  val:'%38.1',  chg:'-4.2pp', up:false },
+  { name:'POL. FAIZ',  val:'%42.5',  chg:'0.00%',  up:false },
+  { name:'CDS (5Y)',   val:'248',    chg:'-3.2%',  up:false },
+  { name:'REZERV',     val:'$162B',  chg:'+0.8%',  up:true  },
+  { name:'CARI DENGE', val:'-$3.1B', chg:'-',      up:false },
+];
+
+const ti = document.getElementById('tickerInner');
+const html = TICKERS.map(t =>
+  `<span class="ticker-item">
+     <span class="t-name">${t.name}</span>
+     <span class="t-val">${t.val}</span>
+     <span class="${t.up?'t-up':'t-dn'}">${t.up?'&#9650;':'&#9660;'} ${t.chg}</span>
+   </span>`
+).join('');
+ti.innerHTML = html + html; // duplicate for seamless loop
+
+// ===== CANVAS ANIMATION =====
+const canvas = document.getElementById('bg');
+const ctx    = canvas.getContext('2d');
+
+function resize() {
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+const CW = 13, GAP = 5, STEP = CW + GAP;
+let candles = [];
+let price   = 100;
+let scrollX = 0;
+let addTimer = 0, lastTime = 0;
+
+function genCandle(p) {
+  const vol  = 1.2 + Math.random() * 1.8;
+  const chg  = (Math.random() - 0.47) * vol;
+  const open = p, close = p + chg;
+  return {
+    open, close,
+    high: Math.max(open, close) + Math.random() * 0.7,
+    low:  Math.min(open, close) - Math.random() * 0.7,
+    volume: 0.3 + Math.random() * 0.7,
+  };
+}
+
+const initN = Math.ceil(window.innerWidth / STEP) + 30;
+for (let i = 0; i < initN; i++) {
+  candles.push(genCandle(price));
+  price = candles[candles.length - 1].close;
+}
+
+function range() {
+  const vals = candles.flatMap(c => [c.high, c.low]);
+  const mn = Math.min(...vals), mx = Math.max(...vals);
+  const pad = (mx - mn) * 0.12;
+  return { mn: mn - pad, mx: mx + pad };
+}
+
+function sy(p, mn, mx, H, top, bot) {
+  return top + (H - top - bot) * (1 - (p - mn) / (mx - mn));
+}
+
+// Floating particles (percentage numbers)
+const particles = [];
+for (let i = 0; i < 18; i++) {
+  particles.push({
+    x: Math.random() * window.innerWidth,
+    y: Math.random() * window.innerHeight,
+    vy: -(0.15 + Math.random() * 0.25),
+    val: (Math.random() > 0.5 ? '+' : '-') + (Math.random() * 5).toFixed(2) + '%',
+    up:  Math.random() > 0.5,
+    alpha: 0.08 + Math.random() * 0.14,
+    size: 10 + Math.random() * 7,
+  });
+}
+
+function draw(ts) {
+  const dt = ts - lastTime; lastTime = ts;
+  const W = canvas.width, H = canvas.height;
+
+  scrollX += 0.35;
+  addTimer += dt;
+  if (addTimer > 650 && scrollX >= STEP) {
+    addTimer = 0; scrollX -= STEP;
+    candles.push(genCandle(candles[candles.length - 1].close));
+    if (candles.length > initN + 60) candles.shift();
+  }
+
+  // Background
+  ctx.fillStyle = '#050a14';
+  ctx.fillRect(0, 0, W, H);
+
+  // Grid
+  ctx.strokeStyle = 'rgba(20,40,70,0.55)';
+  ctx.lineWidth = 1;
+  for (let y = 0; y < H; y += 55) {
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
+  }
+  for (let x = 0; x < W; x += 75) {
+    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke();
+  }
+
+  const TOP = 44, BOT_VOL = H * 0.17, VOL_TOP = H * 0.80;
+  const { mn, mx } = range();
+
+  // MA line
+  const MA = 12;
+  ctx.beginPath();
+  ctx.strokeStyle = 'rgba(240,180,41,0.65)';
+  ctx.lineWidth = 2;
+  ctx.shadowColor = '#f0b429';
+  ctx.shadowBlur  = 10;
+  let started = false;
+  for (let i = 0; i < candles.length; i++) {
+    if (i < MA - 1) continue;
+    const ma = candles.slice(i - MA + 1, i + 1)
+                      .reduce((s,c) => s + (c.open+c.close)/2, 0) / MA;
+    const x  = W - (candles.length - 1 - i) * STEP + scrollX;
+    const y  = sy(ma, mn, mx, H, TOP, H - VOL_TOP);
+    if (!started) { ctx.moveTo(x, y); started = true; }
+    else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // Candles
+  const maxVol = Math.max(...candles.map(c => c.volume));
+  for (let i = 0; i < candles.length; i++) {
+    const c  = candles[i];
+    const x  = W - (candles.length - 1 - i) * STEP + scrollX;
+    if (x < -STEP || x > W + STEP) continue;
+
+    const up = c.close >= c.open;
+    const a  = 0.55 + (i / candles.length) * 0.35;
+    const green = `rgba(34,197,94,${a})`;
+    const red   = `rgba(239,68,68,${a})`;
+    const col   = up ? green : red;
+
+    const hy = sy(c.high,  mn, mx, H, TOP, H - VOL_TOP);
+    const ly = sy(c.low,   mn, mx, H, TOP, H - VOL_TOP);
+    const oy = sy(c.open,  mn, mx, H, TOP, H - VOL_TOP);
+    const cy = sy(c.close, mn, mx, H, TOP, H - VOL_TOP);
+
+    // Wick
+    ctx.strokeStyle = col; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x, hy); ctx.lineTo(x, ly); ctx.stroke();
+
+    // Body
+    const by = Math.min(oy, cy), bh = Math.max(2, Math.abs(cy - oy));
+    ctx.fillStyle = up
+      ? `rgba(34,197,94,${a*0.45})`
+      : `rgba(239,68,68,${a*0.45})`;
+    ctx.fillRect(x - CW/2, by, CW, bh);
+    ctx.strokeRect(x - CW/2, by, CW, bh);
+
+    // Volume
+    const vh = (c.volume / maxVol) * (H - VOL_TOP);
+    ctx.fillStyle = up ? 'rgba(34,197,94,0.28)' : 'rgba(239,68,68,0.28)';
+    ctx.fillRect(x - CW/2, H - vh, CW, vh);
+  }
+
+  // Floating particles
+  particles.forEach(p => {
+    p.y += p.vy;
+    if (p.y < -20) { p.y = H + 10; p.x = Math.random() * W; }
+    ctx.font = `${p.size}px 'Segoe UI', monospace`;
+    ctx.fillStyle = p.up
+      ? `rgba(34,197,94,${p.alpha})`
+      : `rgba(239,68,68,${p.alpha})`;
+    ctx.fillText(p.val, p.x, p.y);
+  });
+
+  // Edge fade
+  const fadeW = 100;
+  const lg = ctx.createLinearGradient(0,0,fadeW,0);
+  lg.addColorStop(0,'#050a14'); lg.addColorStop(1,'transparent');
+  ctx.fillStyle = lg; ctx.fillRect(0,0,fadeW,H);
+  const rg = ctx.createLinearGradient(W-fadeW,0,W,0);
+  rg.addColorStop(0,'transparent'); rg.addColorStop(1,'#050a14');
+  ctx.fillStyle = rg; ctx.fillRect(W-fadeW,0,fadeW,H);
+
+  requestAnimationFrame(draw);
+}
+requestAnimationFrame(draw);
+</script>
+</body>
+</html>

@@ -1,8 +1,11 @@
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, render_template, session, redirect, url_for, request
 import sqlite3
 import os
 
 app = Flask(__name__)
+app.secret_key = 'tr-3nfinans-gizli-anahtar-2024'
+LOGIN_PASSWORD  = '3nfinans'   # <-- bunu istediğin zaman değiştir
+
 DB_PATH = os.path.join(os.path.dirname(__file__), 'data', 'cache.db')
 
 
@@ -17,8 +20,28 @@ def fmt(s):
     return f'{s[8:10]}-{s[5:7]}-{s[0:4]}'
 
 
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        if request.form.get('password') == LOGIN_PASSWORD:
+            session['logged_in'] = True
+            return redirect(url_for('index'))
+        return render_template('login.html', error=True)
+    if session.get('logged_in'):
+        return redirect(url_for('index'))
+    return render_template('login.html', error=False)
+
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
+
 @app.route('/')
 def index():
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
     return render_template('index.html')
 
 
