@@ -218,12 +218,13 @@
 
   <form method="POST" action="/login">
     <div class="form-group">
-      <label>Sifre</label>
-      <input type="password" name="password" placeholder="••••••••" autofocus>
+      <label>Davet Kodu</label>
+      <input type="text" name="code" placeholder="3N-XXXXXX" autofocus
+             autocomplete="off" style="letter-spacing:2px; text-transform:uppercase;">
     </div>
     <button type="submit" class="btn-login">Giris Yap</button>
     {% if error %}
-    <div class="error-msg">Hatali sifre. Tekrar deneyin.</div>
+    <div class="error-msg">Gecersiz veya pasif kod. Lutfen kanalimiza abone olun.</div>
     {% endif %}
   </form>
 </div>
