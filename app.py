@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, render_template, session, redirect, url_for, request
 import sqlite3, os, secrets, string
 from datetime import datetime
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 app.secret_key = 'tr-3nfinans-gizli-anahtar-2024'
@@ -14,16 +15,26 @@ def generate_code():
     return '3N-' + ''.join(secrets.choice(chars) for _ in range(6))
 
 
-def init_invite_table():
+def init_tables():
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute('''CREATE TABLE IF NOT EXISTS invite_codes (
             code       TEXT PRIMARY KEY,
             name       TEXT,
             active     INTEGER DEFAULT 1,
             created_at TEXT,
-            last_login TEXT
+            used_by    TEXT
         )''')
-init_invite_table()
+        conn.execute('''CREATE TABLE IF NOT EXISTS users (
+            id            INTEGER PRIMARY KEY AUTOINCREMENT,
+            username      TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            name          TEXT,
+            invite_code   TEXT,
+            active        INTEGER DEFAULT 1,
+            created_at    TEXT,
+            last_login    TEXT
+        )''')
+init_tables()
 
 
 def query(sql):
@@ -40,24 +51,62 @@ def fmt(s):
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        code = request.form.get('code', '').strip().upper()
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '')
         with sqlite3.connect(DB_PATH) as conn:
             conn.row_factory = sqlite3.Row
-            row = conn.execute(
-                'SELECT name, active FROM invite_codes WHERE code = ?', (code,)
+            user = conn.execute(
+                'SELECT * FROM users WHERE username = ? AND active = 1', (username,)
             ).fetchone()
-            if row and row['active'] == 1:
-                conn.execute(
-                    'UPDATE invite_codes SET last_login = ? WHERE code = ?',
-                    (datetime.now().strftime('%Y-%m-%d %H:%M'), code)
-                )
+            if user and check_password_hash(user['password_hash'], password):
+                conn.execute('UPDATE users SET last_login = ? WHERE id = ?',
+                             (datetime.now().strftime('%Y-%m-%d %H:%M'), user['id']))
                 session['logged_in'] = True
-                session['user_name'] = row['name']
+                session['user_name'] = user['name'] or user['username']
                 return redirect(url_for('index'))
         return render_template('login.html', error=True)
     if session.get('logged_in'):
         return redirect(url_for('index'))
     return render_template('login.html', error=False)
+
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        code      = request.form.get('code', '').strip().upper()
+        username  = request.form.get('username', '').strip()
+        password  = request.form.get('password', '')
+        password2 = request.form.get('password2', '')
+        error = None
+        if not username:
+            error = 'Kullanici adi gerekli.'
+        elif len(password) < 6:
+            error = 'Sifre en az 6 karakter olmali.'
+        elif password != password2:
+            error = 'Sifreler uyusmuyor.'
+        else:
+            with sqlite3.connect(DB_PATH) as conn:
+                conn.row_factory = sqlite3.Row
+                invite = conn.execute(
+                    'SELECT * FROM invite_codes WHERE code=? AND active=1 AND used_by IS NULL',
+                    (code,)
+                ).fetchone()
+                if not invite:
+                    error = 'Gecersiz veya kullanilmis davet kodu.'
+                elif conn.execute('SELECT id FROM users WHERE username=?', (username,)).fetchone():
+                    error = 'Bu kullanici adi zaten alinmis, baska bir isim dene.'
+                else:
+                    now = datetime.now().strftime('%Y-%m-%d %H:%M')
+                    conn.execute(
+                        'INSERT INTO users (username,password_hash,name,invite_code,created_at) VALUES (?,?,?,?,?)',
+                        (username, generate_password_hash(password), invite['name'], code, now)
+                    )
+                    conn.execute('UPDATE invite_codes SET used_by=? WHERE code=?', (username, code))
+                    session['logged_in'] = True
+                    session['user_name'] = invite['name'] or username
+                    return redirect(url_for('index'))
+        return render_template('register.html', error=error, prefill=code)
+    return render_template('register.html', error=None, prefill=request.args.get('code',''))
 
 
 @app.route('/logout')
@@ -74,9 +123,12 @@ def admin(secret):
     with sqlite3.connect(DB_PATH) as conn:
         conn.row_factory = sqlite3.Row
         codes = conn.execute(
-            'SELECT code, name, active, created_at, last_login FROM invite_codes ORDER BY created_at DESC'
+            'SELECT code, name, active, created_at, used_by FROM invite_codes ORDER BY created_at DESC'
         ).fetchall()
-    return render_template('admin.html', codes=codes, secret=secret)
+        users = conn.execute(
+            'SELECT id, username, name, active, created_at, last_login FROM users ORDER BY created_at DESC'
+        ).fetchall()
+    return render_template('admin.html', codes=codes, users=users, secret=secret)
 
 
 @app.route('/admin/<secret>/add', methods=['POST'])
@@ -109,6 +161,15 @@ def admin_delete(secret, code):
         return redirect(url_for('login'))
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute('DELETE FROM invite_codes WHERE code = ?', (code,))
+    return redirect(url_for('admin', secret=secret))
+
+
+@app.route('/admin/<secret>/toggle-user/<int:uid>')
+def admin_toggle_user(secret, uid):
+    if secret != ADMIN_SECRET:
+        return redirect(url_for('login'))
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute('UPDATE users SET active = 1 - active WHERE id = ?', (uid,))
     return redirect(url_for('admin', secret=secret))
 
 

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3N Finans — Kayit</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      background:#050a14; color:#e2e8f0;
+      font-family:'Segoe UI', system-ui, sans-serif;
+      min-height:100vh; display:flex;
+      align-items:center; justify-content:center;
+    }
+    .card {
+      background:rgba(8,14,28,0.95);
+      border:1px solid rgba(240,180,41,0.18);
+      border-radius:18px; padding:48px 56px;
+      width:440px;
+      box-shadow:0 24px 64px rgba(0,0,0,0.55);
+    }
+    .logo { text-align:center; margin-bottom:6px; }
+    .logo-3n {
+      font-size:52px; font-weight:900; color:#f0b429;
+      line-height:1; letter-spacing:-2px;
+      text-shadow:0 0 40px rgba(240,180,41,0.5);
+    }
+    .logo-finans {
+      font-size:14px; font-weight:300; letter-spacing:8px;
+      color:#94a3b8; text-transform:uppercase; margin-top:4px;
+    }
+    .divider {
+      width:50px; height:2px;
+      background:linear-gradient(90deg,transparent,#f0b429,transparent);
+      margin:18px auto 14px;
+    }
+    .subtitle {
+      text-align:center; font-size:12px; color:#475569;
+      letter-spacing:1.5px; text-transform:uppercase; margin-bottom:28px;
+    }
+    .form-group { margin-bottom:14px; }
+    .form-group label {
+      display:block; font-size:10.5px; letter-spacing:1.8px;
+      text-transform:uppercase; color:#475569; margin-bottom:7px;
+    }
+    .form-group input {
+      width:100%; background:rgba(255,255,255,0.04);
+      border:1px solid rgba(255,255,255,0.09); border-radius:9px;
+      padding:13px 15px; color:#e2e8f0; font-size:14px; outline:none;
+      transition:border-color .2s, box-shadow .2s;
+    }
+    .form-group input:focus {
+      border-color:rgba(240,180,41,0.45);
+      box-shadow:0 0 0 3px rgba(240,180,41,0.1);
+    }
+    .code-input {
+      font-family:monospace; letter-spacing:3px;
+      text-transform:uppercase; font-size:15px !important;
+    }
+    .btn-login {
+      width:100%; padding:14px; margin-top:8px;
+      background:linear-gradient(135deg,#f0b429,#d99a14);
+      border:none; border-radius:9px; color:#050a14;
+      font-size:13px; font-weight:800; letter-spacing:2px;
+      text-transform:uppercase; cursor:pointer; transition:all .2s;
+    }
+    .btn-login:hover {
+      background:linear-gradient(135deg,#f5c23e,#f0b429);
+      box-shadow:0 6px 24px rgba(240,180,41,0.35);
+      transform:translateY(-1px);
+    }
+    .error-msg {
+      background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3);
+      border-radius:8px; padding:10px 14px; color:#ef4444;
+      font-size:13px; text-align:center; margin-top:12px;
+      animation:shake .3s ease;
+    }
+    @keyframes shake {
+      0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)}
+    }
+    .back-link {
+      text-align:center; margin-top:20px;
+    }
+    .back-link a {
+      color:#64748b; font-size:12px; text-decoration:none; letter-spacing:0.5px;
+    }
+    .back-link a span { color:#f0b429; }
+    .hint {
+      font-size:11px; color:#475569; margin-top:5px; letter-spacing:0.3px;
+    }
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">
+    <div class="logo-3n">3N</div>
+    <div class="logo-finans">Finans</div>
+  </div>
+  <div class="divider"></div>
+  <div class="subtitle">Hesap Olustur</div>
+
+  <form method="POST" action="/register">
+    <div class="form-group">
+      <label>Davet Kodu</label>
+      <input class="code-input" type="text" name="code"
+             placeholder="3N-XXXXXX" value="{{ prefill }}"
+             autocomplete="off" required>
+    </div>
+    <div class="form-group">
+      <label>Kullanici Adi</label>
+      <input type="text" name="username" placeholder="ornek: ahmet42"
+             autocomplete="username" required>
+      <div class="hint">Sadece harf, rakam ve alt cizgi. Bu isimle giris yapacaksin.</div>
+    </div>
+    <div class="form-group">
+      <label>Sifre</label>
+      <input type="password" name="password" placeholder="En az 6 karakter"
+             autocomplete="new-password" required>
+    </div>
+    <div class="form-group">
+      <label>Sifre Tekrar</label>
+      <input type="password" name="password2" placeholder="••••••••"
+             autocomplete="new-password" required>
+    </div>
+    <button type="submit" class="btn-login">Hesap Olustur</button>
+    {% if error %}
+    <div class="error-msg">{{ error }}</div>
+    {% endif %}
+  </form>
+
+  <div class="back-link">
+    <a href="/login">Zaten hesabiniz var mi? <span>Giris yap</span></a>
+  </div>
+</div>
+</body>
+</html>
