@@ -138,12 +138,28 @@ def fund_flow(code: str):
         q = q.order_by(FundFlow.trade_date)  # type: ignore
         rows = db.exec(q).all()
 
+        # Aynı tarih aralığı için fiyat verisi (portföy getirisi hesabı için)
+        if rows:
+            min_d2 = rows[0].trade_date
+            max_d2 = rows[-1].trade_date
+            price_rows = db.exec(
+                select(FundDaily.trade_date, FundDaily.price)
+                .where(FundDaily.code == code)
+                .where(FundDaily.trade_date >= min_d2)  # type: ignore
+                .where(FundDaily.trade_date <= max_d2)  # type: ignore
+                .order_by(FundDaily.trade_date)         # type: ignore
+            ).all()
+            price_map = {pr.trade_date: pr.price for pr in price_rows}
+        else:
+            price_map = {}
+
     result = [
         {
             "date":     r.trade_date.isoformat() if r.trade_date else None,
             "net_flow": r.net_flow,
             "flow_pct": r.flow_pct,
             "aum":      r.aum,
+            "price":    price_map.get(r.trade_date),
         }
         for r in rows
     ]
