@@ -167,6 +167,8 @@ function switchPage(page) {
   } else if (page === 'makro') {
     if (!allMakro.length) { loadMakro(); }
     else { document.getElementById('page-makro').classList.remove('hidden'); renderMakro(); }
+  } else if (page === 'tefas') {
+    document.getElementById('page-tefas').classList.remove('hidden');
   }
 }
 
