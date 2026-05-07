@@ -1,10 +1,35 @@
-from flask import Flask, jsonify, render_template, session, redirect, url_for, request
+from flask import Flask, jsonify, render_template, session, redirect, url_for, request, send_from_directory
 import sqlite3, os, secrets, string
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 app.secret_key = 'tr-3nfinans-gizli-anahtar-2024'
+
+# ── TEFAS Blueprint ─────────────────────────────────────────
+from tefas_api import tefas_bp
+app.register_blueprint(tefas_bp)
+
+# ── TEFAS React SPA static dosyalar ────────────────────────
+_TEFAS_BUILD = os.path.join(os.path.dirname(__file__), 'tefas_build')
+
+@app.route('/tefas/')
+@app.route('/tefas')
+def tefas_index():
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+    return send_from_directory(_TEFAS_BUILD, 'index.html')
+
+@app.route('/tefas/<path:path>')
+def tefas_static(path):
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+    # Gerçek static dosya mı? (assets/, favicon vb.)
+    full = os.path.join(_TEFAS_BUILD, path)
+    if os.path.isfile(full):
+        return send_from_directory(_TEFAS_BUILD, path)
+    # React Router client-side route → index.html döndür
+    return send_from_directory(_TEFAS_BUILD, 'index.html')
 ADMIN_SECRET   = '3n-admin-gizli'   # <-- admin panel URL'si: /admin/3n-admin-gizli
 
 DB_PATH = os.path.join(os.path.dirname(__file__), 'data', 'cache.db')

@@ -1,4 +1,5 @@
 data/cache.db
+data/tefas.db
 __pycache__/
 *.pyc
 server.log
