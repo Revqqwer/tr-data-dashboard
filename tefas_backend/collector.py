@@ -360,13 +360,26 @@ def collect_today():
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--backfill", type=int, help="Son N günü çek")
-    parser.add_argument("--date", type=str, help="YYYY-MM-DD formatında belirli tarih")
+    parser = argparse.ArgumentParser(description="TEFAS veri toplayici")
+    parser.add_argument("--backfill", type=int,
+                        help="Son N gunu cek (ornek: --backfill 90)")
+    parser.add_argument("--start", type=str, metavar="YYYY-MM-DD",
+                        help="Bu tarihten bugune kadar cek (ornek: --start 2020-01-01)")
+    parser.add_argument("--date", type=str, metavar="YYYY-MM-DD",
+                        help="Tek bir gunu cek (ornek: --date 2025-04-01)")
     args = parser.parse_args()
 
-    if args.backfill:
-        end = datetime.date.today()
+    if args.start:
+        start = datetime.date.fromisoformat(args.start)
+        end   = datetime.date.today()
+        elapsed_days = (end - start).days
+        log.info("Backfill basliyor: %s → %s (%d gun, tahmini sure: %d saat %d dakika)",
+                 start, end, elapsed_days,
+                 elapsed_days * 9 // 60,   # kaba tahmin: gunde ~9 dk
+                 elapsed_days * 9 % 60)
+        collect_range(start, end)
+    elif args.backfill:
+        end   = datetime.date.today()
         start = end - datetime.timedelta(days=args.backfill)
         collect_range(start, end)
     elif args.date:
