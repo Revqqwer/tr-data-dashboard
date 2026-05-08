@@ -353,8 +353,7 @@ def collect_range(start: datetime.date, end: datetime.date,
                   skip_composition: bool = False, batch_days: int = 7):
     """
     Tarih aralığını batch_days'lik dilimler halinde çeker.
-    API tek istekte birden fazla günü destekliyor — bu sayede istek sayısı azalır.
-    Her batch sonrası günlük flow hesabı yapılır.
+    Her adım kendi bağımsız Session'ını açıp kapatır — lock çakışması olmaz.
     """
     init_db()
     total = (end - start).days + 1
@@ -364,38 +363,41 @@ def collect_range(start: datetime.date, end: datetime.date,
     while batch_start <= end:
         batch_end = min(batch_start + datetime.timedelta(days=batch_days - 1), end)
 
-        # Bulk veriyi tarih aralığı olarak çek
-        with Session(engine) as session:
-            for ft in FUND_TYPES:
-                try:
-                    rows = fetch_bulk(ft, batch_start, batch_end)
-                    log.info("%s→%s  %s: %d kayıt", batch_start, batch_end, ft, len(rows))
+        # 1) Bulk veri çek — her fon tipi için ayrı session
+        for ft in FUND_TYPES:
+            try:
+                rows = fetch_bulk(ft, batch_start, batch_end)
+                log.info("%s->%s  %s: %d kayit", batch_start, batch_end, ft, len(rows))
+                with Session(engine) as session:
                     upsert_daily(session, rows, ft)
-                    time.sleep(1)
-                except Exception as e:
-                    log.error("%s→%s  %s hatası: %s", batch_start, batch_end, ft, e)
+                time.sleep(1)
+            except Exception as e:
+                log.error("%s->%s  %s hatasi: %s", batch_start, batch_end, ft, e)
 
-            # Her gün için ayrı flow hesapla
-            day = batch_start
-            while day <= batch_end:
-                compute_flows(session, day)
-                day += datetime.timedelta(days=1)
+        # 2) Flow hesapla — her gün için ayrı session
+        day = batch_start
+        while day <= batch_end:
+            try:
+                with Session(engine) as session:
+                    compute_flows(session, day)
+            except Exception as e:
+                log.error("Flow hatasi %s: %s", day, e)
+            day += datetime.timedelta(days=1)
 
         done += (batch_end - batch_start).days + 1
-        pct   = done / total * 100
-        log.info("İlerleme: %d/%d gün (%.1f%%)", done, total, pct)
+        log.info("Ilerleme: %d/%d gun (%.1f%%)", done, total, done / total * 100)
 
-        # Composition yalnızca skip_composition=False ise, haftanın son günü için
+        # 3) Composition — yalnizca batch sonu gunu, ayri session
         if not skip_composition:
-            with Session(engine) as session:
-                for ft in FUND_TYPES:
-                    try:
-                        comp_rows = fetch_composition(batch_end, ft)
-                        log.info("%s  composition %s: %d fon", batch_end, ft, len(comp_rows))
+            for ft in FUND_TYPES:
+                try:
+                    comp_rows = fetch_composition(batch_end, ft)
+                    log.info("%s  composition %s: %d fon", batch_end, ft, len(comp_rows))
+                    with Session(engine) as session:
                         upsert_composition(session, comp_rows)
-                        time.sleep(1)
-                    except Exception as e:
-                        log.error("%s  composition %s hatası: %s", batch_end, ft, e)
+                    time.sleep(1)
+                except Exception as e:
+                    log.error("%s  composition %s hatasi: %s", batch_end, ft, e)
 
         batch_start = batch_end + datetime.timedelta(days=1)
         time.sleep(0.5)
