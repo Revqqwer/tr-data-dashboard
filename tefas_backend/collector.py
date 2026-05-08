@@ -67,13 +67,13 @@ def _get_session() -> requests.Session:
     return _session
 
 
-def _build_payload(fund_type: str, date_str: str) -> dict:
+def _build_payload(fund_type: str, start_str: str, end_str: str | None = None) -> dict:
     return {
         "dil": "TR",
         "fonTipi": fund_type,
         "islem": 1,
-        "basTarih": date_str,
-        "bitTarih": date_str,
+        "basTarih": start_str,
+        "bitTarih": end_str or start_str,
         "kurucuKodu": None,
         "sfonTurKod": None,
         "fonTurAciklama": None,
@@ -89,10 +89,12 @@ def _build_payload(fund_type: str, date_str: str) -> dict:
     }
 
 
-def fetch_bulk(fund_type: str, date: datetime.date) -> list[dict]:
+def fetch_bulk(fund_type: str, date: datetime.date,
+               end_date: datetime.date | None = None) -> list[dict]:
     global _request_count
-    date_str = date.strftime("%Y%m%d")
-    payload = _build_payload(fund_type, date_str)
+    start_str = date.strftime("%Y%m%d")
+    end_str   = end_date.strftime("%Y%m%d") if end_date else None
+    payload   = _build_payload(fund_type, start_str, end_str)
 
     for attempt in range(3):
         try:
@@ -347,12 +349,56 @@ def collect_day(target_date: datetime.date, skip_composition: bool = False):
                     log.error("%s  composition %s hatası: %s", target_date, ft, e)
 
 
-def collect_range(start: datetime.date, end: datetime.date):
+def collect_range(start: datetime.date, end: datetime.date,
+                  skip_composition: bool = False, batch_days: int = 7):
+    """
+    Tarih aralığını batch_days'lik dilimler halinde çeker.
+    API tek istekte birden fazla günü destekliyor — bu sayede istek sayısı azalır.
+    Her batch sonrası günlük flow hesabı yapılır.
+    """
     init_db()
-    day = start
-    while day <= end:
-        collect_day(day)
-        day += datetime.timedelta(days=1)
+    total = (end - start).days + 1
+    done  = 0
+
+    batch_start = start
+    while batch_start <= end:
+        batch_end = min(batch_start + datetime.timedelta(days=batch_days - 1), end)
+
+        # Bulk veriyi tarih aralığı olarak çek
+        with Session(engine) as session:
+            for ft in FUND_TYPES:
+                try:
+                    rows = fetch_bulk(ft, batch_start, batch_end)
+                    log.info("%s→%s  %s: %d kayıt", batch_start, batch_end, ft, len(rows))
+                    upsert_daily(session, rows, ft)
+                    time.sleep(1)
+                except Exception as e:
+                    log.error("%s→%s  %s hatası: %s", batch_start, batch_end, ft, e)
+
+            # Her gün için ayrı flow hesapla
+            day = batch_start
+            while day <= batch_end:
+                compute_flows(session, day)
+                day += datetime.timedelta(days=1)
+
+        done += (batch_end - batch_start).days + 1
+        pct   = done / total * 100
+        log.info("İlerleme: %d/%d gün (%.1f%%)", done, total, pct)
+
+        # Composition yalnızca skip_composition=False ise, haftanın son günü için
+        if not skip_composition:
+            with Session(engine) as session:
+                for ft in FUND_TYPES:
+                    try:
+                        comp_rows = fetch_composition(batch_end, ft)
+                        log.info("%s  composition %s: %d fon", batch_end, ft, len(comp_rows))
+                        upsert_composition(session, comp_rows)
+                        time.sleep(1)
+                    except Exception as e:
+                        log.error("%s  composition %s hatası: %s", batch_end, ft, e)
+
+        batch_start = batch_end + datetime.timedelta(days=1)
+        time.sleep(0.5)
 
 
 def collect_today():
@@ -373,15 +419,16 @@ if __name__ == "__main__":
         start = datetime.date.fromisoformat(args.start)
         end   = datetime.date.today()
         elapsed_days = (end - start).days
-        log.info("Backfill basliyor: %s → %s (%d gun, tahmini sure: %d saat %d dakika)",
-                 start, end, elapsed_days,
-                 elapsed_days * 9 // 60,   # kaba tahmin: gunde ~9 dk
-                 elapsed_days * 9 % 60)
-        collect_range(start, end)
+        # Batch modunda tahmini sure: 3 istek/batch × 1s uyku + ~2s istek = ~15s/batch
+        # batch_days=7 => elapsed_days/7 batch => elapsed_days/7 * 15s
+        est_sec = (elapsed_days // 7 + 1) * 15 * 3
+        log.info("Backfill basliyor: %s -> %s (%d gun, batch=7, tahmini sure: ~%d dakika)",
+                 start, end, elapsed_days, est_sec // 60)
+        collect_range(start, end, skip_composition=False, batch_days=7)
     elif args.backfill:
         end   = datetime.date.today()
         start = end - datetime.timedelta(days=args.backfill)
-        collect_range(start, end)
+        collect_range(start, end, batch_days=7)
     elif args.date:
         collect_day(datetime.date.fromisoformat(args.date))
     else:
