@@ -346,7 +346,7 @@ def asset_class_contributors():
     asset_class = request.args.get("asset_class", "")
     date_str = request.args.get("date")
     fund_type = request.args.get("fund_type")
-    limit = int(request.args.get("limit", 25))
+    limit = min(int(request.args.get("limit", 2000)), 5000)
     start_str = request.args.get("start")
     end_str = request.args.get("end")
 
