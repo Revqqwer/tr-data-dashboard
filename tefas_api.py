@@ -100,12 +100,12 @@ def leaderboard():
         if fund_type:
             q = q.where(FundFlow.fund_type == fund_type.upper())
 
-        # Hem en büyük giriş hem çıkış için tüm listeyi çek, JS tarafı işler
+        # Hem giriş hem çıkış için tüm listeyi çek
         q = q.order_by(FundFlow.net_flow.desc())  # type: ignore
         rows = db.exec(q).all()
 
-    result = [
-        {
+    def row_to_dict(r):
+        return {
             "date":      r.trade_date.isoformat() if r.trade_date else None,
             "code":      r.code,
             "name":      r.fname,
@@ -114,9 +114,16 @@ def leaderboard():
             "flow_pct":  r.flow_pct,
             "aum":       r.aum,
         }
-        for r in rows
-    ]
-    return jsonify(result)
+
+    inflows  = [row_to_dict(r) for r in rows if (r.net_flow or 0) > 0][:limit]
+    outflows = [row_to_dict(r) for r in reversed(rows) if (r.net_flow or 0) < 0][:limit]
+    latest_date = rows[0].trade_date.isoformat() if rows else None
+
+    return jsonify({
+        "date":     latest_date,
+        "inflows":  inflows,
+        "outflows": outflows,
+    })
 
 
 # ---------------------------------------------------------------------------
