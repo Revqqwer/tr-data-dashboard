@@ -484,3 +484,27 @@ def migrate_categories():
         return jsonify({"status": "ok", **result})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# Fund tip duzeltme tetikleyici
+# ---------------------------------------------------------------------------
+@tefas_bp.route("/api/migrate/fix-fund-types", methods=["POST"])
+def fix_fund_types():
+    """TEFAS API'den gunceli cekip yanlis fund_type kaydedilmis fonlari duzeltir."""
+    if not flask_session.get("logged_in"):
+        return jsonify({"error": "Unauthorized"}), 401
+    try:
+        from tefas_backend.fix_fund_types import fetch_all_fund_types, find_mismatches, apply_fixes
+        date_str = (request.json or {}).get("date", datetime.date.today().strftime("%Y%m%d"))
+        tefas_map = fetch_all_fund_types(date_str)
+        mismatches = find_mismatches(tefas_map)
+        apply_fixes(mismatches)
+        return jsonify({
+            "status": "ok",
+            "tefas_fund_count": len(tefas_map),
+            "fixed": len(mismatches),
+            "details": [{"code": c, "old": o, "new": n} for c, o, n in mismatches],
+        })
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
