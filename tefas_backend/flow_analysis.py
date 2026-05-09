@@ -73,16 +73,29 @@ def _load_compositions(
     session: Session,
     target_date: datetime.date,
     codes: list[str],
+    lookback_days: int = 45,
 ) -> dict[str, FundComposition]:
+    """Her fon için target_date'e en yakın (<=) kompozisyonu döndürür.
+    Tam gün eşleşmesi yerine 45-günlük geriye bakış kullanır — bu sayede
+    collect_range'in her 7 günde 1 çektiği composition backfill'de bile
+    kapsama oranı yüksek kalır.
+    """
     if not codes:
         return {}
+    from_date = target_date - datetime.timedelta(days=lookback_days)
     rows = session.exec(
         select(FundComposition).where(
-            FundComposition.trade_date == target_date,
+            FundComposition.trade_date >= from_date,  # type: ignore
+            FundComposition.trade_date <= target_date,  # type: ignore
             FundComposition.code.in_(codes),  # type: ignore
         )
     ).all()
-    return {r.code: r for r in rows}
+    # Her fon için en güncel kaydı tut
+    latest: dict[str, FundComposition] = {}
+    for r in rows:
+        if r.code not in latest or r.trade_date > latest[r.code].trade_date:
+            latest[r.code] = r
+    return latest
 
 
 def _merge_small(result: dict[str, float]) -> dict[str, float]:
@@ -287,14 +300,34 @@ def asset_class_history(
     all_flows = session.exec(fq).all()
 
     codes = list({f.code for f in all_flows})
+    lookback = datetime.timedelta(days=45)
     all_comps = session.exec(
         select(FundComposition).where(
-            FundComposition.trade_date >= min_date,
+            FundComposition.trade_date >= min_date - lookback,
             FundComposition.trade_date <= max_date,
             FundComposition.code.in_(codes),  # type: ignore
         )
     ).all()
-    comp_map: dict[tuple, FundComposition] = {(c.trade_date, c.code): c for c in all_comps}
+    # Her (code) için tarih sıralı liste: en güncel kompozisyonu bulmak için
+    from collections import defaultdict
+    comp_by_code: dict[str, list] = defaultdict(list)
+    for c in all_comps:
+        comp_by_code[c.code].append(c)
+    for lst in comp_by_code.values():
+        lst.sort(key=lambda x: x.trade_date)
+
+    def _latest_comp_as_of(code: str, d) -> "FundComposition | None":
+        lst = comp_by_code.get(code)
+        if not lst:
+            return None
+        # En son <= d olan kompozisyon
+        result_comp = None
+        for c in lst:
+            if c.trade_date <= d:
+                result_comp = c
+            else:
+                break
+        return result_comp
 
     result = []
     for d in dates:
@@ -305,7 +338,7 @@ def asset_class_history(
         ac_totals = {ac: 0.0 for ac in ASSET_CLASSES}
         total = 0.0
         for flow in day_flows:
-            comp = comp_map.get((d, flow.code))
+            comp = _latest_comp_as_of(flow.code, d)
             net = flow.net_flow or 0.0
             if not comp:
                 total += net
@@ -703,3 +736,35 @@ def category_top_funds_range(
 
     result.sort(key=lambda x: -abs(x["net_flow"]))
     return result[:limit]
+
+
+def populate_categories_from_composition(session: Session) -> dict:
+    """FundMeta.category = NULL olan fonlar icin baskin varlik sinifini turet.
+
+    Her fonun en son FundComposition kaydina bakarak en buyuk agirlikli
+    varlik sinifini (>= %20) kategori olarak atar.
+    """
+    metas = session.exec(
+        select(FundMetaDB).where(FundMetaDB.category.is_(None))  # type: ignore
+    ).all()
+    updated = 0
+    for meta in metas:
+        comp = session.exec(
+            select(FundComposition)
+            .where(FundComposition.code == meta.code)
+            .order_by(FundComposition.trade_date.desc())  # type: ignore
+            .limit(1)
+        ).first()
+        if not comp:
+            continue
+        best_ac, best_w = None, 0.0
+        for ac_name, fields in ASSET_CLASSES.items():
+            w = _comp_weight(comp, fields)
+            if w > best_w:
+                best_w, best_ac = w, ac_name
+        if best_ac and best_w >= 20.0:
+            meta.category = best_ac
+            session.add(meta)
+            updated += 1
+    session.commit()
+    return {"updated": updated, "total": len(metas)}
