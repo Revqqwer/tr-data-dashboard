@@ -515,7 +515,7 @@ def category_top_funds(
             "top_assets": top_assets,
         })
 
-    result.sort(key=lambda x: -abs(x["net_flow"]))
+    result.sort(key=lambda x: -(x["net_flow"] or 0))
     return result[:limit]
 
 
@@ -734,7 +734,7 @@ def category_top_funds_range(
             "top_assets": top_assets,
         })
 
-    result.sort(key=lambda x: -abs(x["net_flow"]))
+    result.sort(key=lambda x: -(x["net_flow"] or 0))
     return result[:limit]
 
 
