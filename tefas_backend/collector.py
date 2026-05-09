@@ -258,6 +258,14 @@ def upsert_daily(session: Session, rows: list[dict], fund_type: str):
             meta = FundMeta(code=code)
         meta.fname = row.get("fonUnvan") or meta.fname
         meta.fund_type = fund_type
+        # TEFAS API'nin döndürdüğü olası kategori alanları (biri varsa kullan)
+        cat_val = (
+            row.get("fonGrubu") or row.get("fonTurKod") or
+            row.get("fonKategorisi") or row.get("altKategori") or
+            row.get("fonTurAciklama")
+        )
+        if cat_val:
+            meta.category = str(cat_val).strip()
         session.add(meta)
 
     session.commit()

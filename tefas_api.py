@@ -468,3 +468,19 @@ def collect_trigger():
         return jsonify({"status": "ok", "date": target.isoformat()})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# Kategori migrasyon tetikleyici
+# ---------------------------------------------------------------------------
+@tefas_bp.route("/api/migrate/categories", methods=["POST"])
+def migrate_categories():
+    """FundMeta.category = NULL fonlar icin kompozisyon bazli kategori ata."""
+    if not flask_session.get("logged_in"):
+        return jsonify({"error": "Unauthorized"}), 401
+    try:
+        with Session(engine) as db:
+            result = fa.populate_categories_from_composition(db)
+        return jsonify({"status": "ok", **result})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
