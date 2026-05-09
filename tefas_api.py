@@ -48,6 +48,28 @@ def _serialize(obj):
 # ---------------------------------------------------------------------------
 # Leaderboard
 # ---------------------------------------------------------------------------
+# Mevcut tarihler listesi (frontend tarih seçici için)
+# ---------------------------------------------------------------------------
+@tefas_bp.route("/api/flow/available-dates")
+def available_dates():
+    err = _auth()
+    if err:
+        return err
+
+    limit = min(int(request.args.get("limit", 365)), 1000)
+
+    with Session(engine) as db:
+        dates = db.exec(
+            select(FundFlow.trade_date)
+            .distinct()
+            .order_by(FundFlow.trade_date.desc())  # type: ignore
+            .limit(limit)
+        ).all()
+
+    return jsonify([d.isoformat() for d in dates if d])
+
+
+# ---------------------------------------------------------------------------
 @tefas_bp.route("/api/leaderboard")
 def leaderboard():
     err = _auth()
