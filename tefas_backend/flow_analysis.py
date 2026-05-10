@@ -471,7 +471,7 @@ def asset_class_contributors(
             "aum": flow.aum,
         })
 
-    result.sort(key=lambda x: -abs(x["contribution"]))
+    result.sort(key=lambda x: -(x["net_flow"] or 0))
     return result[:limit]
 
 
@@ -665,7 +665,7 @@ def asset_class_contributors_range(
             "aum": fm.aum,
         })
 
-    result.sort(key=lambda x: -abs(x["contribution"]))
+    result.sort(key=lambda x: -(x["net_flow"] or 0))
     return result[:limit]
 
 
