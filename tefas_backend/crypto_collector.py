@@ -268,32 +268,48 @@ def import_from_excel(filepath: str) -> dict[str, int]:
 
     # ── ETH sheet ──────────────────────────────────────────────────────
     try:
-        # ETH sayfasında üstte metadata satırları var (fee, seed vb.)
-        # skiprows=4 ile gerçek veri satırlarından başla
-        df_eth = pd.read_excel(filepath, sheet_name="eth flow", header=0, skiprows=4)
-        # Sütun adları: Unnamed:0=Date, Blackrock, Fidelity, Bitwise, 21 Shares, VanEck, Invesco, Franklin, Grayscale, Grayscale.1, Total, ...
-        eth_name_to_ticker = {
-            "Blackrock":  "ETHA",
-            "Fidelity":   "FETH",
-            "Bitwise":    "ETHW",
-            "21 Shares":  "CETH",
-            "VanEck":     "ETHV",
-            "Invesco":    "QETH",
-            "Franklin":   "EZET",
-            "Grayscale":  "ETH",
-            "Grayscale.1": "ETHE",
+        # Row 0: fund names (Blackrock, Fidelity, ...)
+        # Rows 1-5: metadata (tickers, fee, seed, empty)
+        # Row 6+: actual data ("23 Jul 2024", ...)
+        header_row = pd.read_excel(filepath, sheet_name="eth flow", header=None, nrows=1)
+        fund_names = header_row.iloc[0].tolist()  # [nan, 'Blackrock', 'Fidelity', ...]
+
+        # Map fund name → our canonical ticker (by column position)
+        fund_to_ticker = {
+            "Blackrock": "ETHA",
+            "Fidelity":  "FETH",
+            "Bitwise":   "ETHW",
+            "21 Shares": "CETH",
+            "VanEck":    "ETHV",
+            "Invesco":   "QETH",
+            "Franklin":  "EZET",
         }
+        # Build col_index → ticker mapping
+        # Two "Grayscale" cols: first = ETH (mini), second = ETHE
+        grayscale_count = 0
+        col_ticker: dict[int, str] = {}
+        for i, name in enumerate(fund_names):
+            if not isinstance(name, str):
+                continue
+            name = name.strip()
+            if name in fund_to_ticker:
+                col_ticker[i] = fund_to_ticker[name]
+            elif name == "Grayscale":
+                grayscale_count += 1
+                col_ticker[i] = "ETH" if grayscale_count == 1 else "ETHE"
+
+        # Read data rows (skip first 6 rows)
+        df_eth = pd.read_excel(filepath, sheet_name="eth flow", header=None, skiprows=6)
         records = []
-        date_col = df_eth.columns[0]
         for _, row in df_eth.iterrows():
-            date_raw = str(row[date_col]).strip()
+            date_raw = str(row.iloc[0]).strip()
             trade_date = _parse_date(date_raw)
             if not trade_date:
                 continue
-            for col_name, ticker in eth_name_to_ticker.items():
-                if col_name not in df_eth.columns:
+            for col_idx, ticker in col_ticker.items():
+                if col_idx >= len(row):
                     continue
-                val = row[col_name]
+                val = row.iloc[col_idx]
                 if pd.isna(val):
                     flow = 0.0
                 elif isinstance(val, str):
