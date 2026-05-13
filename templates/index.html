@@ -81,6 +81,17 @@
       </a>
     </div>
 
+    <!-- ── Ayırıcı ── -->
+    <div style="height:1px;background:rgba(255,255,255,0.1);margin:8px 4px;"></div>
+
+    <!-- ── 3. Ana Başlık: Kripto ETF ── -->
+    <div class="nav-section">
+      <a href="#" class="nav-item nav-section-title" data-page="kripto" style="text-transform:uppercase;font-size:10px;letter-spacing:0.08em;font-weight:700;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.5 9.5c.5-1.5 3.5-1.5 3.5 0 0 2-3 1.5-3 3.5"/><path d="M12 17h.01"/></svg>
+        Kripto ETF
+      </a>
+    </div>
+
   </nav>
 
   <script>
@@ -1073,6 +1084,24 @@
     <iframe
       src="/tefas/"
       id="tefas-iframe"
+      style="width:100%;height:calc(100vh - 56px);border:none;display:block;"
+      loading="lazy"
+    ></iframe>
+  </div>
+
+  <!-- ── KRİPTO ETF TOPBAR ── -->
+  <header class="topbar hidden" id="topbar-kripto">
+    <div class="topbar-title">
+      <h1>Kripto ETF Para Giriş / Çıkışı</h1>
+      <span class="topbar-sub">ABD Spot BTC &amp; ETH ETF Günlük Akışları · Farside Investors</span>
+    </div>
+  </header>
+
+  <!-- ── KRİPTO ETF iframe ── -->
+  <div class="page-content hidden" id="page-kripto" style="padding:0;overflow:hidden;">
+    <iframe
+      src="/tefas/crypto"
+      id="kripto-iframe"
       style="width:100%;height:calc(100vh - 56px);border:none;display:block;"
       loading="lazy"
     ></iframe>
