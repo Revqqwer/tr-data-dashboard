@@ -76,54 +76,90 @@ def leaderboard():
     if err:
         return err
 
-    date_str = request.args.get("date")
-    limit = min(int(request.args.get("limit", 50)), 200)
+    date_str  = request.args.get("date")
+    start_str = request.args.get("start")
+    end_str   = request.args.get("end")
+    limit     = min(int(request.args.get("limit", 50)), 200)
     fund_type = request.args.get("fund_type")
 
     with Session(engine) as db:
         q = select(FundFlow).where(FundFlow.net_flow.isnot(None))  # type: ignore
 
-        if date_str:
-            target_date = _parse_date(date_str)
-            if target_date:
-                q = q.where(FundFlow.trade_date == target_date)
+        if start_str and end_str:
+            # Dönem modu: tarihleri topla
+            s = _parse_date(start_str)
+            e = _parse_date(end_str)
+            if s and e:
+                q = q.where(
+                    FundFlow.trade_date >= s,  # type: ignore
+                    FundFlow.trade_date <= e,  # type: ignore
+                )
+            if fund_type:
+                q = q.where(FundFlow.fund_type == fund_type.upper())
+
+            rows = db.exec(q).all()
+
+            # Fon başına net_flow topla
+            flow_sum: dict = {}
+            fund_info: dict = {}
+            for r in rows:
+                flow_sum[r.code] = flow_sum.get(r.code, 0.0) + (r.net_flow or 0.0)
+                fund_info[r.code] = r  # son kaydı sakla (meta için)
+
+            def row_to_dict_range(code):
+                r = fund_info[code]
+                return {
+                    "date":      end_str,
+                    "code":      r.code,
+                    "name":      r.fname,
+                    "fund_type": r.fund_type,
+                    "net_flow":  round(flow_sum[code], 0),
+                    "flow_pct":  None,
+                    "aum":       r.aum,
+                }
+
+            sorted_codes = sorted(flow_sum.keys(), key=lambda c: -flow_sum[c])
+            inflows  = [row_to_dict_range(c) for c in sorted_codes if flow_sum[c] > 0][:limit]
+            outflows = [row_to_dict_range(c) for c in reversed(sorted_codes) if flow_sum[c] < 0][:limit]
+            range_label = f"{start_str}/{end_str}"
+            return jsonify({"date": range_label, "inflows": inflows, "outflows": outflows})
+
         else:
-            # En son tarihi bul
-            latest = db.exec(
-                select(FundFlow.trade_date)
-                .order_by(FundFlow.trade_date.desc())  # type: ignore
-                .limit(1)
-            ).first()
-            if latest:
-                q = q.where(FundFlow.trade_date == latest)
+            # Tek gün modu
+            if date_str:
+                target_date = _parse_date(date_str)
+                if target_date:
+                    q = q.where(FundFlow.trade_date == target_date)
+            else:
+                latest = db.exec(
+                    select(FundFlow.trade_date)
+                    .order_by(FundFlow.trade_date.desc())  # type: ignore
+                    .limit(1)
+                ).first()
+                if latest:
+                    q = q.where(FundFlow.trade_date == latest)
 
-        if fund_type:
-            q = q.where(FundFlow.fund_type == fund_type.upper())
+            if fund_type:
+                q = q.where(FundFlow.fund_type == fund_type.upper())
 
-        # Hem giriş hem çıkış için tüm listeyi çek
-        q = q.order_by(FundFlow.net_flow.desc())  # type: ignore
-        rows = db.exec(q).all()
+            q = q.order_by(FundFlow.net_flow.desc())  # type: ignore
+            rows = db.exec(q).all()
 
-    def row_to_dict(r):
-        return {
-            "date":      r.trade_date.isoformat() if r.trade_date else None,
-            "code":      r.code,
-            "name":      r.fname,
-            "fund_type": r.fund_type,
-            "net_flow":  r.net_flow,
-            "flow_pct":  r.flow_pct,
-            "aum":       r.aum,
-        }
+            def row_to_dict(r):
+                return {
+                    "date":      r.trade_date.isoformat() if r.trade_date else None,
+                    "code":      r.code,
+                    "name":      r.fname,
+                    "fund_type": r.fund_type,
+                    "net_flow":  r.net_flow,
+                    "flow_pct":  r.flow_pct,
+                    "aum":       r.aum,
+                }
 
-    inflows  = [row_to_dict(r) for r in rows if (r.net_flow or 0) > 0][:limit]
-    outflows = [row_to_dict(r) for r in reversed(rows) if (r.net_flow or 0) < 0][:limit]
-    latest_date = rows[0].trade_date.isoformat() if rows else None
-
-    return jsonify({
-        "date":     latest_date,
-        "inflows":  inflows,
-        "outflows": outflows,
-    })
+            inflows  = [row_to_dict(r) for r in rows if (r.net_flow or 0) > 0][:limit]
+            outflows = [row_to_dict(r) for r in reversed(rows) if (r.net_flow or 0) < 0][:limit]
+            latest_date = rows[0].trade_date.isoformat() if rows else None
+            return jsonify({"date": latest_date, "inflows": inflows, "outflows": outflows})
 
 
 # ---------------------------------------------------------------------------
