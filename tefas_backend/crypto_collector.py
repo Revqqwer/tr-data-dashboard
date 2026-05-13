@@ -123,13 +123,15 @@ def _scrape_farside(asset: str) -> list[dict]:
     tickers = BTC_TICKERS if asset == "BTC" else ETH_TICKERS
 
     try:
-        session = requests.Session()
-        # Önce ana sayfayı ziyaret et (cookie/CF clearance için)
-        session.get("https://farside.co.uk/", headers=HEADERS, timeout=30)
-        time.sleep(1)
-        resp = session.get(url, headers=HEADERS, timeout=30)
+        try:
+            import cloudscraper
+            session = cloudscraper.create_scraper(browser={"browser": "chrome", "platform": "windows", "mobile": False})
+        except ImportError:
+            session = requests.Session()
+
+        resp = session.get(url, headers=HEADERS, timeout=60)
         resp.raise_for_status()
-    except requests.RequestException as e:
+    except Exception as e:
         log.error("Farside %s fetch hatası: %s", asset, e)
         return []
 
