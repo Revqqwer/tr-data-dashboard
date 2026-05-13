@@ -64,9 +64,18 @@ HEADERS = {
         "AppleWebKit/537.36 (KHTML, like Gecko) "
         "Chrome/124.0.0.0 Safari/537.36"
     ),
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    "Accept-Language": "en-US,en;q=0.5",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Accept-Encoding": "gzip, deflate, br",
     "Referer": "https://farside.co.uk/",
+    "Connection": "keep-alive",
+    "Upgrade-Insecure-Requests": "1",
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "same-origin",
+    "Sec-Fetch-User": "?1",
+    "Cache-Control": "max-age=0",
+    "DNT": "1",
 }
 
 # ── Tarih parse ──────────────────────────────────────────────────────────────
@@ -114,7 +123,11 @@ def _scrape_farside(asset: str) -> list[dict]:
     tickers = BTC_TICKERS if asset == "BTC" else ETH_TICKERS
 
     try:
-        resp = requests.get(url, headers=HEADERS, timeout=30)
+        session = requests.Session()
+        # Önce ana sayfayı ziyaret et (cookie/CF clearance için)
+        session.get("https://farside.co.uk/", headers=HEADERS, timeout=30)
+        time.sleep(1)
+        resp = session.get(url, headers=HEADERS, timeout=30)
         resp.raise_for_status()
     except requests.RequestException as e:
         log.error("Farside %s fetch hatası: %s", asset, e)
