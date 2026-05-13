@@ -120,6 +120,18 @@ class FundMeta(SQLModel, table=True):
     updated_at: Optional[datetime.date] = Field(default=None)
 
 
+class CryptoEtfFlow(SQLModel, table=True):
+    """BTC ve ETH spot ETF günlük para akışları (Farside verisi, $M)."""
+    __tablename__ = "crypto_etf_flow"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    trade_date: datetime.date = Field(index=True)
+    asset: str = Field(index=True)        # "BTC" veya "ETH"
+    ticker: str = Field(index=True)       # "IBIT", "FBTC", "ETHA", ...
+    fund_name: Optional[str] = Field(default=None)
+    flow_usd_m: Optional[float] = Field(default=None)  # milyon USD
+
+
 def init_db():
     SQLModel.metadata.create_all(engine)
 

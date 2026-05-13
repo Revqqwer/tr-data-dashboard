@@ -9,7 +9,7 @@ from sqlmodel import Session, select
 
 from tefas_backend.database import (
     FundFlow, FundDaily, FundMeta, FundComposition,
-    engine, init_db,
+    CryptoEtfFlow, engine, init_db,
 )
 from tefas_backend import flow_analysis as fa
 
@@ -542,5 +542,100 @@ def fix_fund_types():
             "fixed": len(mismatches),
             "details": [{"code": c, "old": o, "new": n} for c, o, n in mismatches],
         })
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# Kripto ETF para akışları
+# ---------------------------------------------------------------------------
+
+@tefas_bp.route("/api/crypto/flows")
+def crypto_flows():
+    err = _auth()
+    if err:
+        return err
+
+    asset    = request.args.get("asset", "BTC").upper()
+    days_str = request.args.get("days")
+    start_str = request.args.get("start")
+    end_str   = request.args.get("end")
+
+    with Session(engine) as db:
+        q = select(CryptoEtfFlow).where(CryptoEtfFlow.asset == asset)
+
+        if start_str and end_str:
+            s = _parse_date(start_str)
+            e = _parse_date(end_str)
+            if s and e:
+                q = q.where(CryptoEtfFlow.trade_date >= s, CryptoEtfFlow.trade_date <= e)
+        elif days_str:
+            try:
+                n = int(days_str)
+                latest = db.exec(
+                    select(CryptoEtfFlow.trade_date)
+                    .where(CryptoEtfFlow.asset == asset)
+                    .order_by(CryptoEtfFlow.trade_date.desc())
+                    .limit(1)
+                ).first()
+                if latest:
+                    cutoff = latest - datetime.timedelta(days=n)
+                    q = q.where(CryptoEtfFlow.trade_date >= cutoff)
+            except ValueError:
+                pass
+
+        rows = db.exec(q.order_by(CryptoEtfFlow.trade_date.asc())).all()
+
+    # Tarihe göre grupla
+    from collections import defaultdict
+    by_date: dict = defaultdict(lambda: {"tickers": {}, "total": 0.0})
+    tickers_seen: list = []
+
+    for r in rows:
+        d = r.trade_date.isoformat()
+        flow = r.flow_usd_m or 0.0
+        by_date[d]["tickers"][r.ticker] = flow
+        if r.ticker not in tickers_seen:
+            tickers_seen.append(r.ticker)
+
+    # Her gün total hesapla
+    data = []
+    for date_str in sorted(by_date.keys()):
+        entry = by_date[date_str]
+        total = sum(entry["tickers"].values())
+        data.append({
+            "date":    date_str,
+            "total":   round(total, 2),
+            "tickers": entry["tickers"],
+        })
+
+    return jsonify({"asset": asset, "tickers": tickers_seen, "data": data})
+
+
+@tefas_bp.route("/api/crypto/collect", methods=["POST"])
+def crypto_collect():
+    err = _auth()
+    if err:
+        return err
+    try:
+        from tefas_backend.crypto_collector import collect_all
+        results = collect_all()
+        return jsonify({"status": "ok", "counts": results})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@tefas_bp.route("/api/crypto/import-excel", methods=["POST"])
+def crypto_import_excel():
+    err = _auth()
+    if err:
+        return err
+    try:
+        from tefas_backend.crypto_collector import import_from_excel
+        filepath = (request.json or {}).get("filepath", "")
+        if not filepath:
+            return jsonify({"error": "filepath gerekli"}), 400
+        counts = import_from_excel(filepath)
+        return jsonify({"status": "ok", "counts": counts})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
