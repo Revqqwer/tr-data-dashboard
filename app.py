@@ -141,6 +141,89 @@ def logout():
 
 
 # ── Admin paneli ──────────────────────────────────────────
+
+TEFAS_DB_PATH = os.path.join(os.path.dirname(__file__), 'data', 'tefas.db')
+
+def _data_status():
+    """Her veri kaynağı için son tarih + kayıt sayısını döndür."""
+    items = []
+
+    # ── Makro tablolar (cache.db) ──────────────────────────
+    macro_tables = [
+        ('dth',           'DTH',                 'EVDS — manuel güncelleme',   'tarih'),
+        ('menkul',        'Menkul Kıymetler',    'EVDS — manuel güncelleme',   'tarih'),
+        ('credit',        'Krediler',            'EVDS — manuel güncelleme',   'tarih'),
+        ('credit_detail', 'Kredi Detayı',        'EVDS — manuel güncelleme',   'tarih'),
+        ('butce',         'Bütçe Dengesi',       'EVDS — manuel güncelleme',   'tarih'),
+        ('dis_ticaret',   'Dış Ticaret',         'EVDS — manuel güncelleme',   'tarih'),
+        ('turizm',        'Turizm',              'EVDS — manuel güncelleme',   'tarih'),
+        ('odeme_dengesi', 'Ödemeler Dengesi',    'EVDS — manuel güncelleme',   'tarih'),
+        ('konut',         'Konut',               'EVDS — manuel güncelleme',   'tarih'),
+        ('enflasyon',     'Enflasyon (TÜFE)',    'EVDS — manuel güncelleme',   'tarih'),
+        ('makro',         'Makro Tahmin',        'Manuel güncelleme',          'tarih'),
+    ]
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            for tbl, label, source, date_col in macro_tables:
+                try:
+                    row = conn.execute(
+                        f'SELECT MAX({date_col}) as last_date, COUNT(*) as cnt FROM {tbl}'
+                    ).fetchone()
+                    items.append({
+                        'label':   label,
+                        'source':  source,
+                        'db':      'cache.db',
+                        'last':    row[0] or '—',
+                        'count':   row[1] or 0,
+                    })
+                except Exception:
+                    items.append({'label': label, 'source': source, 'db': 'cache.db', 'last': '—', 'count': 0})
+    except Exception:
+        pass
+
+    # ── TEFAS tabloları (tefas.db) ────────────────────────
+    tefas_tables = [
+        ('fund_daily',      'trade_date', 'TEFAS Fon Verisi',    'Otomatik — her gün 17:00 UTC (daily_collect.py)'),
+        ('fund_flow',       'trade_date', 'TEFAS Net Akış',      'Otomatik — her gün 17:00 UTC (daily_collect.py)'),
+    ]
+    try:
+        with sqlite3.connect(TEFAS_DB_PATH) as conn:
+            for tbl, date_col, label, source in tefas_tables:
+                try:
+                    row = conn.execute(
+                        f'SELECT MAX({date_col}) as last_date, COUNT(*) as cnt FROM {tbl}'
+                    ).fetchone()
+                    items.append({
+                        'label':  label,
+                        'source': source,
+                        'db':     'tefas.db',
+                        'last':   row[0] or '—',
+                        'count':  row[1] or 0,
+                    })
+                except Exception:
+                    items.append({'label': label, 'source': source, 'db': 'tefas.db', 'last': '—', 'count': 0})
+
+            # Kripto: BTC ve ETH ayrı
+            for asset in ('BTC', 'ETH'):
+                try:
+                    row = conn.execute(
+                        "SELECT MAX(trade_date), COUNT(*) FROM crypto_etf_flow WHERE asset = ?", (asset,)
+                    ).fetchone()
+                    items.append({
+                        'label':  f'{asset} ETF Akışları',
+                        'source': 'Otomatik — her gün 18:00 UTC (daily_crypto_collect.py)',
+                        'db':     'tefas.db',
+                        'last':   row[0] or '—',
+                        'count':  row[1] or 0,
+                    })
+                except Exception:
+                    items.append({'label': f'{asset} ETF Akışları', 'source': '', 'db': 'tefas.db', 'last': '—', 'count': 0})
+    except Exception:
+        pass
+
+    return items
+
+
 @app.route('/admin/<secret>')
 def admin(secret):
     if secret != ADMIN_SECRET:
@@ -153,7 +236,8 @@ def admin(secret):
         users = conn.execute(
             'SELECT id, username, name, active, created_at, last_login FROM users ORDER BY created_at DESC'
         ).fetchall()
-    return render_template('admin.html', codes=codes, users=users, secret=secret)
+    data_status = _data_status()
+    return render_template('admin.html', codes=codes, users=users, secret=secret, data_status=data_status)
 
 
 @app.route('/admin/<secret>/add', methods=['POST'])
