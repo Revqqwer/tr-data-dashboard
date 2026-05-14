@@ -92,6 +92,17 @@
       </a>
     </div>
 
+    <!-- ── Ayırıcı ── -->
+    <div style="height:1px;background:rgba(255,255,255,0.1);margin:8px 4px;"></div>
+
+    <!-- ── 4. BIST Portföy ── -->
+    <div class="nav-section">
+      <a href="#" class="nav-item nav-section-title" data-page="bist" style="text-transform:uppercase;font-size:10px;letter-spacing:0.08em;font-weight:700;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
+        BIST Portföy
+      </a>
+    </div>
+
   </nav>
 
   <script>
@@ -1102,6 +1113,24 @@
     <iframe
       src="/tefas/crypto"
       id="kripto-iframe"
+      style="width:100%;height:calc(100vh - 56px);border:none;display:block;"
+      loading="lazy"
+    ></iframe>
+  </div>
+
+  <!-- ── BIST PORTFÖY TOPBAR ── -->
+  <header class="topbar hidden" id="topbar-bist">
+    <div class="topbar-title">
+      <h1>BIST Portföy</h1>
+      <span class="topbar-sub">Hisse Senedi Portföy Takibi · Gerçekleşmiş K/Z · Açık Pozisyonlar</span>
+    </div>
+  </header>
+
+  <!-- ── BIST PORTFÖY iframe ── -->
+  <div class="page-content hidden" id="page-bist" style="padding:0;overflow:hidden;">
+    <iframe
+      src="/tefas/bist"
+      id="bist-iframe"
       style="width:100%;height:calc(100vh - 56px);border:none;display:block;"
       loading="lazy"
     ></iframe>
