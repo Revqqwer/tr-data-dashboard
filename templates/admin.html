@@ -84,40 +84,9 @@
     .muted { color:#475569; font-size:12px; }
     .empty { text-align:center; padding:48px; color:#475569; }
 
-    .section-title {
-      font-size:12px; letter-spacing:1.5px; text-transform:uppercase;
-      color:#64748b; margin-bottom:14px; margin-top:32px;
-    }
-    .data-grid {
-      display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));
-      gap:12px; margin-bottom:32px;
-    }
-    .data-card {
-      background:#161b22; border:1px solid rgba(255,255,255,0.08);
-      border-radius:10px; padding:14px 18px;
-    }
-    .data-card-top {
-      display:flex; align-items:center; justify-content:space-between;
-      margin-bottom:8px;
-    }
-    .data-label { font-size:13px; font-weight:700; color:#e2e8f0; }
-    .db-tag {
-      font-size:10px; font-weight:600; padding:2px 8px; border-radius:10px;
-      background:rgba(99,102,241,0.15); color:#818cf8; letter-spacing:0.3px;
-    }
-    .db-tag.cache { background:rgba(245,158,11,0.12); color:#f0b429; }
-    .data-last {
-      font-size:18px; font-weight:800; color:#f0b429; font-family:monospace;
-      margin-bottom:4px;
-    }
-    .data-meta { font-size:11px; color:#475569; line-height:1.5; }
-    .data-count { color:#64748b; }
-    .dot-ok  { width:7px; height:7px; border-radius:50%; background:#22c55e;
-                display:inline-block; margin-right:6px; }
-    .dot-old { width:7px; height:7px; border-radius:50%; background:#f59e0b;
-                display:inline-block; margin-right:6px; }
-    .dot-none{ width:7px; height:7px; border-radius:50%; background:#ef4444;
-                display:inline-block; margin-right:6px; }
+    .dot-ok  { width:7px; height:7px; border-radius:50%; background:#22c55e; display:inline-block; }
+    .dot-old { width:7px; height:7px; border-radius:50%; background:#f59e0b; display:inline-block; }
+    .dot-none{ width:7px; height:7px; border-radius:50%; background:#ef4444; display:inline-block; }
   </style>
 </head>
 <body>
@@ -146,28 +115,36 @@
 </div>
 
 <!-- Son güncellenen veriler -->
-<h2 class="section-title">Son Güncellenen Veriler</h2>
-<div class="data-grid">
-  {% for d in data_status %}
-  {% set is_none = (d.last == '—') %}
-  {% set is_old  = (not is_none and d.last < '2025-01-01') %}
-  <div class="data-card">
-    <div class="data-card-top">
-      <span class="data-label">
-        {% if is_none %}<span class="dot-none"></span>
-        {% elif is_old %}<span class="dot-old"></span>
-        {% else %}<span class="dot-ok"></span>{% endif %}
-        {{ d.label }}
-      </span>
-      <span class="db-tag {% if d.db == 'cache.db' %}cache{% endif %}">{{ d.db }}</span>
-    </div>
-    <div class="data-last">{{ d.last }}</div>
-    <div class="data-meta">
-      <span class="data-count">{{ '{:,}'.format(d.count) }} kayıt</span><br>
-      {{ d.source }}
-    </div>
-  </div>
-  {% endfor %}
+<h2 style="font-size:14px;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:14px;margin-top:32px;">Veri Durumu</h2>
+<div class="table-wrap" style="margin-bottom:32px;">
+  <table>
+    <thead>
+      <tr>
+        <th></th>
+        <th>Veri Kaynağı</th>
+        <th>Son Tarih</th>
+        <th>Kayıt</th>
+        <th>Güncelleme</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for d in data_status %}
+      {% set is_none = (d.last == '—') %}
+      {% set is_old  = (not is_none and d.last < '2025-01-01') %}
+      <tr>
+        <td style="width:24px;">
+          {% if is_none %}<span class="dot-none"></span>
+          {% elif is_old %}<span class="dot-old"></span>
+          {% else %}<span class="dot-ok"></span>{% endif %}
+        </td>
+        <td style="font-weight:600;">{{ d.label }}</td>
+        <td style="font-family:monospace; color:{% if is_none %}#ef4444{% elif is_old %}#f59e0b{% else %}#f0b429{% endif %};">{{ d.last }}</td>
+        <td class="muted">{{ '{:,}'.format(d.count) }}</td>
+        <td class="muted">{{ d.source }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
 </div>
 
 <!-- Yeni kod ekle -->
