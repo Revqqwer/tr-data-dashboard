@@ -760,6 +760,194 @@
       "is_rights": false
     }
   ],
+  "pnl_timeline": [
+    {
+      "date": "2025-11-13",
+      "ticker": "",
+      "pnl": 0.0,
+      "cumulative_pnl": 0.0
+    },
+    {
+      "date": "2025-12-04",
+      "ticker": "HALKB",
+      "pnl": 5107.84,
+      "cumulative_pnl": 5107.84
+    },
+    {
+      "date": "2025-12-08",
+      "ticker": "VAKBN",
+      "pnl": 1256.78,
+      "cumulative_pnl": 6364.62
+    },
+    {
+      "date": "2025-12-11",
+      "ticker": "GARAN",
+      "pnl": -45.4,
+      "cumulative_pnl": 6319.22
+    },
+    {
+      "date": "2025-12-17",
+      "ticker": "ENJSA",
+      "pnl": 1454.1,
+      "cumulative_pnl": 7773.32
+    },
+    {
+      "date": "2026-01-07",
+      "ticker": "TOASO",
+      "pnl": 633.15,
+      "cumulative_pnl": 8406.47
+    },
+    {
+      "date": "2026-01-21",
+      "ticker": "AEFES",
+      "pnl": 716.63,
+      "cumulative_pnl": 9123.1
+    },
+    {
+      "date": "2026-01-26",
+      "ticker": "TSKB",
+      "pnl": -114.75,
+      "cumulative_pnl": 9008.35
+    },
+    {
+      "date": "2026-01-29",
+      "ticker": "EREGL",
+      "pnl": 419.44,
+      "cumulative_pnl": 9427.79
+    },
+    {
+      "date": "2026-02-04",
+      "ticker": "AKBNK",
+      "pnl": 1080.8,
+      "cumulative_pnl": 10508.59
+    },
+    {
+      "date": "2026-02-04",
+      "ticker": "AKSA",
+      "pnl": 632.77,
+      "cumulative_pnl": 11141.36
+    },
+    {
+      "date": "2026-02-09",
+      "ticker": "TRALT",
+      "pnl": -414.8,
+      "cumulative_pnl": 10726.56
+    },
+    {
+      "date": "2026-02-10",
+      "ticker": "YKBNK",
+      "pnl": 199.12,
+      "cumulative_pnl": 10925.68
+    },
+    {
+      "date": "2026-02-16",
+      "ticker": "NETCD",
+      "pnl": 885.0,
+      "cumulative_pnl": 11810.68
+    },
+    {
+      "date": "2026-02-17",
+      "ticker": "ALBRK",
+      "pnl": 1858.88,
+      "cumulative_pnl": 13669.56
+    },
+    {
+      "date": "2026-02-17",
+      "ticker": "YKBNK",
+      "pnl": 673.66,
+      "cumulative_pnl": 14343.22
+    },
+    {
+      "date": "2026-02-20",
+      "ticker": "ALTINS",
+      "pnl": -150.8,
+      "cumulative_pnl": 14192.42
+    },
+    {
+      "date": "2026-03-02",
+      "ticker": "RYSAS",
+      "pnl": 455.88,
+      "cumulative_pnl": 14648.3
+    },
+    {
+      "date": "2026-03-13",
+      "ticker": "SVGYO",
+      "pnl": 294.0,
+      "cumulative_pnl": 14942.3
+    },
+    {
+      "date": "2026-03-17",
+      "ticker": "GENKM",
+      "pnl": 979.0,
+      "cumulative_pnl": 15921.3
+    },
+    {
+      "date": "2026-03-17",
+      "ticker": "YEOTK",
+      "pnl": 1982.7,
+      "cumulative_pnl": 17904.0
+    },
+    {
+      "date": "2026-03-18",
+      "ticker": "LXGYO",
+      "pnl": 238.0,
+      "cumulative_pnl": 18142.0
+    },
+    {
+      "date": "2026-03-23",
+      "ticker": "MCARD",
+      "pnl": 383.0,
+      "cumulative_pnl": 18525.0
+    },
+    {
+      "date": "2026-04-06",
+      "ticker": "BULGS",
+      "pnl": -444.72,
+      "cumulative_pnl": 18080.28
+    },
+    {
+      "date": "2026-04-14",
+      "ticker": "GLRMK",
+      "pnl": 2523.1,
+      "cumulative_pnl": 20603.38
+    },
+    {
+      "date": "2026-04-14",
+      "ticker": "KRDMD",
+      "pnl": 1211.28,
+      "cumulative_pnl": 21814.66
+    },
+    {
+      "date": "2026-04-21",
+      "ticker": "CIMSA",
+      "pnl": 207.68,
+      "cumulative_pnl": 22022.34
+    },
+    {
+      "date": "2026-05-05",
+      "ticker": "GARAN",
+      "pnl": -63.0,
+      "cumulative_pnl": 21959.34
+    },
+    {
+      "date": "2026-05-05",
+      "ticker": "GRSEL",
+      "pnl": -368.0,
+      "cumulative_pnl": 21591.34
+    },
+    {
+      "date": "2026-05-05",
+      "ticker": "SELEC",
+      "pnl": 2253.5,
+      "cumulative_pnl": 23844.84
+    },
+    {
+      "date": "2026-05-05",
+      "ticker": "SELEC",
+      "pnl": 398.75,
+      "cumulative_pnl": 24243.59
+    }
+  ],
   "balance_history": [
     {
       "date": "2025-11-13",
