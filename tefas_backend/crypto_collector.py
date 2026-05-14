@@ -137,26 +137,35 @@ def _scrape_farside(asset: str) -> list[dict]:
 
     soup = BeautifulSoup(resp.text, "html.parser")
 
-    # Sayfadaki ana veri tablosunu bul
-    table = soup.find("table")
+    # En fazla satırı olan tabloyu bul (nav/footer tablolarını atla)
+    all_tables = soup.find_all("table")
+    table = max(all_tables, key=lambda t: len(t.find_all("tr")), default=None)
     if not table:
         log.error("Farside %s: tablo bulunamadı", asset)
         return []
 
     rows = table.find_all("tr")
-    if not rows:
+    if len(rows) < 3:
         return []
 
-    # Header satırından sütun adlarını al
-    header_cells = rows[0].find_all(["th", "td"])
-    headers = [c.get_text(strip=True) for c in header_cells]
-
-    # "Date" veya ilk sütun tarih kolonudur
-    # Ticker adlarını normalize et (sütun başlıklarını ticker dict ile eşleştir)
+    # Row 0: genel başlık (Total vb.), Row 1: ticker adları, Row 2+: veri
+    ticker_row = rows[1].find_all(["td", "th"])
     ticker_list = list(tickers.keys())
 
+    # Ticker adlarını sütun pozisyonuna göre eşleştir
+    col_to_ticker: dict[int, str] = {}
+    for i, cell in enumerate(ticker_row):
+        name = cell.get_text(strip=True)
+        if name in tickers:
+            col_to_ticker[i] = name
+
+    # Eğer row 1'den eşleşme yoksa (sayfa yapısı farklı), sabit sırayı kullan
+    if not col_to_ticker:
+        for i, ticker in enumerate(ticker_list):
+            col_to_ticker[i + 1] = ticker
+
     records = []
-    for row in rows[1:]:
+    for row in rows[2:]:
         cells = row.find_all(["td", "th"])
         if not cells:
             continue
@@ -165,11 +174,9 @@ def _scrape_farside(asset: str) -> list[dict]:
         if not trade_date:
             continue
 
-        # Her ticker için değer al
-        for i, ticker in enumerate(ticker_list):
-            col_idx = i + 1  # 0 = date
+        for col_idx, ticker in col_to_ticker.items():
             if col_idx >= len(cells):
-                break
+                continue
             val_str = cells[col_idx].get_text(strip=True)
             flow = _parse_flow(val_str)
             records.append({
