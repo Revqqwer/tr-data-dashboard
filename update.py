@@ -19,7 +19,7 @@ warnings.filterwarnings('ignore')
 import os
 DB_PATH      = os.path.join(os.path.dirname(__file__), 'data', 'cache.db')
 EVDS_BASE    = 'https://evds3.tcmb.gov.tr/igmevdsms-dis'
-EVDS_KEY     = 'a67jeM3QJz'
+EVDS_KEY     = os.environ.get('EVDS_KEY', '')
 EVDS_HEADERS = {'key': EVDS_KEY}
 BDDK_URL     = 'https://www.bddk.org.tr/bultenhaftalik'
 BDDK_HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
