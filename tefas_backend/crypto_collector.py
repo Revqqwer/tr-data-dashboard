@@ -231,11 +231,8 @@ def collect_asset(asset: str) -> int:
     records = _scrape_farside(asset)
     if not records:
         return 0
-    # Bugünü atla: bazen geç yayınlanır, dünün verisi genellikle tamamdır
-    cutoff = datetime.date.today() - datetime.timedelta(days=1)
-    records = [r for r in records if r["trade_date"] <= cutoff]
-    if not records:
-        return 0
+    # Bugün dahil tüm veriyi kaydet; upsert sayesinde eksik/geç gelen
+    # veriler bir sonraki çalıştırmada üzerine yazılır
     with Session(engine) as session:
         n = _upsert(session, records)
     log.info("%s: %d kayıt DB'ye yazıldı", asset, n)
