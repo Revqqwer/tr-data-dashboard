@@ -54,8 +54,8 @@ ETH_TICKERS: dict[str, str] = {
 }
 
 URLS = {
-    "BTC": "https://farside.co.uk/btc/",
-    "ETH": "https://farside.co.uk/eth/",
+    "BTC": "https://farside.co.uk/bitcoin-etf-flow-all-data/",
+    "ETH": "https://farside.co.uk/ethereum-etf-flow-all-data/",
 }
 
 HEADERS = {
