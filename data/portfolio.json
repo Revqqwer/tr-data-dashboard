@@ -1,0 +1,1445 @@
+{
+  "period": "2025-11-12 / 2026-05-07",
+  "account_name": "AHMET EMİN TAHTACI",
+  "account_no": "73285",
+  "broker": "PUSULA Yatırım",
+  "summary": {
+    "total_realized_pnl": 24243.59,
+    "total_dividends": 215.86,
+    "total_commission": 968.17
+  },
+  "trades": [
+    {
+      "date": "2025-11-14",
+      "settle_date": "2025-11-18",
+      "ticker": "AKSA",
+      "qty": 457,
+      "price": 10.93,
+      "type": "alis",
+      "amount": 4995.01,
+      "is_rights": false
+    },
+    {
+      "date": "2025-11-14",
+      "settle_date": "2025-11-18",
+      "ticker": "HALKB",
+      "qty": 368,
+      "price": 27.12,
+      "type": "alis",
+      "amount": 9980.16,
+      "is_rights": false
+    },
+    {
+      "date": "2025-11-14",
+      "settle_date": "2025-11-18",
+      "ticker": "TOASO",
+      "qty": 21,
+      "price": 236.6,
+      "type": "alis",
+      "amount": 4968.6,
+      "is_rights": false
+    },
+    {
+      "date": "2025-11-21",
+      "settle_date": "2025-11-25",
+      "ticker": "AKSA",
+      "qty": 483,
+      "price": 10.34,
+      "type": "alis",
+      "amount": 4994.22,
+      "is_rights": false
+    },
+    {
+      "date": "2025-11-21",
+      "settle_date": "2025-11-25",
+      "ticker": "VAKBN",
+      "qty": 191,
+      "price": 26.2,
+      "type": "alis",
+      "amount": 5004.2,
+      "is_rights": false
+    },
+    {
+      "date": "2025-11-26",
+      "settle_date": "2025-11-28",
+      "ticker": "ENJSA",
+      "qty": 131,
+      "price": 77.8,
+      "type": "alis",
+      "amount": 10191.8,
+      "is_rights": false
+    },
+    {
+      "date": "2025-12-02",
+      "settle_date": "2025-12-04",
+      "ticker": "HALKB",
+      "qty": 368,
+      "price": 41.0,
+      "type": "satis",
+      "amount": 15088.0,
+      "is_rights": false
+    },
+    {
+      "date": "2025-12-03",
+      "settle_date": "2025-12-05",
+      "ticker": "GARAN",
+      "qty": 1,
+      "price": 142.0,
+      "type": "alis",
+      "amount": 142.0,
+      "is_rights": false
+    },
+    {
+      "date": "2025-12-04",
+      "settle_date": "2025-12-08",
+      "ticker": "GARAN",
+      "qty": 28,
+      "price": 143.0,
+      "type": "alis",
+      "amount": 4004.0,
+      "is_rights": false
+    },
+    {
+      "date": "2025-12-04",
+      "settle_date": "2025-12-08",
+      "ticker": "VAKBN",
+      "qty": 191,
+      "price": 32.78,
+      "type": "satis",
+      "amount": 6260.98,
+      "is_rights": false
+    },
+    {
+      "date": "2025-12-09",
+      "settle_date": "2025-12-11",
+      "ticker": "TSKB",
+      "qty": 765,
+      "price": 13.08,
+      "type": "alis",
+      "amount": 10006.2,
+      "is_rights": false
+    },
+    {
+      "date": "2025-12-09",
+      "settle_date": "2025-12-11",
+      "ticker": "GARAN",
+      "qty": 29,
+      "price": 141.4,
+      "type": "satis",
+      "amount": 4100.6,
+      "is_rights": false
+    },
+    {
+      "date": "2025-12-15",
+      "settle_date": "2025-12-17",
+      "ticker": "ENJSA",
+      "qty": 131,
+      "price": 88.9,
+      "type": "satis",
+      "amount": 11645.9,
+      "is_rights": false
+    },
+    {
+      "date": "2025-12-16",
+      "settle_date": "2025-12-18",
+      "ticker": "AEFES",
+      "qty": 477,
+      "price": 16.9,
+      "type": "alis",
+      "amount": 8061.3,
+      "is_rights": false
+    },
+    {
+      "date": "2025-12-16",
+      "settle_date": "2025-12-18",
+      "ticker": "AKBNK",
+      "qty": 56,
+      "price": 70.9,
+      "type": "alis",
+      "amount": 3970.4,
+      "is_rights": false
+    },
+    {
+      "date": "2025-12-24",
+      "settle_date": "2025-12-26",
+      "ticker": "AEFES",
+      "qty": 127,
+      "price": 15.49,
+      "type": "alis",
+      "amount": 1967.23,
+      "is_rights": false
+    },
+    {
+      "date": "2026-01-05",
+      "settle_date": "2026-01-07",
+      "ticker": "TOASO",
+      "qty": 21,
+      "price": 266.75,
+      "type": "satis",
+      "amount": 5601.75,
+      "is_rights": false
+    },
+    {
+      "date": "2026-01-06",
+      "settle_date": "2026-01-08",
+      "ticker": "SELEC",
+      "qty": 72,
+      "price": 77.85,
+      "type": "alis",
+      "amount": 5605.2,
+      "is_rights": false
+    },
+    {
+      "date": "2026-01-16",
+      "settle_date": "2026-01-20",
+      "ticker": "EREGL",
+      "qty": 196,
+      "price": 25.5,
+      "type": "alis",
+      "amount": 4998.0,
+      "is_rights": false
+    },
+    {
+      "date": "2026-01-19",
+      "settle_date": "2026-01-21",
+      "ticker": "YKBNK",
+      "qty": 136,
+      "price": 36.58,
+      "type": "alis",
+      "amount": 4974.88,
+      "is_rights": false
+    },
+    {
+      "date": "2026-01-19",
+      "settle_date": "2026-01-21",
+      "ticker": "AEFES",
+      "qty": 604,
+      "price": 17.79,
+      "type": "satis",
+      "amount": 10745.16,
+      "is_rights": false
+    },
+    {
+      "date": "2026-01-22",
+      "settle_date": "2026-01-26",
+      "ticker": "ALBRK",
+      "qty": 1184,
+      "price": 8.42,
+      "type": "alis",
+      "amount": 9969.28,
+      "is_rights": false
+    },
+    {
+      "date": "2026-01-22",
+      "settle_date": "2026-01-26",
+      "ticker": "TSKB",
+      "qty": 765,
+      "price": 12.93,
+      "type": "satis",
+      "amount": 9891.45,
+      "is_rights": false
+    },
+    {
+      "date": "2026-01-27",
+      "settle_date": "2026-01-29",
+      "ticker": "SELEC",
+      "qty": 72,
+      "price": 83.2,
+      "type": "alis",
+      "amount": 5990.4,
+      "is_rights": false
+    },
+    {
+      "date": "2026-01-27",
+      "settle_date": "2026-01-29",
+      "ticker": "EREGL",
+      "qty": 196,
+      "price": 27.64,
+      "type": "satis",
+      "amount": 5417.44,
+      "is_rights": false
+    },
+    {
+      "date": "2026-02-02",
+      "settle_date": "2026-02-02",
+      "ticker": "NETCD",
+      "qty": 25,
+      "price": 46.0,
+      "type": "alis",
+      "amount": 1150.0,
+      "is_rights": true
+    },
+    {
+      "date": "2026-02-02",
+      "settle_date": "2026-02-04",
+      "ticker": "TRALT",
+      "qty": 122,
+      "price": 50.9,
+      "type": "alis",
+      "amount": 6209.8,
+      "is_rights": false
+    },
+    {
+      "date": "2026-02-02",
+      "settle_date": "2026-02-04",
+      "ticker": "AKBNK",
+      "qty": 56,
+      "price": 90.2,
+      "type": "satis",
+      "amount": 5051.2,
+      "is_rights": false
+    },
+    {
+      "date": "2026-02-02",
+      "settle_date": "2026-02-04",
+      "ticker": "AKSA",
+      "qty": 940,
+      "price": 11.3,
+      "type": "satis",
+      "amount": 10622.0,
+      "is_rights": false
+    },
+    {
+      "date": "2026-02-05",
+      "settle_date": "2026-02-09",
+      "ticker": "TRALT",
+      "qty": 122,
+      "price": 47.5,
+      "type": "satis",
+      "amount": 5795.0,
+      "is_rights": false
+    },
+    {
+      "date": "2026-02-06",
+      "settle_date": "2026-02-10",
+      "ticker": "ALTINS",
+      "qty": 58,
+      "price": 85.52,
+      "type": "alis",
+      "amount": 4960.16,
+      "is_rights": false
+    },
+    {
+      "date": "2026-02-06",
+      "settle_date": "2026-02-10",
+      "ticker": "YKBNK",
+      "qty": 15,
+      "price": 38.32,
+      "type": "alis",
+      "amount": 574.8,
+      "is_rights": false
+    },
+    {
+      "date": "2026-02-06",
+      "settle_date": "2026-02-10",
+      "ticker": "YKBNK",
+      "qty": 136,
+      "price": 38.34,
+      "type": "alis",
+      "amount": 5214.24,
+      "is_rights": false
+    },
+    {
+      "date": "2026-02-06",
+      "settle_date": "2026-02-10",
+      "ticker": "YKBNK",
+      "qty": 131,
+      "price": 38.1,
+      "type": "satis",
+      "amount": 4991.1,
+      "is_rights": false
+    },
+    {
+      "date": "2026-02-12",
+      "settle_date": "2026-02-16",
+      "ticker": "NETCD",
+      "qty": 25,
+      "price": 81.4,
+      "type": "satis",
+      "amount": 2035.0,
+      "is_rights": false
+    },
+    {
+      "date": "2026-02-13",
+      "settle_date": "2026-02-17",
+      "ticker": "RYSAS",
+      "qty": 262,
+      "price": 19.06,
+      "type": "alis",
+      "amount": 4993.72,
+      "is_rights": false
+    },
+    {
+      "date": "2026-02-13",
+      "settle_date": "2026-02-17",
+      "ticker": "ALBRK",
+      "qty": 1184,
+      "price": 9.99,
+      "type": "satis",
+      "amount": 11828.16,
+      "is_rights": false
+    },
+    {
+      "date": "2026-02-13",
+      "settle_date": "2026-02-17",
+      "ticker": "YKBNK",
+      "qty": 156,
+      "price": 42.6,
+      "type": "satis",
+      "amount": 6645.6,
+      "is_rights": false
+    },
+    {
+      "date": "2026-02-16",
+      "settle_date": "2026-02-18",
+      "ticker": "BULGS",
+      "qty": 102,
+      "price": 48.68,
+      "type": "alis",
+      "amount": 4965.36,
+      "is_rights": false
+    },
+    {
+      "date": "2026-02-17",
+      "settle_date": "2026-02-19",
+      "ticker": "YEOTK",
+      "qty": 114,
+      "price": 43.8,
+      "type": "alis",
+      "amount": 4993.2,
+      "is_rights": false
+    },
+    {
+      "date": "2026-02-18",
+      "settle_date": "2026-02-20",
+      "ticker": "YEOTK",
+      "qty": 120,
+      "price": 42.0,
+      "type": "alis",
+      "amount": 5040.0,
+      "is_rights": false
+    },
+    {
+      "date": "2026-02-18",
+      "settle_date": "2026-02-20",
+      "ticker": "ALTINS",
+      "qty": 58,
+      "price": 82.92,
+      "type": "satis",
+      "amount": 4809.36,
+      "is_rights": false
+    },
+    {
+      "date": "2026-02-26",
+      "settle_date": "2026-03-02",
+      "ticker": "RYSAS",
+      "qty": 262,
+      "price": 20.8,
+      "type": "satis",
+      "amount": 5449.6,
+      "is_rights": false
+    },
+    {
+      "date": "2026-03-03",
+      "settle_date": "2026-03-03",
+      "ticker": "SVGYO",
+      "qty": 175,
+      "price": 3.64,
+      "type": "alis",
+      "amount": 637.0,
+      "is_rights": true
+    },
+    {
+      "date": "2026-03-03",
+      "settle_date": "2026-03-05",
+      "ticker": "GENKM",
+      "qty": 178,
+      "price": 11.0,
+      "type": "alis",
+      "amount": 1958.0,
+      "is_rights": false
+    },
+    {
+      "date": "2026-03-06",
+      "settle_date": "2026-03-06",
+      "ticker": "LXGYO",
+      "qty": 56,
+      "price": 12.05,
+      "type": "alis",
+      "amount": 674.8,
+      "is_rights": true
+    },
+    {
+      "date": "2026-03-06",
+      "settle_date": "2026-03-06",
+      "ticker": "MCARD",
+      "qty": 10,
+      "price": 80.0,
+      "type": "alis",
+      "amount": 800.0,
+      "is_rights": true
+    },
+    {
+      "date": "2026-03-06",
+      "settle_date": "2026-03-10",
+      "ticker": "EKGYO",
+      "qty": 278,
+      "price": 21.5,
+      "type": "alis",
+      "amount": 5977.0,
+      "is_rights": false
+    },
+    {
+      "date": "2026-03-06",
+      "settle_date": "2026-03-10",
+      "ticker": "KRDMD",
+      "qty": 196,
+      "price": 30.58,
+      "type": "alis",
+      "amount": 5993.68,
+      "is_rights": false
+    },
+    {
+      "date": "2026-03-10",
+      "settle_date": "2026-03-12",
+      "ticker": "CIMSA",
+      "qty": 44,
+      "price": 48.78,
+      "type": "alis",
+      "amount": 2146.32,
+      "is_rights": false
+    },
+    {
+      "date": "2026-03-11",
+      "settle_date": "2026-03-13",
+      "ticker": "SVGYO",
+      "qty": 175,
+      "price": 5.32,
+      "type": "satis",
+      "amount": 931.0,
+      "is_rights": false
+    },
+    {
+      "date": "2026-03-12",
+      "settle_date": "2026-03-16",
+      "ticker": "EKGYO",
+      "qty": 46,
+      "price": 20.74,
+      "type": "alis",
+      "amount": 954.04,
+      "is_rights": false
+    },
+    {
+      "date": "2026-03-13",
+      "settle_date": "2026-03-17",
+      "ticker": "GENKM",
+      "qty": 178,
+      "price": 16.5,
+      "type": "satis",
+      "amount": 2937.0,
+      "is_rights": false
+    },
+    {
+      "date": "2026-03-13",
+      "settle_date": "2026-03-17",
+      "ticker": "YEOTK",
+      "qty": 234,
+      "price": 51.35,
+      "type": "satis",
+      "amount": 12015.9,
+      "is_rights": false
+    },
+    {
+      "date": "2026-03-16",
+      "settle_date": "2026-03-18",
+      "ticker": "GARAN",
+      "qty": 30,
+      "price": 133.3,
+      "type": "alis",
+      "amount": 3999.0,
+      "is_rights": false
+    },
+    {
+      "date": "2026-03-16",
+      "settle_date": "2026-03-18",
+      "ticker": "LXGYO",
+      "qty": 56,
+      "price": 16.3,
+      "type": "satis",
+      "amount": 912.8,
+      "is_rights": false
+    },
+    {
+      "date": "2026-03-17",
+      "settle_date": "2026-03-23",
+      "ticker": "GLRMK",
+      "qty": 23,
+      "price": 168.3,
+      "type": "alis",
+      "amount": 3870.9,
+      "is_rights": false
+    },
+    {
+      "date": "2026-03-17",
+      "settle_date": "2026-03-23",
+      "ticker": "GLRMK",
+      "qty": 8,
+      "price": 169.5,
+      "type": "alis",
+      "amount": 1356.0,
+      "is_rights": false
+    },
+    {
+      "date": "2026-03-17",
+      "settle_date": "2026-03-23",
+      "ticker": "MCARD",
+      "qty": 10,
+      "price": 118.3,
+      "type": "satis",
+      "amount": 1183.0,
+      "is_rights": false
+    },
+    {
+      "date": "2026-03-27",
+      "settle_date": "2026-03-31",
+      "ticker": "GRSEL",
+      "qty": 16,
+      "price": 310.25,
+      "type": "alis",
+      "amount": 4964.0,
+      "is_rights": false
+    },
+    {
+      "date": "2026-04-01",
+      "settle_date": "2026-04-03",
+      "ticker": "ALVES",
+      "qty": 1415,
+      "price": 3.32,
+      "type": "alis",
+      "amount": 4697.8,
+      "is_rights": false
+    },
+    {
+      "date": "2026-04-02",
+      "settle_date": "2026-04-06",
+      "ticker": "BULGS",
+      "qty": 102,
+      "price": 44.32,
+      "type": "satis",
+      "amount": 4520.64,
+      "is_rights": false
+    },
+    {
+      "date": "2026-04-06",
+      "settle_date": "2026-04-06",
+      "ticker": "AAGYO",
+      "qty": 145,
+      "price": 21.1,
+      "type": "alis",
+      "amount": 3059.5,
+      "is_rights": true
+    },
+    {
+      "date": "2026-04-10",
+      "settle_date": "2026-04-14",
+      "ticker": "AKBNK",
+      "qty": 38,
+      "price": 77.2,
+      "type": "alis",
+      "amount": 2933.6,
+      "is_rights": false
+    },
+    {
+      "date": "2026-04-10",
+      "settle_date": "2026-04-14",
+      "ticker": "YKBNK",
+      "qty": 77,
+      "price": 38.5,
+      "type": "alis",
+      "amount": 2964.5,
+      "is_rights": false
+    },
+    {
+      "date": "2026-04-10",
+      "settle_date": "2026-04-14",
+      "ticker": "GLRMK",
+      "qty": 31,
+      "price": 250.0,
+      "type": "satis",
+      "amount": 7750.0,
+      "is_rights": false
+    },
+    {
+      "date": "2026-04-10",
+      "settle_date": "2026-04-14",
+      "ticker": "KRDMD",
+      "qty": 196,
+      "price": 36.76,
+      "type": "satis",
+      "amount": 7204.96,
+      "is_rights": false
+    },
+    {
+      "date": "2026-04-13",
+      "settle_date": "2026-04-15",
+      "ticker": "YKBNK",
+      "qty": 53,
+      "price": 37.56,
+      "type": "alis",
+      "amount": 1990.68,
+      "is_rights": false
+    },
+    {
+      "date": "2026-04-14",
+      "settle_date": "2026-04-16",
+      "ticker": "YKBNK",
+      "qty": 40,
+      "price": 37.36,
+      "type": "alis",
+      "amount": 1494.4,
+      "is_rights": false
+    },
+    {
+      "date": "2026-04-17",
+      "settle_date": "2026-04-21",
+      "ticker": "CIMSA",
+      "qty": 44,
+      "price": 53.5,
+      "type": "satis",
+      "amount": 2354.0,
+      "is_rights": false
+    },
+    {
+      "date": "2026-04-22",
+      "settle_date": "2026-04-27",
+      "ticker": "DMLKTG",
+      "qty": 396,
+      "price": 6.13,
+      "type": "alis",
+      "amount": 2427.48,
+      "is_rights": false
+    },
+    {
+      "date": "2026-04-30",
+      "settle_date": "2026-05-05",
+      "ticker": "GARAN",
+      "qty": 30,
+      "price": 131.2,
+      "type": "satis",
+      "amount": 3936.0,
+      "is_rights": false
+    },
+    {
+      "date": "2026-04-30",
+      "settle_date": "2026-05-05",
+      "ticker": "GRSEL",
+      "qty": 16,
+      "price": 287.25,
+      "type": "satis",
+      "amount": 4596.0,
+      "is_rights": false
+    },
+    {
+      "date": "2026-04-30",
+      "settle_date": "2026-05-05",
+      "ticker": "SELEC",
+      "qty": 119,
+      "price": 98.9,
+      "type": "satis",
+      "amount": 11769.1,
+      "is_rights": false
+    },
+    {
+      "date": "2026-04-30",
+      "settle_date": "2026-05-05",
+      "ticker": "SELEC",
+      "qty": 25,
+      "price": 99.15,
+      "type": "satis",
+      "amount": 2478.75,
+      "is_rights": false
+    }
+  ],
+  "balance_history": [
+    {
+      "date": "2025-11-13",
+      "balance": 100000.0
+    },
+    {
+      "date": "2025-11-14",
+      "balance": 0.29
+    },
+    {
+      "date": "2025-11-17",
+      "balance": 0.84
+    },
+    {
+      "date": "2025-11-18",
+      "balance": 123.8
+    },
+    {
+      "date": "2025-11-20",
+      "balance": 0.82
+    },
+    {
+      "date": "2025-11-21",
+      "balance": 0.29
+    },
+    {
+      "date": "2025-11-24",
+      "balance": 0.28
+    },
+    {
+      "date": "2025-11-25",
+      "balance": 0.94
+    },
+    {
+      "date": "2025-11-26",
+      "balance": 0.74
+    },
+    {
+      "date": "2025-11-27",
+      "balance": 0.61
+    },
+    {
+      "date": "2025-11-28",
+      "balance": 57.28
+    },
+    {
+      "date": "2025-12-04",
+      "balance": 0.24
+    },
+    {
+      "date": "2025-12-05",
+      "balance": 0.81
+    },
+    {
+      "date": "2025-12-08",
+      "balance": 0.85
+    },
+    {
+      "date": "2025-12-09",
+      "balance": 0.24
+    },
+    {
+      "date": "2025-12-10",
+      "balance": 0.64
+    },
+    {
+      "date": "2025-12-11",
+      "balance": 389.56
+    },
+    {
+      "date": "2025-12-15",
+      "balance": 372.58
+    },
+    {
+      "date": "2025-12-17",
+      "balance": 0.91
+    },
+    {
+      "date": "2025-12-18",
+      "balance": -6.47
+    },
+    {
+      "date": "2025-12-23",
+      "balance": 0.17
+    },
+    {
+      "date": "2025-12-24",
+      "balance": 0.81
+    },
+    {
+      "date": "2025-12-25",
+      "balance": 0.45
+    },
+    {
+      "date": "2025-12-26",
+      "balance": 16.6
+    },
+    {
+      "date": "2026-01-01",
+      "balance": 16.6
+    },
+    {
+      "date": "2026-01-07",
+      "balance": 0.59
+    },
+    {
+      "date": "2026-01-08",
+      "balance": 16.27
+    },
+    {
+      "date": "2026-01-15",
+      "balance": 0.12
+    },
+    {
+      "date": "2026-01-16",
+      "balance": 0.29
+    },
+    {
+      "date": "2026-01-19",
+      "balance": 0.08
+    },
+    {
+      "date": "2026-01-20",
+      "balance": 0.58
+    },
+    {
+      "date": "2026-01-21",
+      "balance": 78.92
+    },
+    {
+      "date": "2026-01-26",
+      "balance": -1.6
+    },
+    {
+      "date": "2026-01-28",
+      "balance": 1.18
+    },
+    {
+      "date": "2026-01-29",
+      "balance": -573.32
+    },
+    {
+      "date": "2026-02-02",
+      "balance": 622.68
+    },
+    {
+      "date": "2026-02-04",
+      "balance": 0.63
+    },
+    {
+      "date": "2026-02-09",
+      "balance": 0.85
+    },
+    {
+      "date": "2026-02-10",
+      "balance": 39.27
+    },
+    {
+      "date": "2026-02-16",
+      "balance": 0.17
+    },
+    {
+      "date": "2026-02-17",
+      "balance": 0.94
+    },
+    {
+      "date": "2026-02-18",
+      "balance": 0.92
+    },
+    {
+      "date": "2026-02-19",
+      "balance": 100.12
+    },
+    {
+      "date": "2026-02-20",
+      "balance": -131.85
+    },
+    {
+      "date": "2026-02-26",
+      "balance": 2.0
+    },
+    {
+      "date": "2026-03-02",
+      "balance": 0.37
+    },
+    {
+      "date": "2026-03-03",
+      "balance": 1488.87
+    },
+    {
+      "date": "2026-03-04",
+      "balance": 0.59
+    },
+    {
+      "date": "2026-03-05",
+      "balance": 0.41
+    },
+    {
+      "date": "2026-03-06",
+      "balance": 800.61
+    },
+    {
+      "date": "2026-03-09",
+      "balance": 0.43
+    },
+    {
+      "date": "2026-03-10",
+      "balance": 0.38
+    },
+    {
+      "date": "2026-03-11",
+      "balance": 0.27
+    },
+    {
+      "date": "2026-03-12",
+      "balance": 40.55
+    },
+    {
+      "date": "2026-03-13",
+      "balance": 971.42
+    },
+    {
+      "date": "2026-03-16",
+      "balance": 17.25
+    },
+    {
+      "date": "2026-03-17",
+      "balance": 0.75
+    },
+    {
+      "date": "2026-03-18",
+      "balance": 0.88
+    },
+    {
+      "date": "2026-03-23",
+      "balance": 54.32
+    },
+    {
+      "date": "2026-03-26",
+      "balance": 0.34
+    },
+    {
+      "date": "2026-03-27",
+      "balance": 0.68
+    },
+    {
+      "date": "2026-03-30",
+      "balance": 0.0
+    },
+    {
+      "date": "2026-03-31",
+      "balance": 40.75
+    },
+    {
+      "date": "2026-04-01",
+      "balance": 0.81
+    },
+    {
+      "date": "2026-04-02",
+      "balance": 0.24
+    },
+    {
+      "date": "2026-04-03",
+      "balance": 380.93
+    },
+    {
+      "date": "2026-04-06",
+      "balance": 5.73
+    },
+    {
+      "date": "2026-04-09",
+      "balance": 140.0
+    },
+    {
+      "date": "2026-04-14",
+      "balance": 0.04
+    },
+    {
+      "date": "2026-04-15",
+      "balance": 0.11
+    },
+    {
+      "date": "2026-04-16",
+      "balance": 0.17
+    },
+    {
+      "date": "2026-04-17",
+      "balance": 21.3
+    },
+    {
+      "date": "2026-04-21",
+      "balance": 0.83
+    },
+    {
+      "date": "2026-04-22",
+      "balance": 0.93
+    },
+    {
+      "date": "2026-04-24",
+      "balance": 0.17
+    },
+    {
+      "date": "2026-04-27",
+      "balance": 13.77
+    },
+    {
+      "date": "2026-05-05",
+      "balance": 0.54
+    },
+    {
+      "date": "2026-05-06",
+      "balance": 0.97
+    },
+    {
+      "date": "2026-05-07",
+      "balance": 7517.52
+    }
+  ],
+  "dividends": [
+    {
+      "date": "2026-04-03",
+      "ticker": "CIMSA",
+      "qty": 44,
+      "net": 27.69
+    },
+    {
+      "date": "2026-04-09",
+      "ticker": "GARAN",
+      "qty": 30,
+      "net": 134.31
+    },
+    {
+      "date": "2026-04-21",
+      "ticker": "SELEC",
+      "qty": 144,
+      "net": 53.86
+    }
+  ],
+  "pnl_by_ticker": {
+    "AAGYO": {
+      "buy_qty": 145,
+      "buy_amount": 3059.5,
+      "sell_qty": 0,
+      "sell_amount": 0.0,
+      "realized_pnl": 0.0,
+      "avg_buy": 21.1,
+      "avg_sell": 0,
+      "pnl_pct": 0.0
+    },
+    "AEFES": {
+      "buy_qty": 604,
+      "buy_amount": 10028.53,
+      "sell_qty": 604,
+      "sell_amount": 10745.16,
+      "realized_pnl": 716.63,
+      "avg_buy": 16.6035,
+      "avg_sell": 17.79,
+      "pnl_pct": 7.15
+    },
+    "AKBNK": {
+      "buy_qty": 94,
+      "buy_amount": 6904.0,
+      "sell_qty": 56,
+      "sell_amount": 5051.2,
+      "realized_pnl": 1080.8,
+      "avg_buy": 73.4468,
+      "avg_sell": 90.2,
+      "pnl_pct": 15.65
+    },
+    "AKSA": {
+      "buy_qty": 940,
+      "buy_amount": 9989.23,
+      "sell_qty": 940,
+      "sell_amount": 10622.0,
+      "realized_pnl": 632.77,
+      "avg_buy": 10.6268,
+      "avg_sell": 11.3,
+      "pnl_pct": 6.33
+    },
+    "ALBRK": {
+      "buy_qty": 1184,
+      "buy_amount": 9969.28,
+      "sell_qty": 1184,
+      "sell_amount": 11828.16,
+      "realized_pnl": 1858.88,
+      "avg_buy": 8.42,
+      "avg_sell": 9.99,
+      "pnl_pct": 18.65
+    },
+    "ALTINS": {
+      "buy_qty": 58,
+      "buy_amount": 4960.16,
+      "sell_qty": 58,
+      "sell_amount": 4809.36,
+      "realized_pnl": -150.8,
+      "avg_buy": 85.52,
+      "avg_sell": 82.92,
+      "pnl_pct": -3.04
+    },
+    "ALVES": {
+      "buy_qty": 1415,
+      "buy_amount": 4697.8,
+      "sell_qty": 0,
+      "sell_amount": 0.0,
+      "realized_pnl": 0.0,
+      "avg_buy": 3.32,
+      "avg_sell": 0,
+      "pnl_pct": 0.0
+    },
+    "BULGS": {
+      "buy_qty": 102,
+      "buy_amount": 4965.36,
+      "sell_qty": 102,
+      "sell_amount": 4520.64,
+      "realized_pnl": -444.72,
+      "avg_buy": 48.68,
+      "avg_sell": 44.32,
+      "pnl_pct": -8.96
+    },
+    "CIMSA": {
+      "buy_qty": 44,
+      "buy_amount": 2146.32,
+      "sell_qty": 44,
+      "sell_amount": 2354.0,
+      "realized_pnl": 207.68,
+      "avg_buy": 48.78,
+      "avg_sell": 53.5,
+      "pnl_pct": 9.68
+    },
+    "DMLKTG": {
+      "buy_qty": 396,
+      "buy_amount": 2427.48,
+      "sell_qty": 0,
+      "sell_amount": 0.0,
+      "realized_pnl": 0.0,
+      "avg_buy": 6.13,
+      "avg_sell": 0,
+      "pnl_pct": 0.0
+    },
+    "EKGYO": {
+      "buy_qty": 324,
+      "buy_amount": 6931.04,
+      "sell_qty": 0,
+      "sell_amount": 0.0,
+      "realized_pnl": 0.0,
+      "avg_buy": 21.3921,
+      "avg_sell": 0,
+      "pnl_pct": 0.0
+    },
+    "ENJSA": {
+      "buy_qty": 131,
+      "buy_amount": 10191.8,
+      "sell_qty": 131,
+      "sell_amount": 11645.9,
+      "realized_pnl": 1454.1,
+      "avg_buy": 77.8,
+      "avg_sell": 88.9,
+      "pnl_pct": 14.27
+    },
+    "EREGL": {
+      "buy_qty": 196,
+      "buy_amount": 4998.0,
+      "sell_qty": 196,
+      "sell_amount": 5417.44,
+      "realized_pnl": 419.44,
+      "avg_buy": 25.5,
+      "avg_sell": 27.64,
+      "pnl_pct": 8.39
+    },
+    "GARAN": {
+      "buy_qty": 59,
+      "buy_amount": 8145.0,
+      "sell_qty": 59,
+      "sell_amount": 8036.6,
+      "realized_pnl": -108.4,
+      "avg_buy": 138.0508,
+      "avg_sell": 136.2136,
+      "pnl_pct": -1.33
+    },
+    "GENKM": {
+      "buy_qty": 178,
+      "buy_amount": 1958.0,
+      "sell_qty": 178,
+      "sell_amount": 2937.0,
+      "realized_pnl": 979.0,
+      "avg_buy": 11.0,
+      "avg_sell": 16.5,
+      "pnl_pct": 50.0
+    },
+    "GLRMK": {
+      "buy_qty": 31,
+      "buy_amount": 5226.9,
+      "sell_qty": 31,
+      "sell_amount": 7750.0,
+      "realized_pnl": 2523.1,
+      "avg_buy": 168.6097,
+      "avg_sell": 250.0,
+      "pnl_pct": 48.27
+    },
+    "GRSEL": {
+      "buy_qty": 16,
+      "buy_amount": 4964.0,
+      "sell_qty": 16,
+      "sell_amount": 4596.0,
+      "realized_pnl": -368.0,
+      "avg_buy": 310.25,
+      "avg_sell": 287.25,
+      "pnl_pct": -7.41
+    },
+    "HALKB": {
+      "buy_qty": 368,
+      "buy_amount": 9980.16,
+      "sell_qty": 368,
+      "sell_amount": 15088.0,
+      "realized_pnl": 5107.84,
+      "avg_buy": 27.12,
+      "avg_sell": 41.0,
+      "pnl_pct": 51.18
+    },
+    "KRDMD": {
+      "buy_qty": 196,
+      "buy_amount": 5993.68,
+      "sell_qty": 196,
+      "sell_amount": 7204.96,
+      "realized_pnl": 1211.28,
+      "avg_buy": 30.58,
+      "avg_sell": 36.76,
+      "pnl_pct": 20.21
+    },
+    "LXGYO": {
+      "buy_qty": 56,
+      "buy_amount": 674.8,
+      "sell_qty": 56,
+      "sell_amount": 912.8,
+      "realized_pnl": 238.0,
+      "avg_buy": 12.05,
+      "avg_sell": 16.3,
+      "pnl_pct": 35.27
+    },
+    "MCARD": {
+      "buy_qty": 10,
+      "buy_amount": 800.0,
+      "sell_qty": 10,
+      "sell_amount": 1183.0,
+      "realized_pnl": 383.0,
+      "avg_buy": 80.0,
+      "avg_sell": 118.3,
+      "pnl_pct": 47.88
+    },
+    "NETCD": {
+      "buy_qty": 25,
+      "buy_amount": 1150.0,
+      "sell_qty": 25,
+      "sell_amount": 2035.0,
+      "realized_pnl": 885.0,
+      "avg_buy": 46.0,
+      "avg_sell": 81.4,
+      "pnl_pct": 76.96
+    },
+    "RYSAS": {
+      "buy_qty": 262,
+      "buy_amount": 4993.72,
+      "sell_qty": 262,
+      "sell_amount": 5449.6,
+      "realized_pnl": 455.88,
+      "avg_buy": 19.06,
+      "avg_sell": 20.8,
+      "pnl_pct": 9.13
+    },
+    "SELEC": {
+      "buy_qty": 144,
+      "buy_amount": 11595.6,
+      "sell_qty": 144,
+      "sell_amount": 14247.85,
+      "realized_pnl": 2652.25,
+      "avg_buy": 80.525,
+      "avg_sell": 98.9434,
+      "pnl_pct": 22.87
+    },
+    "SVGYO": {
+      "buy_qty": 175,
+      "buy_amount": 637.0,
+      "sell_qty": 175,
+      "sell_amount": 931.0,
+      "realized_pnl": 294.0,
+      "avg_buy": 3.64,
+      "avg_sell": 5.32,
+      "pnl_pct": 46.15
+    },
+    "TOASO": {
+      "buy_qty": 21,
+      "buy_amount": 4968.6,
+      "sell_qty": 21,
+      "sell_amount": 5601.75,
+      "realized_pnl": 633.15,
+      "avg_buy": 236.6,
+      "avg_sell": 266.75,
+      "pnl_pct": 12.74
+    },
+    "TRALT": {
+      "buy_qty": 122,
+      "buy_amount": 6209.8,
+      "sell_qty": 122,
+      "sell_amount": 5795.0,
+      "realized_pnl": -414.8,
+      "avg_buy": 50.9,
+      "avg_sell": 47.5,
+      "pnl_pct": -6.68
+    },
+    "TSKB": {
+      "buy_qty": 765,
+      "buy_amount": 10006.2,
+      "sell_qty": 765,
+      "sell_amount": 9891.45,
+      "realized_pnl": -114.75,
+      "avg_buy": 13.08,
+      "avg_sell": 12.93,
+      "pnl_pct": -1.15
+    },
+    "VAKBN": {
+      "buy_qty": 191,
+      "buy_amount": 5004.2,
+      "sell_qty": 191,
+      "sell_amount": 6260.98,
+      "realized_pnl": 1256.78,
+      "avg_buy": 26.2,
+      "avg_sell": 32.78,
+      "pnl_pct": 25.11
+    },
+    "YEOTK": {
+      "buy_qty": 234,
+      "buy_amount": 10033.2,
+      "sell_qty": 234,
+      "sell_amount": 12015.9,
+      "realized_pnl": 1982.7,
+      "avg_buy": 42.8769,
+      "avg_sell": 51.35,
+      "pnl_pct": 19.76
+    },
+    "YKBNK": {
+      "buy_qty": 457,
+      "buy_amount": 17213.5,
+      "sell_qty": 287,
+      "sell_amount": 11636.7,
+      "realized_pnl": 872.78,
+      "avg_buy": 37.6663,
+      "avg_sell": 40.546,
+      "pnl_pct": 5.07
+    }
+  },
+  "open_positions": {
+    "AKBNK": {
+      "qty": 38,
+      "avg_cost": 77.2,
+      "cost_basis": 2933.6
+    },
+    "YKBNK": {
+      "qty": 170,
+      "avg_cost": 37.9387,
+      "cost_basis": 6449.58
+    },
+    "EKGYO": {
+      "qty": 324,
+      "avg_cost": 21.3921,
+      "cost_basis": 6931.04
+    },
+    "ALVES": {
+      "qty": 1415,
+      "avg_cost": 3.32,
+      "cost_basis": 4697.8
+    },
+    "AAGYO": {
+      "qty": 145,
+      "avg_cost": 21.1,
+      "cost_basis": 3059.5
+    },
+    "DMLKTG": {
+      "qty": 396,
+      "avg_cost": 6.13,
+      "cost_basis": 2427.48
+    }
+  }
+}

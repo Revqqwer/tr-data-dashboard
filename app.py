@@ -289,6 +289,20 @@ def index():
     return render_template('index.html')
 
 
+_PORTFOLIO_JSON = os.path.join(os.path.dirname(__file__), 'data', 'portfolio.json')
+
+@app.route('/api/portfolio')
+def api_portfolio():
+    if not session.get('logged_in'):
+        return jsonify({'error': 'unauthorized'}), 401
+    try:
+        with open(_PORTFOLIO_JSON, encoding='utf-8') as f:
+            import json as _json
+            return _json.load(f)
+    except FileNotFoundError:
+        return jsonify({'error': 'portfolio data not found'}), 404
+
+
 @app.route('/api/dth')
 def dth():
     rows = query('SELECT tarih, bireysel, tuzel, toplam FROM dth ORDER BY tarih')

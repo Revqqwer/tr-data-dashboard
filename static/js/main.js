@@ -171,6 +171,8 @@ function switchPage(page) {
     document.getElementById('page-tefas').classList.remove('hidden');
   } else if (page === 'kripto') {
     document.getElementById('page-kripto').classList.remove('hidden');
+  } else if (page === 'bist') {
+    document.getElementById('page-bist').classList.remove('hidden');
   }
 }
 
