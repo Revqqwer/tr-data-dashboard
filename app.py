@@ -4,7 +4,7 @@ from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
-app.secret_key = 'tr-3nfinans-gizli-anahtar-2024'
+app.secret_key = os.environ.get('SECRET_KEY', 'tr-3nfinans-gizli-anahtar-2024')
 
 # ── TEFAS Blueprint ─────────────────────────────────────────
 from tefas_api import tefas_bp
@@ -30,7 +30,7 @@ def tefas_static(path):
         return send_from_directory(_TEFAS_BUILD, path)
     # React Router client-side route → index.html döndür
     return send_from_directory(_TEFAS_BUILD, 'index.html')
-ADMIN_SECRET   = '3n-admin-gizli'   # <-- admin panel URL'si: /admin/3n-admin-gizli
+ADMIN_SECRET = os.environ.get('ADMIN_SECRET', '3n-admin-gizli')
 
 DB_PATH = os.path.join(os.path.dirname(__file__), 'data', 'cache.db')
 

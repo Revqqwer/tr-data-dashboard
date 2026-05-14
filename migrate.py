@@ -21,7 +21,7 @@ DB_PATH      = 'data/cache.db'
 EXCEL_DTH    = 'data/bop.xlsx'
 EXCEL_CREDIT = 'data/bddk_credit.xlsx'
 EVDS_BASE    = 'https://evds3.tcmb.gov.tr/igmevdsms-dis'
-EVDS_KEY     = 'a67jeM3QJz'
+EVDS_KEY     = os.environ.get('EVDS_KEY', '')
 EVDS_HEADERS = {'key': EVDS_KEY}
 
 
