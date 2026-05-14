@@ -105,10 +105,15 @@ def _parse_date(s: str) -> Optional[datetime.date]:
 
 
 def _parse_flow(s: str) -> Optional[float]:
-    """'111.7' → 111.7,  '-' → 0.0,  '' → None"""
+    """'111.7' → 111.7,  '(32.9)' → -32.9,  '-' / '—' → 0.0"""
     s = s.strip()
-    if s in ("", "-", "N/A", "n/a"):
+    if s in ("", "-", "—", "N/A", "n/a"):
         return 0.0
+    if s.startswith("(") and s.endswith(")"):
+        try:
+            return -float(s[1:-1].replace(",", ""))
+        except ValueError:
+            return None
     try:
         return float(s.replace(",", ""))
     except ValueError:
