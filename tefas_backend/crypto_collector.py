@@ -224,8 +224,8 @@ def collect_asset(asset: str) -> int:
     records = _scrape_farside(asset)
     if not records:
         return 0
-    # Son 2 günü atla: bazen geç yayınlanır, boşlukları sonraki çalışmada doldurur
-    cutoff = datetime.date.today() - datetime.timedelta(days=2)
+    # Bugünü atla: bazen geç yayınlanır, dünün verisi genellikle tamamdır
+    cutoff = datetime.date.today() - datetime.timedelta(days=1)
     records = [r for r in records if r["trade_date"] <= cutoff]
     if not records:
         return 0
