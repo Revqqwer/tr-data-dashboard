@@ -43,9 +43,11 @@ BTC_TICKERS: dict[str, str] = {
 
 ETH_TICKERS: dict[str, str] = {
     "ETHA": "BlackRock",
+    "ETHB": "BlackRock",
     "FETH": "Fidelity",
     "ETHW": "Bitwise",
-    "CETH": "21Shares",
+    "TETH": "21Shares",
+    "CETH": "21Shares",   # tarihi veri için
     "ETHV": "VanEck",
     "QETH": "Invesco",
     "EZET": "Franklin",
