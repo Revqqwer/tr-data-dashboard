@@ -144,11 +144,21 @@ def process(rows):
 
 
 def compute_pnl(trades):
-    """FIFO realized P&L per ticker."""
-    lots    = defaultdict(list)   # ticker -> [{qty, price}]
-    summary = {}
+    """FIFO realized P&L per ticker + cumulative P&L timeline."""
+    lots     = defaultdict(list)   # ticker -> [{qty, price}]
+    summary  = {}
+    timeline = []   # [{date, ticker, pnl, cumulative_pnl}]
+    cum_pnl  = 0.0
 
-    for t in sorted(trades, key=lambda x: x['date']):
+    # Anchor point at day before first trade
+    sorted_trades = sorted(trades, key=lambda x: x['date'])
+    if sorted_trades:
+        from datetime import datetime, timedelta
+        first = datetime.strptime(sorted_trades[0]['date'], '%Y-%m-%d').date()
+        anchor = (first - timedelta(days=1)).isoformat()
+        timeline.append({'date': anchor, 'ticker': '', 'pnl': 0.0, 'cumulative_pnl': 0.0})
+
+    for t in sorted_trades:
         ticker = t['ticker']
         if ticker not in summary:
             summary[ticker] = {
@@ -163,10 +173,10 @@ def compute_pnl(trades):
             s['buy_qty']    += t['qty']
             s['buy_amount'] += t['amount']
         else:
-            remaining   = t['qty']
+            remaining    = t['qty']
             cost_of_sold = 0.0
             while remaining > 0 and lots[ticker]:
-                lot = lots[ticker][0]
+                lot  = lots[ticker][0]
                 take = min(lot['qty'], remaining)
                 cost_of_sold += take * lot['price']
                 lot['qty']   -= take
@@ -174,9 +184,16 @@ def compute_pnl(trades):
                 if lot['qty'] == 0:
                     lots[ticker].pop(0)
             pnl = t['amount'] - cost_of_sold
-            s['sell_qty']      += t['qty']
-            s['sell_amount']   += t['amount']
-            s['realized_pnl']  += pnl
+            s['sell_qty']     += t['qty']
+            s['sell_amount']  += t['amount']
+            s['realized_pnl'] += pnl
+            cum_pnl           += pnl
+            timeline.append({
+                'date':           t['settle_date'],
+                'ticker':         ticker,
+                'pnl':            round(pnl, 2),
+                'cumulative_pnl': round(cum_pnl, 2),
+            })
 
     # Open positions (remaining lots)
     open_positions = {}
@@ -190,7 +207,7 @@ def compute_pnl(trades):
                 'cost_basis': round(total_qty * avg, 2),
             }
 
-    return summary, open_positions
+    return summary, open_positions, timeline
 
 
 def main():
@@ -204,7 +221,7 @@ def main():
     print(f'Found {len(rows)} transaction rows')
 
     trades, dividends, balance_history, total_komis = process(rows)
-    pnl_summary, open_positions = compute_pnl(trades)
+    pnl_summary, open_positions, pnl_timeline = compute_pnl(trades)
 
     total_realized = sum(v['realized_pnl'] for v in pnl_summary.values())
     total_divs     = sum(d['net'] for d in dividends)
@@ -220,6 +237,7 @@ def main():
             'total_commission':   round(total_komis, 2),
         },
         'trades':          trades,
+        'pnl_timeline':    pnl_timeline,
         'balance_history': balance_history,
         'dividends':       dividends,
         'pnl_by_ticker':   {
