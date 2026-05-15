@@ -1616,10 +1616,16 @@
       "units": 63155.0,
       "price": 1.659851,
       "value": 104827.89
+    },
+    {
+      "date": "2026-05-15",
+      "units": 63155.0,
+      "price": 1.661637,
+      "value": 104940.68
     }
   ],
   "nsp_current_units": 63155.0,
-  "nsp_current_value": 104827.89,
+  "nsp_current_value": 104940.68,
   "portfolio_daily_value": [
     {
       "date": "2025-11-14",
@@ -2376,9 +2382,15 @@
       "stock_value": 25972.8,
       "nsp_value": 104827.89,
       "total_value": 130800.69
+    },
+    {
+      "date": "2026-05-15",
+      "stock_value": 25398.79,
+      "nsp_value": 104940.68,
+      "total_value": 130339.47
     }
   ],
-  "portfolio_current_value": 130800.69,
+  "portfolio_current_value": 130339.47,
   "pnl_timeline": [
     {
       "date": "2025-11-13",
