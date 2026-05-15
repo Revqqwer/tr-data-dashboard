@@ -332,6 +332,130 @@ def build_nsp_daily_value(nsp_position_history: list, nsp_prices: dict) -> list:
     return result
 
 
+def fetch_stock_prices(tickers: list, start_date: date, end_date: date) -> dict:
+    """
+    Fetch daily closing prices for BIST tickers via yfinance.
+    Returns {ticker: {date_str: price}}.
+    Tickers mapped to Yahoo Finance IS suffix (e.g. AKBNK -> AKBNK.IS).
+    """
+    from datetime import timedelta
+    try:
+        import yfinance as yf
+        import pandas as pd
+    except ImportError:
+        print('  yfinance not installed — stock prices skipped')
+        return {}
+
+    is_tickers = [f'{t}.IS' for t in tickers]
+    result: dict = {}
+    try:
+        df = yf.download(
+            is_tickers,
+            start=start_date.isoformat(),
+            end=(end_date + timedelta(days=1)).isoformat(),
+            auto_adjust=True,
+            progress=False,
+        )
+        if df.empty:
+            return result
+
+        # yfinance returns MultiIndex columns if multiple tickers
+        if isinstance(df.columns, pd.MultiIndex):
+            close_df = df['Close']
+        else:
+            # Single ticker — wrap in DataFrame
+            close_df = df[['Close']].rename(columns={'Close': is_tickers[0]})
+
+        for ticker in tickers:
+            col = f'{ticker}.IS'
+            if col in close_df.columns:
+                series = close_df[col].dropna()
+                result[ticker] = {
+                    str(idx.date()): round(float(v), 4)
+                    for idx, v in series.items()
+                }
+    except Exception as e:
+        print(f'  Stock price fetch error: {e}')
+    return result
+
+
+def build_portfolio_daily_value(trades: list, nsp_daily_value: list,
+                                 stock_prices: dict) -> list:
+    """
+    Compute daily total portfolio value = Σ(qty_held × price) + NSP value.
+    Only dates where at least one source has a price are included.
+    """
+    if not nsp_daily_value and not stock_prices:
+        return []
+
+    nsp_by_date = {p['date']: p['value'] for p in nsp_daily_value}
+
+    # Build step-function NSP fill: for a date with no NSP price,
+    # carry forward the last known NSP value.
+    nsp_steps = sorted(nsp_by_date.items())
+
+    def nsp_value_at(d_str: str) -> float:
+        val = 0.0
+        for step_d, step_v in nsp_steps:
+            if step_d <= d_str:
+                val = step_v
+            else:
+                break
+        return val
+
+    # Running stock inventory (sorted trades, applied in order)
+    sorted_trades = sorted(trades, key=lambda x: x['date'])
+    inventory: dict = defaultdict(int)
+    trade_idx = 0
+
+    # Union of all dates from stock prices + NSP
+    all_dates: set = set(nsp_by_date.keys())
+    for tp in stock_prices.values():
+        all_dates.update(tp.keys())
+    all_dates_sorted = sorted(all_dates)
+
+    if not all_dates_sorted:
+        return []
+
+    # First trade date — don't show before portfolio started
+    first_trade_date = sorted_trades[0]['date'] if sorted_trades else all_dates_sorted[0]
+
+    result = []
+    for d_str in all_dates_sorted:
+        if d_str < first_trade_date:
+            continue
+
+        # Advance inventory to include all trades up to this date
+        while trade_idx < len(sorted_trades) and sorted_trades[trade_idx]['date'] <= d_str:
+            t = sorted_trades[trade_idx]
+            if t['type'] == 'alis':
+                inventory[t['ticker']] += t['qty']
+            else:
+                inventory[t['ticker']] -= t['qty']
+            trade_idx += 1
+
+        # Stock value on this date
+        stock_val = 0.0
+        for ticker, qty in inventory.items():
+            if qty > 0 and ticker in stock_prices:
+                price = stock_prices[ticker].get(d_str)
+                if price:
+                    stock_val += qty * price
+
+        nsp_val = nsp_value_at(d_str)
+        total   = round(stock_val + nsp_val, 2)
+
+        if total > 0:
+            result.append({
+                'date':        d_str,
+                'stock_value': round(stock_val, 2),
+                'nsp_value':   round(nsp_val, 2),
+                'total_value': total,
+            })
+
+    return result
+
+
 def main():
     pdf_path = os.path.abspath(PDF_PATH)
     if not os.path.exists(pdf_path):
@@ -363,6 +487,20 @@ def main():
         nsp_position_history[-1]['value'] if nsp_position_history else 0
     )
 
+    # Fetch historical BIST closing prices for all traded tickers
+    all_tickers = sorted({t['ticker'] for t in trades})
+    if trades and all_tickers:
+        first_trade_date = date.fromisoformat(sorted(trades, key=lambda x: x['date'])[0]['date'])
+        print(f'Fetching BIST prices for {all_tickers} ...')
+        stock_prices = fetch_stock_prices(all_tickers, first_trade_date, date.today())
+        fetched = {t: len(v) for t, v in stock_prices.items()}
+        print(f'  Price points: {fetched}')
+    else:
+        stock_prices = {}
+
+    portfolio_daily_value = build_portfolio_daily_value(trades, nsp_daily_value, stock_prices)
+    portfolio_current_value = portfolio_daily_value[-1]['total_value'] if portfolio_daily_value else 0
+
     output = {
         'period':       '2025-11-12 / 2026-05-07',
         'account_name': 'AHMET EMİN TAHTACI',
@@ -376,10 +514,12 @@ def main():
         'trades':                trades,
         'nsp_trades':            nsp_trades,
         'nsp_position_history':  nsp_position_history,
-        'nsp_daily_value':       nsp_daily_value,
-        'nsp_current_units':     nsp_position_history[-1]['units'] if nsp_position_history else 0,
-        'nsp_current_value':     round(nsp_current_value, 2),
-        'pnl_timeline':          pnl_timeline,
+        'nsp_daily_value':          nsp_daily_value,
+        'nsp_current_units':        nsp_position_history[-1]['units'] if nsp_position_history else 0,
+        'nsp_current_value':        round(nsp_current_value, 2),
+        'portfolio_daily_value':    portfolio_daily_value,
+        'portfolio_current_value':  round(portfolio_current_value, 2),
+        'pnl_timeline':             pnl_timeline,
         'balance_history':       balance_history,
         'dividends':             dividends,
         'pnl_by_ticker':   {
@@ -406,7 +546,8 @@ def main():
     print(f'Total realized P&L: {total_realized:,.2f} TL')
     print(f'Total dividends:    {total_divs:,.2f} TL')
     print(f'Total commission:   {total_komis:,.2f} TL')
-    print(f'NSP daily points:   {len(nsp_daily_value)} | Current value: {nsp_current_value:,.2f} TL')
+    print(f'NSP daily points:       {len(nsp_daily_value)} | Current: {nsp_current_value:,.2f} TL')
+    print(f'Portfolio daily points: {len(portfolio_daily_value)} | Current: {portfolio_current_value:,.2f} TL')
     print(f'Written: {OUT_PATH}')
 
 
