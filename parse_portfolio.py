@@ -464,6 +464,52 @@ def fetch_stock_prices(tickers: list, start_date: date, end_date: date) -> dict:
     return result
 
 
+def fetch_benchmark_prices(start_date: date, end_date: date) -> dict:
+    """
+    Fetch benchmark comparison series:
+      - xu100 : BIST 100 index daily closes (yfinance XU100.IS)
+      - altin  : Gram TRY gold daily closes (TradingView FX_IDC:XAUTRYG)
+    Returns { 'xu100': {date_str: price}, 'altin': {date_str: price} }.
+    """
+    from datetime import timedelta
+    result: dict = {'xu100': {}, 'altin': {}}
+
+    # ── XU100 (BIST 100) via yfinance ─────────────────────────────────────
+    try:
+        import yfinance as yf
+        df = yf.download(
+            'XU100.IS',
+            start=start_date.isoformat(),
+            end=(end_date + timedelta(days=1)).isoformat(),
+            auto_adjust=True, progress=False,
+        )
+        if not df.empty:
+            close = df['Close']
+            # With MultiIndex columns (yfinance >= 0.2.x), df['Close'] is a DataFrame
+            if hasattr(close, 'columns'):
+                close = close.iloc[:, 0]
+            result['xu100'] = {
+                str(idx)[:10]: round(float(v), 2)
+                for idx, v in close.dropna().items()
+            }
+            print(f'  XU100: {len(result["xu100"])} data points')
+    except Exception as e:
+        print(f'  XU100 fetch error: {e}')
+
+    # ── Gram TRY Altın via TradingView (FX_IDC:XAUTRYG) ──────────────────
+    try:
+        prices_tv = _fetch_tv_ws('XAUTRYG', 'FX_IDC', n_bars=300)
+        result['altin'] = {
+            d: p for d, p in prices_tv.items()
+            if d >= start_date.isoformat()
+        }
+        print(f'  Gram Altın (XAUTRYG): {len(result["altin"])} data points')
+    except Exception as e:
+        print(f'  XAUTRYG TradingView error: {e}')
+
+    return result
+
+
 def build_portfolio_daily_value(trades: list, nsp_trades: list, nsp_daily_value: list,
                                  stock_prices: dict) -> list:
     """
@@ -643,6 +689,14 @@ def main():
         if prices
     }
 
+    # Fetch benchmark comparison series (XU100, Gram Altın)
+    if trades:
+        first_trade_date_d = date.fromisoformat(sorted(trades, key=lambda x: x['date'])[0]['date'])
+        print('Fetching benchmark prices (XU100, Gram Altin)...')
+        benchmark_prices = fetch_benchmark_prices(first_trade_date_d, date.today())
+    else:
+        benchmark_prices = {}
+
     output = {
         'period':       '2025-11-12 / 2026-05-07',
         'account_name': 'AHMET EMİN TAHTACI',
@@ -676,8 +730,9 @@ def main():
             }
             for k, v in sorted(pnl_summary.items())
         },
-        'open_positions':  open_positions,
-        'last_prices':     last_prices,
+        'open_positions':    open_positions,
+        'last_prices':      last_prices,
+        'benchmark_prices': benchmark_prices,
     }
 
     os.makedirs(os.path.dirname(OUT_PATH), exist_ok=True)
