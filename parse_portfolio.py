@@ -4,6 +4,8 @@ import pdfplumber
 import re
 import json
 import os
+import time
+import requests
 from datetime import datetime, date
 from collections import defaultdict
 
@@ -57,11 +59,12 @@ STOCK_RE    = re.compile(r'(\d{2}/\d{2})\s+([A-Z][A-Z0-9]+)\s+([\d\.]+)x([\d,]+)
 RIGHTS_RE   = re.compile(r'([A-Z][A-Z0-9]+)\s+\d+\s+Talep\s+\d+x[\d,]+\s+-\s+kabul\s+(\d+)x([\d,]+)')
 DIVIDEND_RE = re.compile(r'([A-Z][A-Z0-9]+)\s+(\d+)\s+Lot.*?Temett', re.I)
 KOMIS_RE    = re.compile(r'KOMISYON|Borsa Pay|Islem Komisyonu|Saklama Komisyonu|Stopaj|Vergi|BSMV', re.I)
-NSP_RE      = re.compile(r'NSP B Tipi')
+NSP_RE      = re.compile(r'NSP B Tipi\s+([\d\.]+)\s+Payx([\d,]+)\s+(Sat|Ali)', re.I)
 
 
 def process(rows):
     trades        = []
+    nsp_trades    = []
     dividends     = []
     balance_pts   = {}   # date -> last bakiye
     total_komis   = 0.0
@@ -71,8 +74,19 @@ def process(rows):
         desc = r['description']
         balance_pts[d.isoformat()] = r['bakiye']
 
-        # Skip NSP money-market fund (not BIST equities)
-        if NSP_RE.search(desc):
+        # NSP money-market fund — track separately
+        m = NSP_RE.search(desc)
+        if m:
+            units = float(m.group(1).replace('.', ''))   # "58.075" → 58075 (thousands sep)
+            price = tr_float(m.group(2))
+            # Use borc/alacak to determine direction — Turkish char encoding is unreliable
+            ttype = 'alis' if r['borc'] > 0 else 'satis'
+            nsp_trades.append({
+                'date':  d.isoformat(),
+                'units': units,
+                'price': price,
+                'type':  ttype,
+            })
             continue
 
         # Commission / fees
@@ -134,13 +148,25 @@ def process(rows):
                 'is_rights':   False,
             })
 
+    # NSP position history: running units at each transaction date
+    nsp_units = 0.0
+    nsp_position_history = []
+    for t in sorted(nsp_trades, key=lambda x: x['date']):
+        nsp_units += t['units'] if t['type'] == 'alis' else -t['units']
+        nsp_position_history.append({
+            'date':  t['date'],
+            'units': round(nsp_units, 3),
+            'price': t['price'],
+            'value': round(nsp_units * t['price'], 2),
+        })
+
     # Daily balance (keep last value per day, sorted)
     balance_history = [
         {'date': k, 'balance': v}
         for k, v in sorted(balance_pts.items())
     ]
 
-    return trades, dividends, balance_history, total_komis
+    return trades, nsp_trades, nsp_position_history, dividends, balance_history, total_komis
 
 
 def compute_pnl(trades):
@@ -210,6 +236,102 @@ def compute_pnl(trades):
     return summary, open_positions, timeline
 
 
+def fetch_nsp_prices(start_date: date, end_date: date) -> dict:
+    """Fetch NSP daily prices from TEFAS API. Returns {date_str: price}.
+    Uses 14-day chunks (API silently returns null for larger ranges).
+    """
+    from datetime import timedelta
+    TEFAS_URL = 'https://www.tefas.gov.tr/api/funds/fonGnlBlgSiraliGetirDosya'
+    HEADERS = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+        'Content-Type': 'application/json',
+        'Accept': 'application/json, text/plain, */*',
+        'Referer': 'https://www.tefas.gov.tr/',
+    }
+    prices = {}
+    chunk_start = start_date
+    s = None
+    try:
+        s = requests.Session()
+        s.headers.update(HEADERS)
+        s.get('https://www.tefas.gov.tr/', timeout=15)
+        time.sleep(1)
+
+        while chunk_start <= end_date:
+            chunk_end = min(chunk_start + timedelta(days=13), end_date)  # 14-day window
+            payload = {
+                'dil': 'TR', 'fonTipi': 'YAT', 'islem': 1,
+                'basTarih': chunk_start.strftime('%Y%m%d'),
+                'bitTarih': chunk_end.strftime('%Y%m%d'),
+                'kurucuKodu': None, 'sfonTurKod': None,
+                'fonTurAciklama': None, 'fonTurKod': None, 'fonGrubu': None,
+                'donemGetiri1a': '1', 'donemGetiri3a': '1', 'donemGetiri6a': '1',
+                'donemGetiri1y': '1', 'donemGetiriyb': '1',
+                'donemGetiri3y': '1', 'donemGetiri5y': '1',
+            }
+            for attempt in range(3):
+                try:
+                    resp = s.post(TEFAS_URL, json=payload, timeout=30)
+                    if not resp.text.strip():
+                        raise ValueError('Empty response')
+                    result_list = resp.json().get('resultList') or []
+                    for row in result_list:
+                        if row.get('fonKodu') == 'NSP' and row.get('fiyat'):
+                            prices[row['tarih']] = float(row['fiyat'])
+                    break
+                except Exception as e:
+                    if attempt == 2:
+                        print(f'  Chunk {chunk_start} failed after 3 tries: {e}')
+                    else:
+                        # Refresh session on failure
+                        s = requests.Session()
+                        s.headers.update(HEADERS)
+                        s.get('https://www.tefas.gov.tr/', timeout=15)
+                        time.sleep(2 + attempt * 2)
+
+            chunk_start = chunk_end + timedelta(days=1)
+            time.sleep(0.4)
+
+    except Exception as e:
+        print(f'TEFAS NSP fetch error: {e}')
+    return prices
+
+
+def build_nsp_daily_value(nsp_position_history: list, nsp_prices: dict) -> list:
+    """
+    For every date with a TEFAS price, find how many NSP units were held
+    (step function from transaction history) and compute value = units * price.
+    """
+    if not nsp_position_history:
+        return []
+
+    # Build step-function: sorted list of (date_str, units)
+    steps = sorted([(e['date'], e['units']) for e in nsp_position_history], key=lambda x: x[0])
+
+    def units_at(d_str: str) -> float:
+        """Return units held on date d_str using step function."""
+        units = 0.0
+        for step_date, step_units in steps:
+            if step_date <= d_str:
+                units = step_units
+            else:
+                break
+        return units
+
+    result = []
+    for d_str in sorted(nsp_prices.keys()):
+        u = units_at(d_str)
+        if u > 0:
+            p = nsp_prices[d_str]
+            result.append({
+                'date':  d_str,
+                'units': round(u, 3),
+                'price': round(p, 6),
+                'value': round(u * p, 2),
+            })
+    return result
+
+
 def main():
     pdf_path = os.path.abspath(PDF_PATH)
     if not os.path.exists(pdf_path):
@@ -220,11 +342,26 @@ def main():
     rows = extract_lines(pdf_path)
     print(f'Found {len(rows)} transaction rows')
 
-    trades, dividends, balance_history, total_komis = process(rows)
+    trades, nsp_trades, nsp_position_history, dividends, balance_history, total_komis = process(rows)
     pnl_summary, open_positions, pnl_timeline = compute_pnl(trades)
 
     total_realized = sum(v['realized_pnl'] for v in pnl_summary.values())
     total_divs     = sum(d['net'] for d in dividends)
+
+    # Fetch NSP daily prices from TEFAS for the portfolio period
+    if nsp_position_history:
+        first_nsp_date = date.fromisoformat(nsp_position_history[0]['date'])
+        nsp_end_date   = date.today()
+        print(f'Fetching NSP prices from TEFAS ({first_nsp_date} to {nsp_end_date})...')
+        nsp_prices = fetch_nsp_prices(first_nsp_date, nsp_end_date)
+        print(f'  Got {len(nsp_prices)} NSP price points')
+    else:
+        nsp_prices = {}
+
+    nsp_daily_value = build_nsp_daily_value(nsp_position_history, nsp_prices)
+    nsp_current_value = nsp_daily_value[-1]['value'] if nsp_daily_value else (
+        nsp_position_history[-1]['value'] if nsp_position_history else 0
+    )
 
     output = {
         'period':       '2025-11-12 / 2026-05-07',
@@ -236,10 +373,15 @@ def main():
             'total_dividends':    round(total_divs, 2),
             'total_commission':   round(total_komis, 2),
         },
-        'trades':          trades,
-        'pnl_timeline':    pnl_timeline,
-        'balance_history': balance_history,
-        'dividends':       dividends,
+        'trades':                trades,
+        'nsp_trades':            nsp_trades,
+        'nsp_position_history':  nsp_position_history,
+        'nsp_daily_value':       nsp_daily_value,
+        'nsp_current_units':     nsp_position_history[-1]['units'] if nsp_position_history else 0,
+        'nsp_current_value':     round(nsp_current_value, 2),
+        'pnl_timeline':          pnl_timeline,
+        'balance_history':       balance_history,
+        'dividends':             dividends,
         'pnl_by_ticker':   {
             k: {
                 **v,
@@ -264,7 +406,8 @@ def main():
     print(f'Total realized P&L: {total_realized:,.2f} TL')
     print(f'Total dividends:    {total_divs:,.2f} TL')
     print(f'Total commission:   {total_komis:,.2f} TL')
-    print(f'Written → {OUT_PATH}')
+    print(f'NSP daily points:   {len(nsp_daily_value)} | Current value: {nsp_current_value:,.2f} TL')
+    print(f'Written: {OUT_PATH}')
 
 
 if __name__ == '__main__':
