@@ -303,6 +303,81 @@ def api_portfolio():
         return jsonify({'error': 'portfolio data not found'}), 404
 
 
+# Tickers that require TradingView WebSocket instead of Yahoo Finance
+_TV_MAP = {'DMLKTG': 'DMLKT', 'ALTINS': 'ALTIN'}
+
+# In-memory daily cache: { date_str: { ticker: price } }
+_LIVE_PRICE_CACHE: dict = {}
+
+
+@app.route('/api/portfolio/live-prices')
+def api_live_prices():
+    """Return current BIST prices for open portfolio positions (cached per trading day)."""
+    if not session.get('logged_in'):
+        return jsonify({'error': 'unauthorized'}), 401
+
+    import datetime as _dt
+    today = _dt.date.today().isoformat()
+
+    if today in _LIVE_PRICE_CACHE:
+        return jsonify(_LIVE_PRICE_CACHE[today])
+
+    # Load open positions from portfolio.json
+    try:
+        with open(_PORTFOLIO_JSON, encoding='utf-8') as f:
+            import json as _json
+            pf = _json.load(f)
+    except Exception:
+        return jsonify({'error': 'portfolio data not found'}), 404
+
+    open_tickers = list(pf.get('open_positions', {}).keys())
+    if not open_tickers:
+        return jsonify({})
+
+    yf_tickers = [t for t in open_tickers if t not in _TV_MAP]
+    tv_tickers  = [t for t in open_tickers if t in _TV_MAP]
+    prices: dict = {}
+
+    # ── Yahoo Finance ──────────────────────────────────────────────────────
+    if yf_tickers:
+        try:
+            import yfinance as yf
+            import pandas as _pd
+            symbols = [f'{t}.IS' for t in yf_tickers]
+            df = yf.download(symbols, period='5d', auto_adjust=True, progress=False)
+            if not df.empty:
+                close = (df['Close'] if isinstance(df.columns, _pd.MultiIndex)
+                         else df[['Close']].rename(columns={'Close': symbols[0]}))
+                for t in yf_tickers:
+                    col = f'{t}.IS'
+                    if col in close.columns:
+                        s = close[col].dropna()
+                        if not s.empty:
+                            prices[t] = round(float(s.iloc[-1]), 4)
+        except Exception:
+            pass
+
+    # ── TradingView WebSocket (sertifikalar not on Yahoo Finance) ──────────
+    if tv_tickers:
+        try:
+            import sys as _sys
+            _sys.path.insert(0, os.path.dirname(__file__))
+            from parse_portfolio import _fetch_tv_ws
+            for t in tv_tickers:
+                result = _fetch_tv_ws(_TV_MAP[t], 'BIST', n_bars=5)
+                if result:
+                    prices[t] = result[max(result.keys())]
+        except Exception:
+            pass
+
+    # Cache result, purge stale entries
+    _LIVE_PRICE_CACHE[today] = prices
+    for k in [k for k in _LIVE_PRICE_CACHE if k < today]:
+        del _LIVE_PRICE_CACHE[k]
+
+    return jsonify(prices)
+
+
 @app.route('/api/dth')
 def dth():
     rows = query('SELECT tarih, bireysel, tuzel, toplam FROM dth ORDER BY tarih')
