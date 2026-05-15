@@ -464,11 +464,14 @@ def fetch_stock_prices(tickers: list, start_date: date, end_date: date) -> dict:
     return result
 
 
-def build_portfolio_daily_value(trades: list, nsp_daily_value: list,
+def build_portfolio_daily_value(trades: list, nsp_trades: list, nsp_daily_value: list,
                                  stock_prices: dict) -> list:
     """
-    Compute daily total portfolio value = Σ(qty_held × price) + NSP value.
-    Only dates where at least one source has a price are included.
+    Compute daily total portfolio value = Σ(qty_held × price) + NSP value + theoretical cash.
+
+    "Theoretical cash" tracks in-transit money between portfolio rotations to eliminate
+    artificial dips when e.g. an NSP sell settles before the replacement stocks are bought,
+    or when stocks are sold and the proceeds sit idle before an NSP buy.
     """
     if not nsp_daily_value and not stock_prices:
         return []
@@ -493,6 +496,30 @@ def build_portfolio_daily_value(trades: list, nsp_daily_value: list,
     inventory: dict = defaultdict(int)
     trade_idx = 0
 
+    # ── Theoretical cash ────────────────────────────────────────────────────
+    # Tracks all cash inflows (sells) and outflows (buys) by trade date.
+    # This compensates for the gap when one leg of a rotation settles before the other:
+    #   NSP sell (T+0) → stocks appear at trade date → theoretical_cash bridges the gap
+    #   Stock sell (T) → NSP buy later → theoretical_cash bridges the reverse gap
+    cash_events: list = []
+    for nt in nsp_trades:
+        amount = nt['units'] * nt['price']
+        cash_events.append((nt['date'], +amount if nt['type'] == 'satis' else -amount))
+    for t in trades:
+        cash_events.append((t['date'], +t['amount'] if t['type'] == 'satis' else -t['amount']))
+    cash_events.sort()
+
+    # Normalise: theoretical_cash = 0 on the first trade date so that the initial
+    # deposit is already "absorbed" by stock_val + nsp_val on that day.
+    first_trade_date_str = sorted_trades[0]['date'] if sorted_trades else ''
+    raw_at_start = sum(delta for d, delta in cash_events
+                       if first_trade_date_str and d <= first_trade_date_str)
+    initial_cash_offset = -raw_at_start
+
+    def theoretical_cash_at(d_str: str) -> float:
+        running = sum(delta for d, delta in cash_events if d <= d_str)
+        return initial_cash_offset + running
+
     # Union of all dates from stock prices + NSP
     all_dates: set = set(nsp_by_date.keys())
     for tp in stock_prices.values():
@@ -503,7 +530,7 @@ def build_portfolio_daily_value(trades: list, nsp_daily_value: list,
         return []
 
     # First trade date — don't show before portfolio started
-    first_trade_date = sorted_trades[0]['date'] if sorted_trades else all_dates_sorted[0]
+    first_trade_date = first_trade_date_str or all_dates_sorted[0]
 
     result = []
     for d_str in all_dates_sorted:
@@ -527,14 +554,16 @@ def build_portfolio_daily_value(trades: list, nsp_daily_value: list,
                 if price:
                     stock_val += qty * price
 
-        nsp_val = nsp_value_at(d_str)
-        total   = round(stock_val + nsp_val, 2)
+        nsp_val  = nsp_value_at(d_str)
+        th_cash  = theoretical_cash_at(d_str)
+        total    = round(stock_val + nsp_val + th_cash, 2)
 
         if total > 0:
             result.append({
                 'date':        d_str,
                 'stock_value': round(stock_val, 2),
                 'nsp_value':   round(nsp_val, 2),
+                'cash_value':  round(th_cash, 2),
                 'total_value': total,
             })
 
@@ -568,6 +597,27 @@ def main():
         nsp_prices = {}
 
     nsp_daily_value = build_nsp_daily_value(nsp_position_history, nsp_prices)
+
+    # For NSP transactions that fall inside a TEFAS data gap (API returned no prices
+    # for that chunk), add synthetic nsp_daily_value entries using the transaction
+    # price so that the portfolio chart doesn't show false dips or spikes when the
+    # theoretical-cash change has no matching NSP value update.
+    if nsp_position_history:
+        nsp_daily_dict = {e['date']: e for e in nsp_daily_value}
+        synthetic_added = 0
+        for pos in nsp_position_history:
+            if pos['date'] not in nsp_daily_dict:
+                nsp_daily_value.append({
+                    'date':  pos['date'],
+                    'units': round(pos['units'], 3),
+                    'price': round(pos['price'], 6),
+                    'value': round(pos['units'] * pos['price'], 2),
+                })
+                synthetic_added += 1
+        if synthetic_added:
+            nsp_daily_value.sort(key=lambda x: x['date'])
+            print(f'  Added {synthetic_added} synthetic NSP entries for TEFAS data gaps')
+
     nsp_current_value = nsp_daily_value[-1]['value'] if nsp_daily_value else (
         nsp_position_history[-1]['value'] if nsp_position_history else 0
     )
@@ -583,7 +633,7 @@ def main():
     else:
         stock_prices = {}
 
-    portfolio_daily_value = build_portfolio_daily_value(trades, nsp_daily_value, stock_prices)
+    portfolio_daily_value = build_portfolio_daily_value(trades, nsp_trades, nsp_daily_value, stock_prices)
     portfolio_current_value = portfolio_daily_value[-1]['total_value'] if portfolio_daily_value else 0
 
     # Last known price for each ticker (for unrealized P&L of open positions)
