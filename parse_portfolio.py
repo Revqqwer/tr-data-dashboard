@@ -334,11 +334,19 @@ def build_nsp_daily_value(nsp_position_history: list, nsp_prices: dict) -> list:
 
 def fetch_stock_prices(tickers: list, start_date: date, end_date: date) -> dict:
     """
-    Fetch daily closing prices for BIST tickers via yfinance.
+    Fetch daily closing prices for BIST tickers.
+    Primary: yfinance (.IS suffix).
+    Fallback for instruments not on Yahoo Finance: tvdatafeed (TradingView).
     Returns {ticker: {date_str: price}}.
-    Tickers mapped to Yahoo Finance IS suffix (e.g. AKBNK -> AKBNK.IS).
     """
     from datetime import timedelta
+
+    # Tickers not on Yahoo Finance → map to tvdatafeed (TradingView) symbol
+    TV_FALLBACK = {
+        'DMLKTG': 'DMLKT',   # Damlakent GMS → BIST:DMLKT
+        'ALTINS': 'ALTIN',   # Altın Sertifikası → BIST:ALTIN
+    }
+
     try:
         import yfinance as yf
         import pandas as pd
@@ -346,36 +354,56 @@ def fetch_stock_prices(tickers: list, start_date: date, end_date: date) -> dict:
         print('  yfinance not installed — stock prices skipped')
         return {}
 
-    is_tickers = [f'{t}.IS' for t in tickers]
+    yf_tickers  = [t for t in tickers if t not in TV_FALLBACK]
+    tv_tickers  = [t for t in tickers if t in TV_FALLBACK]
+    is_tickers  = [f'{t}.IS' for t in yf_tickers]
     result: dict = {}
-    try:
-        df = yf.download(
-            is_tickers,
-            start=start_date.isoformat(),
-            end=(end_date + timedelta(days=1)).isoformat(),
-            auto_adjust=True,
-            progress=False,
-        )
-        if df.empty:
-            return result
 
-        # yfinance returns MultiIndex columns if multiple tickers
-        if isinstance(df.columns, pd.MultiIndex):
-            close_df = df['Close']
-        else:
-            # Single ticker — wrap in DataFrame
-            close_df = df[['Close']].rename(columns={'Close': is_tickers[0]})
+    # ── Yahoo Finance ──────────────────────────────────────────────────────
+    if is_tickers:
+        try:
+            df = yf.download(
+                is_tickers,
+                start=start_date.isoformat(),
+                end=(end_date + timedelta(days=1)).isoformat(),
+                auto_adjust=True,
+                progress=False,
+            )
+            if not df.empty:
+                close_df = df['Close'] if isinstance(df.columns, pd.MultiIndex) else \
+                           df[['Close']].rename(columns={'Close': is_tickers[0]})
+                for ticker in yf_tickers:
+                    col = f'{ticker}.IS'
+                    if col in close_df.columns:
+                        series = close_df[col].dropna()
+                        result[ticker] = {
+                            str(idx.date()): round(float(v), 4)
+                            for idx, v in series.items()
+                        }
+        except Exception as e:
+            print(f'  yfinance error: {e}')
 
-        for ticker in tickers:
-            col = f'{ticker}.IS'
-            if col in close_df.columns:
-                series = close_df[col].dropna()
-                result[ticker] = {
-                    str(idx.date()): round(float(v), 4)
-                    for idx, v in series.items()
-                }
-    except Exception as e:
-        print(f'  Stock price fetch error: {e}')
+    # ── tvdatafeed fallback ────────────────────────────────────────────────
+    if tv_tickers:
+        try:
+            from tvDatafeed import TvDatafeed, Interval
+            tv = TvDatafeed()   # no login — public data
+            # n_bars: 250 trading days ≈ 1 year; more than enough for our period
+            for ticker in tv_tickers:
+                tv_sym = TV_FALLBACK[ticker]
+                try:
+                    df_tv = tv.get_hist(tv_sym, 'BIST', interval=Interval.in_daily, n_bars=300)
+                    if df_tv is not None and not df_tv.empty:
+                        result[ticker] = {
+                            str(idx.date()): round(float(row['close']), 4)
+                            for idx, row in df_tv.iterrows()
+                            if str(idx.date()) >= start_date.isoformat()
+                        }
+                except Exception as e:
+                    print(f'  tvdatafeed {ticker} ({tv_sym}) error: {e}')
+        except ImportError:
+            print('  tvdatafeed not installed — install with: pip install tvdatafeed')
+
     return result
 
 
