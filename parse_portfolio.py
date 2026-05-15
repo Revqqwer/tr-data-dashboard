@@ -332,6 +332,71 @@ def build_nsp_daily_value(nsp_position_history: list, nsp_prices: dict) -> list:
     return result
 
 
+def _fetch_tv_ws(symbol: str, exchange: str = 'BIST', n_bars: int = 300) -> dict:
+    """
+    Fetch daily close prices from TradingView via WebSocket.
+    Uses only websocket-client (pip install websocket-client) — no tvdatafeed needed.
+    Returns {date_str: close_price}.
+    """
+    import websocket as _ws
+    import random, string, re
+
+    def _gen():
+        return ''.join(random.choices(string.ascii_lowercase, k=12))
+
+    def _wrap(msg):
+        s = json.dumps(msg)
+        return f'~m~{len(s)}~m~{s}'
+
+    def _send(ws, func, args):
+        ws.send(_wrap({'m': func, 'p': args}))
+
+    def _packets(message):
+        for m in re.finditer(r'~m~(\d+)~m~', message):
+            length = int(m.group(1))
+            yield message[m.end(): m.end() + length]
+
+    chart_sess = 'cs_' + _gen()
+    results: dict = {}
+
+    def on_message(ws, message):
+        for content in _packets(message):
+            if not content.startswith('{'):
+                continue
+            try:
+                obj = json.loads(content)
+            except Exception:
+                continue
+            if obj.get('m') == 'timescale_update':
+                p = obj.get('p', [])
+                if len(p) >= 2 and isinstance(p[1], dict):
+                    for series_val in p[1].values():
+                        if isinstance(series_val, dict):
+                            for bar in series_val.get('s', []):
+                                v = bar.get('v', [])
+                                if len(v) >= 5:
+                                    from datetime import datetime as _dt, timezone as _tz
+                                    d = _dt.fromtimestamp(int(v[0]), tz=_tz.utc).date()
+                                    results[str(d)] = round(float(v[4]), 4)
+                ws.close()
+
+    def on_open(ws):
+        _send(ws, 'set_auth_token', ['unauthorized_user_token'])
+        _send(ws, 'chart_create_session', [chart_sess, ''])
+        sym_json = json.dumps({'symbol': f'{exchange}:{symbol}', 'adjustment': 'splits'})
+        _send(ws, 'resolve_symbol', [chart_sess, 'sds_sym_1', f'={sym_json}'])
+        _send(ws, 'create_series', [chart_sess, 's1', 's1', 'sds_sym_1', 'D', n_bars, ''])
+
+    app = _ws.WebSocketApp(
+        'wss://data.tradingview.com/socket.io/websocket',
+        header={'Origin': 'https://data.tradingview.com', 'User-Agent': 'Mozilla/5.0'},
+        on_message=on_message,
+        on_open=on_open,
+    )
+    app.run_forever(ping_interval=0)
+    return results
+
+
 def fetch_stock_prices(tickers: list, start_date: date, end_date: date) -> dict:
     """
     Fetch daily closing prices for BIST tickers.
@@ -383,26 +448,18 @@ def fetch_stock_prices(tickers: list, start_date: date, end_date: date) -> dict:
         except Exception as e:
             print(f'  yfinance error: {e}')
 
-    # ── tvdatafeed fallback ────────────────────────────────────────────────
+    # ── TradingView WebSocket fallback (no package needed, uses websocket-client) ──
     if tv_tickers:
-        try:
-            from tvDatafeed import TvDatafeed, Interval
-            tv = TvDatafeed()   # no login — public data
-            # n_bars: 250 trading days ≈ 1 year; more than enough for our period
-            for ticker in tv_tickers:
-                tv_sym = TV_FALLBACK[ticker]
-                try:
-                    df_tv = tv.get_hist(tv_sym, 'BIST', interval=Interval.in_daily, n_bars=300)
-                    if df_tv is not None and not df_tv.empty:
-                        result[ticker] = {
-                            str(idx.date()): round(float(row['close']), 4)
-                            for idx, row in df_tv.iterrows()
-                            if str(idx.date()) >= start_date.isoformat()
-                        }
-                except Exception as e:
-                    print(f'  tvdatafeed {ticker} ({tv_sym}) error: {e}')
-        except ImportError:
-            print('  tvdatafeed not installed — install with: pip install tvdatafeed')
+        for ticker in tv_tickers:
+            tv_sym = TV_FALLBACK[ticker]
+            try:
+                prices_tv = _fetch_tv_ws(tv_sym, 'BIST', n_bars=300)
+                result[ticker] = {
+                    d: p for d, p in prices_tv.items()
+                    if d >= start_date.isoformat()
+                }
+            except Exception as e:
+                print(f'  TV WebSocket {ticker} ({tv_sym}) error: {e}')
 
     return result
 
