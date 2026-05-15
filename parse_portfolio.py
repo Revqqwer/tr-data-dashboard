@@ -586,6 +586,13 @@ def main():
     portfolio_daily_value = build_portfolio_daily_value(trades, nsp_daily_value, stock_prices)
     portfolio_current_value = portfolio_daily_value[-1]['total_value'] if portfolio_daily_value else 0
 
+    # Last known price for each ticker (for unrealized P&L of open positions)
+    last_prices = {
+        ticker: sorted(prices.items())[-1][1]
+        for ticker, prices in stock_prices.items()
+        if prices
+    }
+
     output = {
         'period':       '2025-11-12 / 2026-05-07',
         'account_name': 'AHMET EMİN TAHTACI',
@@ -620,6 +627,7 @@ def main():
             for k, v in sorted(pnl_summary.items())
         },
         'open_positions':  open_positions,
+        'last_prices':     last_prices,
     }
 
     os.makedirs(os.path.dirname(OUT_PATH), exist_ok=True)
