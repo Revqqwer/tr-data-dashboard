@@ -306,6 +306,11 @@ def admin_toggle_user(secret, uid):
 
 @app.before_request
 def _update_last_seen():
+    # Eski session'larda username yoksa zorla çıkış yap
+    if session.get('logged_in') and not session.get('username'):
+        if request.path not in ('/login', '/logout', '/register'):
+            session.clear()
+            return redirect(url_for('login'))
     if session.get('logged_in') and session.get('username'):
         # Sadece API olmayan sayfa isteklerinde güncelle (performans)
         if not request.path.startswith('/static/'):
@@ -608,9 +613,11 @@ def makro():
 def profile():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
-    me = session.get('username') or session.get('user_name')
+    # username her zaman session'da olmalı; yoksa yeniden login zorunlu
+    me = session.get('username')
     if not me:
-        return redirect(url_for('logout'))
+        session.clear()
+        return redirect(url_for('login'))
     error = success = None
     if request.method == 'POST':
         old_pw  = request.form.get('old_password', '')
@@ -619,6 +626,8 @@ def profile():
         with sqlite3.connect(DB_PATH) as conn:
             conn.row_factory = sqlite3.Row
             user = conn.execute('SELECT * FROM users WHERE username=?', (me,)).fetchone()
+            if not user:
+                session.clear(); return redirect(url_for('login'))
             if not check_password_hash(user['password_hash'], old_pw):
                 error = 'Mevcut şifre yanlış.'
             elif len(new_pw) < 6:
@@ -632,6 +641,8 @@ def profile():
     with sqlite3.connect(DB_PATH) as conn:
         conn.row_factory = sqlite3.Row
         user = conn.execute('SELECT * FROM users WHERE username=?', (me,)).fetchone()
+    if not user:
+        session.clear(); return redirect(url_for('login'))
     return render_template('profile.html', user=dict(user), error=error, success=success)
 
 
