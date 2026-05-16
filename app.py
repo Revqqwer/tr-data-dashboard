@@ -608,7 +608,9 @@ def makro():
 def profile():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
-    me = session['username']
+    me = session.get('username') or session.get('user_name')
+    if not me:
+        return redirect(url_for('logout'))
     error = success = None
     if request.method == 'POST':
         old_pw  = request.form.get('old_password', '')
@@ -658,7 +660,7 @@ def api_chat_online():
 def api_chat_messages():
     if not session.get('logged_in'):
         return jsonify({'error': 'unauthorized'}), 401
-    me    = session['username']
+    me    = session.get('username', '')
     other = request.args.get('with', '')
     after = int(request.args.get('after', 0))
     if not other:
@@ -679,7 +681,7 @@ def api_chat_messages():
 def api_chat_send():
     if not session.get('logged_in'):
         return jsonify({'error': 'unauthorized'}), 401
-    me   = session['username']
+    me   = session.get('username', '')
     data = request.json or {}
     to      = data.get('to', '').strip()
     content = data.get('content', '').strip()
@@ -701,7 +703,7 @@ def api_chat_send():
 def api_chat_mark_read():
     if not session.get('logged_in'):
         return jsonify({'error': 'unauthorized'}), 401
-    me    = session['username']
+    me    = session.get('username', '')
     other = (request.json or {}).get('with', '')
     now   = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     with sqlite3.connect(DB_PATH) as conn:
@@ -715,7 +717,7 @@ def api_chat_mark_read():
 def api_chat_unread():
     if not session.get('logged_in'):
         return jsonify({})
-    me = session['username']
+    me = session.get('username', '')
     with sqlite3.connect(DB_PATH) as conn:
         conn.row_factory = sqlite3.Row
         rows = conn.execute('''
