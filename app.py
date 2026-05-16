@@ -59,6 +59,26 @@ def init_tables():
             created_at    TEXT,
             last_login    TEXT
         )''')
+        # last_seen kolonu yoksa ekle
+        try:
+            conn.execute('ALTER TABLE users ADD COLUMN last_seen TEXT')
+        except Exception:
+            pass
+        conn.execute('''CREATE TABLE IF NOT EXISTS messages (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            from_user  TEXT NOT NULL,
+            to_user    TEXT NOT NULL,
+            content    TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            read_at    TEXT
+        )''')
+        conn.execute('''CREATE TABLE IF NOT EXISTS user_layouts (
+            username    TEXT NOT NULL,
+            page        TEXT NOT NULL,
+            layout_json TEXT NOT NULL,
+            updated_at  TEXT NOT NULL,
+            PRIMARY KEY (username, page)
+        )''')
 init_tables()
 
 
@@ -87,6 +107,7 @@ def login():
                 conn.execute('UPDATE users SET last_login = ? WHERE id = ?',
                              (datetime.now().strftime('%Y-%m-%d %H:%M'), user['id']))
                 session['logged_in'] = True
+                session['username']  = user['username']
                 session['user_name'] = user['name'] or user['username']
                 return redirect(url_for('index'))
         return render_template('login.html', error=True)
@@ -128,6 +149,7 @@ def register():
                     )
                     conn.execute('UPDATE invite_codes SET used_by=? WHERE code=?', (username, code))
                     session['logged_in'] = True
+                    session['username']  = username
                     session['user_name'] = invite['name'] or username
                     return redirect(url_for('index'))
         return render_template('register.html', error=error, prefill=code)
@@ -282,11 +304,27 @@ def admin_toggle_user(secret, uid):
     return redirect(url_for('admin', secret=secret))
 
 
+@app.before_request
+def _update_last_seen():
+    if session.get('logged_in') and session.get('username'):
+        # Sadece API olmayan sayfa isteklerinde güncelle (performans)
+        if not request.path.startswith('/static/'):
+            try:
+                now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                with sqlite3.connect(DB_PATH) as c:
+                    c.execute('UPDATE users SET last_seen=? WHERE username=?',
+                              (now, session['username']))
+            except Exception:
+                pass
+
+
 @app.route('/')
 def index():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
-    return render_template('index.html')
+    return render_template('index.html',
+                           username=session.get('username', ''),
+                           user_name=session.get('user_name', ''))
 
 
 _PORTFOLIO_JSON = os.path.join(os.path.dirname(__file__), 'data', 'portfolio.json')
@@ -562,6 +600,154 @@ def makro():
             'proxy_kur': proxy,
         })
     return jsonify(result)
+
+
+# ── Profil ────────────────────────────────────────────────────────────────────
+
+@app.route('/profile', methods=['GET', 'POST'])
+def profile():
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+    me = session['username']
+    error = success = None
+    if request.method == 'POST':
+        old_pw  = request.form.get('old_password', '')
+        new_pw  = request.form.get('new_password', '')
+        new_pw2 = request.form.get('new_password2', '')
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.row_factory = sqlite3.Row
+            user = conn.execute('SELECT * FROM users WHERE username=?', (me,)).fetchone()
+            if not check_password_hash(user['password_hash'], old_pw):
+                error = 'Mevcut şifre yanlış.'
+            elif len(new_pw) < 6:
+                error = 'Yeni şifre en az 6 karakter olmalı.'
+            elif new_pw != new_pw2:
+                error = 'Şifreler uyuşmuyor.'
+            else:
+                conn.execute('UPDATE users SET password_hash=? WHERE username=?',
+                             (generate_password_hash(new_pw), me))
+                success = 'Şifre güncellendi.'
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        user = conn.execute('SELECT * FROM users WHERE username=?', (me,)).fetchone()
+    return render_template('profile.html', user=dict(user), error=error, success=success)
+
+
+# ── Chat API ──────────────────────────────────────────────────────────────────
+
+@app.route('/api/chat/online')
+def api_chat_online():
+    if not session.get('logged_in'):
+        return jsonify([])
+    from datetime import timedelta
+    cutoff = (datetime.now() - timedelta(minutes=5)).strftime('%Y-%m-%d %H:%M:%S')
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        users = conn.execute(
+            'SELECT username, name FROM users WHERE last_seen >= ? AND active = 1',
+            (cutoff,)
+        ).fetchall()
+    me = session.get('username', '')
+    return jsonify([
+        {'username': u['username'], 'name': u['name'] or u['username']}
+        for u in users
+    ])
+
+
+@app.route('/api/chat/messages')
+def api_chat_messages():
+    if not session.get('logged_in'):
+        return jsonify({'error': 'unauthorized'}), 401
+    me    = session['username']
+    other = request.args.get('with', '')
+    after = int(request.args.get('after', 0))
+    if not other:
+        return jsonify([])
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        msgs = conn.execute('''
+            SELECT id, from_user, to_user, content, created_at, read_at
+            FROM messages
+            WHERE id > ?
+              AND ((from_user=? AND to_user=?) OR (from_user=? AND to_user=?))
+            ORDER BY created_at ASC LIMIT 200
+        ''', (after, me, other, other, me)).fetchall()
+    return jsonify([dict(m) for m in msgs])
+
+
+@app.route('/api/chat/send', methods=['POST'])
+def api_chat_send():
+    if not session.get('logged_in'):
+        return jsonify({'error': 'unauthorized'}), 401
+    me   = session['username']
+    data = request.json or {}
+    to      = data.get('to', '').strip()
+    content = data.get('content', '').strip()
+    if not to or not content:
+        return jsonify({'error': 'missing fields'}), 400
+    if len(content) > 2000:
+        return jsonify({'error': 'too long'}), 400
+    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute('INSERT INTO messages (from_user,to_user,content,created_at) VALUES (?,?,?,?)',
+                     (me, to, content, now))
+        row = conn.execute('SELECT last_insert_rowid()').fetchone()
+        msg_id = row[0]
+    return jsonify({'id': msg_id, 'from_user': me, 'to_user': to,
+                    'content': content, 'created_at': now})
+
+
+@app.route('/api/chat/mark-read', methods=['POST'])
+def api_chat_mark_read():
+    if not session.get('logged_in'):
+        return jsonify({'error': 'unauthorized'}), 401
+    me    = session['username']
+    other = (request.json or {}).get('with', '')
+    now   = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute('''UPDATE messages SET read_at=?
+                        WHERE to_user=? AND from_user=? AND read_at IS NULL''',
+                     (now, me, other))
+    return jsonify({'ok': True})
+
+
+@app.route('/api/chat/unread')
+def api_chat_unread():
+    if not session.get('logged_in'):
+        return jsonify({})
+    me = session['username']
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute('''
+            SELECT from_user, COUNT(*) as cnt FROM messages
+            WHERE to_user=? AND read_at IS NULL
+            GROUP BY from_user
+        ''', (me,)).fetchall()
+    return jsonify({r['from_user']: r['cnt'] for r in rows})
+
+
+# ── Layout API ────────────────────────────────────────────────────────────────
+
+@app.route('/api/layout/<page>', methods=['GET', 'POST'])
+def api_layout(page):
+    if not session.get('logged_in'):
+        return jsonify({'error': 'unauthorized'}), 401
+    me = session.get('username', '')
+    if not me:
+        return jsonify({'error': 'no username in session'}), 400
+    if request.method == 'GET':
+        with sqlite3.connect(DB_PATH) as conn:
+            row = conn.execute(
+                'SELECT layout_json FROM user_layouts WHERE username=? AND page=?',
+                (me, page)
+            ).fetchone()
+        return jsonify({'layout': row[0] if row else None})
+    layout_json = request.json.get('layout', '{}') if request.json else '{}'
+    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute('''INSERT OR REPLACE INTO user_layouts (username,page,layout_json,updated_at)
+                        VALUES (?,?,?,?)''', (me, page, layout_json, now))
+    return jsonify({'ok': True})
 
 
 if __name__ == '__main__':

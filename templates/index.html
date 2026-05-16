@@ -113,7 +113,18 @@
     });
   </script>
   <div class="sidebar-footer">
-    <span>Kaynak: TCMB EVDS</span>
+    <div class="sb-user-row">
+      <div class="sb-user-avatar">{{ (user_name or username or 'U')[0]|upper }}</div>
+      <div class="sb-user-info">
+        <div class="sb-user-name">{{ user_name or username }}</div>
+        <div class="sb-user-sub">@{{ username }}</div>
+      </div>
+    </div>
+    <div class="sb-user-actions">
+      <a href="/profile" class="sb-link">Profil</a>
+      <span class="sb-sep">·</span>
+      <a href="/logout" class="sb-link sb-link-red">Çıkış</a>
+    </div>
   </div>
 </aside>
 
@@ -1142,5 +1153,187 @@
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/gridstack@10.3.1/dist/gridstack-all.js"></script>
 <script src="/static/js/main.js"></script>
+
+<!-- ══ CHAT WIDGET ══ -->
+<div id="chat-widget">
+  <!-- Floating online button -->
+  <button id="chat-online-btn" onclick="chatToggleOnlinePanel()" title="Online kullanıcılar">
+    <span class="chat-pulse"></span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M19 11v6M22 14h-6"/></svg>
+    <span id="chat-online-count">0</span> kişi online
+  </button>
+
+  <!-- Online users panel -->
+  <div id="chat-online-panel" class="chat-hidden">
+    <div class="chat-panel-hdr">
+      <span>🟢 Online Kullanıcılar</span>
+      <button onclick="chatToggleOnlinePanel()">✕</button>
+    </div>
+    <div id="chat-online-list">
+      <div class="chat-empty">Yükleniyor…</div>
+    </div>
+  </div>
+
+  <!-- Chat windows container -->
+  <div id="chat-windows"></div>
+</div>
+
+<script>
+// ── Chat widget globals ──────────────────────────────
+const CHAT_ME = {{ username | tojson }};
+const CHAT_ME_NAME = {{ user_name | tojson }};
+let chatOnlineUsers = [];
+let chatOpenWindows = {}; // username → { el, lastId, interval }
+let chatUnread = {};
+
+function chatToggleOnlinePanel() {
+  const p = document.getElementById('chat-online-panel');
+  p.classList.toggle('chat-hidden');
+  if (!p.classList.contains('chat-hidden')) chatRenderOnlineList();
+}
+
+function chatRenderOnlineList() {
+  const el = document.getElementById('chat-online-list');
+  if (!chatOnlineUsers.length) { el.innerHTML = '<div class="chat-empty">Şu an kimse online değil.</div>'; return; }
+  el.innerHTML = chatOnlineUsers.map(u => {
+    const unread = chatUnread[u.username] || 0;
+    const badge  = unread ? `<span class="chat-badge">${unread}</span>` : '';
+    const isMe   = u.username === CHAT_ME ? ' (Sen)' : '';
+    return `<div class="chat-online-item" onclick="chatOpenWindow('${u.username}','${(u.name||u.username).replace(/'/g,"\\'")}')">
+      <div class="chat-dot-green"></div>
+      <span>${u.name || u.username}${isMe}</span>
+      ${badge}
+    </div>`;
+  }).join('');
+}
+
+function chatOpenWindow(username, displayName) {
+  document.getElementById('chat-online-panel').classList.add('chat-hidden');
+  if (chatOpenWindows[username]) {
+    chatOpenWindows[username].el.querySelector('.chat-body').focus();
+    return;
+  }
+  const el = document.createElement('div');
+  el.className = 'chat-window';
+  el.dataset.user = username;
+  el.innerHTML = `
+    <div class="chat-win-hdr">
+      <div class="chat-dot-green" style="margin-right:6px"></div>
+      <span>${displayName}</span>
+      <button class="chat-win-close" onclick="chatCloseWindow('${username}')">✕</button>
+    </div>
+    <div class="chat-msgs" id="chatmsgs-${username}"></div>
+    <div class="chat-input-row">
+      <input class="chat-input" id="chatinput-${username}" type="text"
+             placeholder="Mesaj yaz…"
+             onkeydown="if(event.key==='Enter')chatSend('${username}')"/>
+      <button class="chat-send-btn" onclick="chatSend('${username}')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/></svg>
+      </button>
+    </div>`;
+  document.getElementById('chat-windows').appendChild(el);
+  // Load history
+  chatLoadHistory(username);
+  // Start polling
+  const iid = setInterval(() => chatPollNew(username), 3000);
+  chatOpenWindows[username] = { el, lastId: 0, interval: iid };
+  // Mark read
+  fetch('/api/chat/mark-read', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({with: username}) });
+  delete chatUnread[username];
+  chatUpdateUnreadBadge();
+}
+
+function chatCloseWindow(username) {
+  if (!chatOpenWindows[username]) return;
+  clearInterval(chatOpenWindows[username].interval);
+  chatOpenWindows[username].el.remove();
+  delete chatOpenWindows[username];
+}
+
+async function chatLoadHistory(username) {
+  const r = await fetch(`/api/chat/messages?with=${username}&after=0`);
+  const msgs = await r.json();
+  if (!Array.isArray(msgs)) return;
+  const win = chatOpenWindows[username];
+  if (!win) return;
+  const box = document.getElementById(`chatmsgs-${username}`);
+  box.innerHTML = '';
+  msgs.forEach(m => chatAppendMsg(username, m));
+  if (msgs.length) win.lastId = msgs[msgs.length-1].id;
+  box.scrollTop = box.scrollHeight;
+}
+
+async function chatPollNew(username) {
+  const win = chatOpenWindows[username];
+  if (!win) return;
+  const r = await fetch(`/api/chat/messages?with=${username}&after=${win.lastId}`);
+  const msgs = await r.json();
+  if (!Array.isArray(msgs) || !msgs.length) return;
+  msgs.forEach(m => chatAppendMsg(username, m));
+  win.lastId = msgs[msgs.length-1].id;
+  const box = document.getElementById(`chatmsgs-${username}`);
+  box.scrollTop = box.scrollHeight;
+  // Mark read since window is open
+  fetch('/api/chat/mark-read', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({with: username}) });
+}
+
+function chatAppendMsg(username, m) {
+  const box = document.getElementById(`chatmsgs-${username}`);
+  if (!box) return;
+  const isMe = m.from_user === CHAT_ME;
+  const time  = m.created_at ? m.created_at.slice(11,16) : '';
+  const div = document.createElement('div');
+  div.className = 'chat-msg ' + (isMe ? 'chat-msg-me' : 'chat-msg-them');
+  div.innerHTML = `<div class="chat-bubble">${escHtml(m.content)}</div><div class="chat-time">${time}</div>`;
+  box.appendChild(div);
+}
+
+async function chatSend(username) {
+  const inp = document.getElementById(`chatinput-${username}`);
+  const txt = inp.value.trim();
+  if (!txt) return;
+  inp.value = '';
+  const r = await fetch('/api/chat/send', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({to: username, content: txt})
+  });
+  const msg = await r.json();
+  if (msg.id) {
+    chatAppendMsg(username, msg);
+    const box = document.getElementById(`chatmsgs-${username}`);
+    box.scrollTop = box.scrollHeight;
+    chatOpenWindows[username].lastId = msg.id;
+  }
+}
+
+function chatUpdateUnreadBadge() {
+  // Update online list badges
+  chatRenderOnlineList();
+}
+
+async function chatPollOnline() {
+  const r = await fetch('/api/chat/online');
+  chatOnlineUsers = await r.json();
+  document.getElementById('chat-online-count').textContent = chatOnlineUsers.length;
+  // Also poll unread counts
+  const r2 = await fetch('/api/chat/unread');
+  chatUnread = await r2.json();
+  // Show notification on open windows if new messages arrived
+  const totalUnread = Object.values(chatUnread).reduce((s,v)=>s+v,0);
+  const btn = document.getElementById('chat-online-btn');
+  btn.classList.toggle('chat-has-unread', totalUnread > 0);
+  if (!document.getElementById('chat-online-panel').classList.contains('chat-hidden'))
+    chatRenderOnlineList();
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Start polling every 10s for online users, 30s for unread
+chatPollOnline();
+setInterval(chatPollOnline, 10000);
+</script>
 </body>
 </html>

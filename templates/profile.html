@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Profil · TRData</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css"/>
+  <style>
+    body { display:flex; align-items:center; justify-content:center; min-height:100vh; background:#eef2f8; }
+    .profile-box {
+      background:#fff; border:1px solid #d8e0ef; border-radius:16px;
+      padding:40px 44px; width:100%; max-width:440px;
+      box-shadow:0 4px 24px rgba(0,0,0,0.07);
+    }
+    .profile-box h2 { font-size:20px; font-weight:700; margin-bottom:24px; color:#1a2340; }
+    .info-row { display:flex; justify-content:space-between; align-items:baseline;
+                padding:10px 0; border-bottom:1px solid #eef2f8; font-size:14px; }
+    .info-row:last-of-type { border-bottom:none; }
+    .info-label { color:#6b7a99; font-weight:500; }
+    .info-val { color:#1a2340; font-weight:600; font-family:monospace; }
+    .divider { height:1px; background:#eef2f8; margin:28px 0; }
+    label { display:block; font-size:12px; font-weight:600; color:#6b7a99;
+            text-transform:uppercase; letter-spacing:.8px; margin-bottom:6px; margin-top:16px; }
+    input[type=password] {
+      width:100%; padding:10px 14px; border:1px solid #d8e0ef; border-radius:8px;
+      font-size:14px; color:#1a2340; background:#fff; outline:none;
+      transition:border-color .15s;
+    }
+    input[type=password]:focus { border-color:#3b7ef8; }
+    .btn-primary {
+      width:100%; margin-top:20px; padding:11px; background:#3b7ef8; color:#fff;
+      border:none; border-radius:8px; font-size:14px; font-weight:600;
+      cursor:pointer; transition:background .15s;
+    }
+    .btn-primary:hover { background:#2563eb; }
+    .msg-ok  { background:#d1fae5; color:#065f46; border:1px solid #6ee7b7;
+               border-radius:8px; padding:10px 14px; font-size:13px; margin-top:12px; }
+    .msg-err { background:#fee2e2; color:#991b1b; border:1px solid #fca5a5;
+               border-radius:8px; padding:10px 14px; font-size:13px; margin-top:12px; }
+    .back-link { display:block; text-align:center; margin-top:20px; font-size:13px;
+                 color:#3b7ef8; text-decoration:none; font-weight:500; }
+    .back-link:hover { text-decoration:underline; }
+  </style>
+</head>
+<body>
+  <div class="profile-box">
+    <h2>👤 Profil</h2>
+
+    <div class="info-row">
+      <span class="info-label">Kullanıcı adı</span>
+      <span class="info-val">{{ user.username }}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Ad</span>
+      <span class="info-val">{{ user.name or '—' }}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Kayıt tarihi</span>
+      <span class="info-val">{{ user.created_at or '—' }}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Son giriş</span>
+      <span class="info-val">{{ user.last_login or '—' }}</span>
+    </div>
+
+    <div class="divider"></div>
+    <h2 style="font-size:16px; margin-bottom:4px;">Şifre Değiştir</h2>
+
+    <form method="POST">
+      <label>Mevcut Şifre</label>
+      <input type="password" name="old_password" required autocomplete="current-password"/>
+      <label>Yeni Şifre</label>
+      <input type="password" name="new_password" required autocomplete="new-password"/>
+      <label>Yeni Şifre (Tekrar)</label>
+      <input type="password" name="new_password2" required autocomplete="new-password"/>
+      {% if error %}<div class="msg-err">{{ error }}</div>{% endif %}
+      {% if success %}<div class="msg-ok">{{ success }}</div>{% endif %}
+      <button type="submit" class="btn-primary">Şifreyi Güncelle</button>
+    </form>
+
+    <a href="/" class="back-link">← Panoya Dön</a>
+    <a href="/logout" class="back-link" style="color:#ef4444;">Çıkış Yap</a>
+  </div>
+</body>
+</html>
