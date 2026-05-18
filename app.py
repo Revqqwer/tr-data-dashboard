@@ -2,6 +2,14 @@ from flask import Flask, jsonify, render_template, session, redirect, url_for, r
 import sqlite3, os, secrets, string
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
+import requests as _http
+
+# ── Discord OAuth2 ───────────────────────────────────────────
+DISCORD_CLIENT_ID     = os.environ.get('DISCORD_CLIENT_ID',     '1505961330732044308')
+DISCORD_CLIENT_SECRET = os.environ.get('DISCORD_CLIENT_SECRET', '')
+DISCORD_REDIRECT_URI  = os.environ.get('DISCORD_REDIRECT_URI',  'https://www.3nfinans.com/auth/discord/callback')
+DISCORD_GUILD_ID      = os.environ.get('DISCORD_GUILD_ID',      '1119373930885546087')
+DISCORD_ROLE_ID       = os.environ.get('DISCORD_ROLE_ID',       '1196022785114378380')
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'tr-3nfinans-gizli-anahtar-2024')
@@ -59,11 +67,12 @@ def init_tables():
             created_at    TEXT,
             last_login    TEXT
         )''')
-        # last_seen kolonu yoksa ekle
-        try:
-            conn.execute('ALTER TABLE users ADD COLUMN last_seen TEXT')
-        except Exception:
-            pass
+        # last_seen ve discord_id kolonları yoksa ekle
+        for col in ('last_seen TEXT', 'discord_id TEXT'):
+            try:
+                conn.execute(f'ALTER TABLE users ADD COLUMN {col}')
+            except Exception:
+                pass
         conn.execute('''CREATE TABLE IF NOT EXISTS messages (
             id         INTEGER PRIMARY KEY AUTOINCREMENT,
             from_user  TEXT NOT NULL,
@@ -160,6 +169,92 @@ def register():
 def logout():
     session.clear()
     return redirect(url_for('login'))
+
+
+# ── Discord OAuth2 ────────────────────────────────────────────────────────────
+
+@app.route('/auth/discord')
+def discord_login():
+    import urllib.parse
+    params = {
+        'client_id':     DISCORD_CLIENT_ID,
+        'redirect_uri':  DISCORD_REDIRECT_URI,
+        'response_type': 'code',
+        'scope':         'identify guilds.members.read',
+    }
+    return redirect('https://discord.com/api/oauth2/authorize?' + urllib.parse.urlencode(params))
+
+
+@app.route('/auth/discord/callback')
+def discord_callback():
+    code = request.args.get('code')
+    if not code:
+        return render_template('login.html', error=False,
+                               discord_error='Discord girişi iptal edildi.')
+
+    # 1. Kodu access token ile değiştir
+    token_res = _http.post('https://discord.com/api/oauth2/token', data={
+        'client_id':     DISCORD_CLIENT_ID,
+        'client_secret': DISCORD_CLIENT_SECRET,
+        'grant_type':    'authorization_code',
+        'code':          code,
+        'redirect_uri':  DISCORD_REDIRECT_URI,
+    }, headers={'Content-Type': 'application/x-www-form-urlencoded'})
+
+    if token_res.status_code != 200:
+        return render_template('login.html', error=False,
+                               discord_error='Discord bağlantısı başarısız, tekrar dene.')
+
+    access_token = token_res.json().get('access_token')
+
+    # 2. Discord kullanıcı bilgilerini al
+    user_res = _http.get('https://discord.com/api/users/@me',
+                         headers={'Authorization': f'Bearer {access_token}'})
+    if user_res.status_code != 200:
+        return render_template('login.html', error=False,
+                               discord_error='Kullanıcı bilgisi alınamadı.')
+    discord_user = user_res.json()
+    discord_id   = discord_user['id']
+
+    # 3. Sunucu üyeliği ve rol kontrolü
+    member_res = _http.get(
+        f'https://discord.com/api/users/@me/guilds/{DISCORD_GUILD_ID}/member',
+        headers={'Authorization': f'Bearer {access_token}'}
+    )
+    if member_res.status_code != 200:
+        return render_template('login.html', error=False,
+                               discord_error='Bu Discord sunucusunun üyesi değilsin.')
+
+    member = member_res.json()
+    if DISCORD_ROLE_ID not in member.get('roles', []):
+        return render_template('login.html', error=False,
+                               discord_error='Gerekli role sahip değilsin, erişim reddedildi.')
+
+    # 4. Kullanıcıyı bul ya da oluştur
+    display_name = (member.get('nick')
+                    or discord_user.get('global_name')
+                    or discord_user.get('username'))
+    username = f'dc_{discord_id}'
+    now = datetime.now().strftime('%Y-%m-%d %H:%M')
+
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        user = conn.execute('SELECT * FROM users WHERE discord_id=?', (discord_id,)).fetchone()
+        if not user:
+            conn.execute(
+                'INSERT OR IGNORE INTO users '
+                '(username, password_hash, name, active, created_at, discord_id) '
+                'VALUES (?,?,?,1,?,?)',
+                (username, generate_password_hash(secrets.token_hex(32)),
+                 display_name, now, discord_id)
+            )
+            user = conn.execute('SELECT * FROM users WHERE discord_id=?', (discord_id,)).fetchone()
+        conn.execute('UPDATE users SET last_login=? WHERE id=?', (now, user['id']))
+
+    session['logged_in'] = True
+    session['username']  = user['username']
+    session['user_name'] = user['name'] or user['username']
+    return redirect(url_for('index'))
 
 
 # ── Admin paneli ──────────────────────────────────────────
