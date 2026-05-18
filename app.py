@@ -230,31 +230,83 @@ def discord_callback():
         return render_template('login.html', error=False,
                                discord_error='Gerekli role sahip değilsin, erişim reddedildi.')
 
-    # 4. Kullanıcıyı bul ya da oluştur
+    # 4. Kullanıcıyı bul ya da ilk kurulum akışına yönlendir
+    import re as _re
     display_name = (member.get('nick')
                     or discord_user.get('global_name')
-                    or discord_user.get('username'))
-    username = f'dc_{discord_id}'
-    now = datetime.now().strftime('%Y-%m-%d %H:%M')
+                    or discord_user.get('username', ''))
 
     with sqlite3.connect(DB_PATH) as conn:
         conn.row_factory = sqlite3.Row
         user = conn.execute('SELECT * FROM users WHERE discord_id=?', (discord_id,)).fetchone()
-        if not user:
-            conn.execute(
-                'INSERT OR IGNORE INTO users '
-                '(username, password_hash, name, active, created_at, discord_id) '
-                'VALUES (?,?,?,1,?,?)',
-                (username, generate_password_hash(secrets.token_hex(32)),
-                 display_name, now, discord_id)
-            )
-            user = conn.execute('SELECT * FROM users WHERE discord_id=?', (discord_id,)).fetchone()
+
+    if not user:
+        # İlk giriş — şifre belirleme sayfasına yönlendir
+        raw = _re.sub(r'[^a-z0-9_]', '',
+                      display_name.lower().replace(' ', '_'))
+        suggested = raw[:28] if raw else 'user'
+        # Çakışma kontrolü
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.row_factory = sqlite3.Row
+            base, suffix = suggested, 2
+            while conn.execute('SELECT id FROM users WHERE username=?', (suggested,)).fetchone():
+                suggested = f'{base}_{suffix}'; suffix += 1
+        session['discord_pending'] = {
+            'discord_id':   discord_id,
+            'display_name': display_name,
+            'username':     suggested,
+        }
+        return redirect(url_for('discord_setup'))
+
+    now = datetime.now().strftime('%Y-%m-%d %H:%M')
+    with sqlite3.connect(DB_PATH) as conn:
         conn.execute('UPDATE users SET last_login=? WHERE id=?', (now, user['id']))
 
     session['logged_in'] = True
     session['username']  = user['username']
     session['user_name'] = user['name'] or user['username']
     return redirect(url_for('index'))
+
+
+@app.route('/auth/discord/setup', methods=['GET', 'POST'])
+def discord_setup():
+    pending = session.get('discord_pending')
+    if not pending:
+        return redirect(url_for('login'))
+    error = None
+    if request.method == 'POST':
+        username  = request.form.get('username', '').strip()
+        password  = request.form.get('password', '')
+        password2 = request.form.get('password2', '')
+        import re as _re
+        if not username or not _re.match(r'^[a-z0-9_]{3,30}$', username):
+            error = 'Kullanıcı adı 3-30 karakter, sadece harf/rakam/alt çizgi olmalı.'
+        elif len(password) < 6:
+            error = 'Şifre en az 6 karakter olmalı.'
+        elif password != password2:
+            error = 'Şifreler uyuşmuyor.'
+        else:
+            with sqlite3.connect(DB_PATH) as conn:
+                conn.row_factory = sqlite3.Row
+                if conn.execute('SELECT id FROM users WHERE username=?', (username,)).fetchone():
+                    error = 'Bu kullanıcı adı alınmış, başka bir isim dene.'
+                else:
+                    now = datetime.now().strftime('%Y-%m-%d %H:%M')
+                    conn.execute(
+                        'INSERT INTO users (username, password_hash, name, active, created_at, discord_id) '
+                        'VALUES (?,?,?,1,?,?)',
+                        (username, generate_password_hash(password),
+                         pending['display_name'], now, pending['discord_id'])
+                    )
+                    session.pop('discord_pending', None)
+                    session['logged_in'] = True
+                    session['username']  = username
+                    session['user_name'] = pending['display_name'] or username
+                    return redirect(url_for('index'))
+    return render_template('discord_setup.html',
+                           suggested=pending['username'],
+                           display_name=pending['display_name'],
+                           error=error)
 
 
 # ── Admin paneli ──────────────────────────────────────────
