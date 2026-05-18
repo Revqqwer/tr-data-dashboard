@@ -305,6 +305,13 @@ def admin_toggle_user(secret, uid):
 
 
 @app.before_request
+def _www_redirect():
+    """3nfinans.com → www.3nfinans.com yönlendir (301)"""
+    if request.host == '3nfinans.com':
+        return redirect('https://www.3nfinans.com' + request.full_path.rstrip('?'), 301)
+
+
+@app.before_request
 def _update_last_seen():
     # Eski session'larda username yoksa zorla çıkış yap
     if session.get('logged_in') and not session.get('username'):
