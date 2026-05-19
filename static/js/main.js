@@ -2605,12 +2605,21 @@ async function loadMakro() {
 
     /* TR yields → overrides'a yaz (yalnızca boş hücrelere) */
     if (yields && !yields.error) {
+      /* Scanner cari ayı döndürür (2026-05); DB henüz o ayı içermiyorsa
+         en son mevcut aya (2026-04) yaz — en iyi yaklaşım */
+      if (allMakro.length) {
+        const latestYm = allMakro[allMakro.length - 1].tarih_raw.slice(0, 7);
+        const nowYm    = new Date().toISOString().slice(0, 7);
+        if (nowYm !== latestYm && yields[nowYm] && !yields[latestYm]) {
+          yields[latestYm] = yields[nowYm];
+        }
+      }
       const storage   = makroLoadStorage();
       const overrides = storage.overrides || {};
       let changed = false;
       for (const d of allMakro) {
-        const ym  = d.tarih_raw.slice(0, 7);            // YYYY-MM
-        const yld = yields[ym];                          // _debug gibi key'ler eşleşmez
+        const ym  = d.tarih_raw.slice(0, 7);
+        const yld = yields[ym];
         if (!yld) continue;
         overrides[d.tarih_raw] = overrides[d.tarih_raw] || {};
         if (yld.tr2y  != null && !overrides[d.tarih_raw].tr2y)  { overrides[d.tarih_raw].tr2y  = yld.tr2y;  changed = true; }
@@ -2659,7 +2668,6 @@ function renderMakro() {
   <th>Spread</th>
   <th>Proxy Reel Kur</th>
 </tr></thead>
-<tbody><tr class="makro-divider"><td colspan="13">── TAHMİN BÖLÜMÜ ──</td></tr></tbody>
 <tbody id="makroFcBody">`;
 
   /* ── TAHMİN SATIRLARI (en uzak gelecekten en yakına) ── */
@@ -2683,6 +2691,7 @@ function renderMakro() {
   }
 
   html += `</tbody>
+<tbody><tr class="makro-divider"><td colspan="13">── TAHMİN BÖLÜMÜ ──</td></tr></tbody>
 <tbody id="makroHistBody">`;
 
   /* ── TARİHSEL SATIRLAR (en yeniden eskiye) ── */
