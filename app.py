@@ -761,6 +761,82 @@ def makro():
     return jsonify(result)
 
 
+@app.route('/api/tr-yields')
+def tr_yields():
+    """TR02Y ve TR10Y aylık geçmişini TradingView'dan çek."""
+    import time, datetime as _dt
+
+    def fetch_history(symbol):
+        to_ts   = int(time.time())
+        from_ts = to_ts - 130 * 31 * 86400
+        try:
+            r = _http.get(
+                'https://data.tradingview.com/history',
+                params={'symbol': symbol, 'resolution': 'M',
+                        'from': from_ts, 'to': to_ts},
+                headers={
+                    'Origin':  'https://www.tradingview.com',
+                    'Referer': 'https://www.tradingview.com/',
+                    'User-Agent': 'Mozilla/5.0',
+                },
+                timeout=10
+            )
+            d = r.json()
+            if d.get('s') == 'ok':
+                return {
+                    _dt.datetime.utcfromtimestamp(t).strftime('%Y-%m'): round(c, 2)
+                    for t, c in zip(d['t'], d['c'])
+                }
+        except Exception:
+            pass
+        return None
+
+    def fetch_current(tickers):
+        try:
+            r = _http.post(
+                'https://scanner.tradingview.com/global/scan',
+                json={'symbols': {'tickers': tickers, 'query': {'types': []}},
+                      'columns': ['close']},
+                headers={'Content-Type': 'application/json',
+                         'Origin': 'https://www.tradingview.com',
+                         'Referer': 'https://www.tradingview.com/',
+                         'User-Agent': 'Mozilla/5.0'},
+                timeout=8
+            )
+            out = {}
+            for item in r.json().get('data', []):
+                s = item.get('s', '')
+                c = (item.get('d') or [None])[0]
+                if c is not None:
+                    out[s] = round(c, 2)
+            return out
+        except Exception:
+            return {}
+
+    tr2y_hist  = fetch_history('TVC:TR02Y')
+    tr10y_hist = fetch_history('TVC:TR10Y')
+
+    result = {}
+    if tr2y_hist:
+        for ym, val in tr2y_hist.items():
+            result.setdefault(ym, {})['tr2y'] = val
+    if tr10y_hist:
+        for ym, val in tr10y_hist.items():
+            result.setdefault(ym, {})['tr10y'] = val
+
+    # History API çalışmadıysa en az mevcut değeri al
+    if not tr2y_hist or not tr10y_hist:
+        curr   = fetch_current(['TVC:TR02Y', 'TVC:TR10Y'])
+        now_ym = _dt.datetime.now().strftime('%Y-%m')
+        result.setdefault(now_ym, {})
+        if not tr2y_hist  and curr.get('TVC:TR02Y'):
+            result[now_ym]['tr2y']  = curr['TVC:TR02Y']
+        if not tr10y_hist and curr.get('TVC:TR10Y'):
+            result[now_ym]['tr10y'] = curr['TVC:TR10Y']
+
+    return jsonify(result)
+
+
 # ── Profil ────────────────────────────────────────────────────────────────────
 
 @app.route('/profile', methods=['GET', 'POST'])

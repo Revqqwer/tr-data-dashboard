@@ -2591,12 +2591,34 @@ function makroComputeForecast(historical, inputs) {
 async function loadMakro() {
   showLoading(true);
   try {
-    const res = await fetch('/api/makro');
-    const raw = await res.json();
+    const [macroRes, yieldsRes] = await Promise.all([
+      fetch('/api/makro'),
+      fetch('/api/tr-yields'),
+    ]);
+    const raw    = await macroRes.json();
+    const yields = await yieldsRes.json().catch(() => ({}));
+
     allMakro = raw.map(d => {
       const [dd, mm, yyyy] = d.tarih.split('-');
       return { ...d, tarih_raw: `${yyyy}-${mm}-${dd}` };
     });
+
+    /* TR yields → overrides'a yaz (yalnızca boş hücrelere) */
+    if (yields && !yields.error) {
+      const storage   = makroLoadStorage();
+      const overrides = storage.overrides || {};
+      let changed = false;
+      for (const d of allMakro) {
+        const ym  = d.tarih_raw.slice(0, 7);
+        const yld = yields[ym];
+        if (!yld) continue;
+        overrides[d.tarih_raw] = overrides[d.tarih_raw] || {};
+        if (yld.tr2y  != null && !overrides[d.tarih_raw].tr2y)  { overrides[d.tarih_raw].tr2y  = yld.tr2y;  changed = true; }
+        if (yld.tr10y != null && !overrides[d.tarih_raw].tr10y) { overrides[d.tarih_raw].tr10y = yld.tr10y; changed = true; }
+      }
+      if (changed) makroSaveStorage({ ...storage, overrides });
+    }
+
     showLoading(false);
     document.getElementById('page-makro').classList.remove('hidden');
     renderMakro();
@@ -2639,8 +2661,8 @@ function renderMakro() {
 </tr></thead>
 <tbody id="makroHistBody">`;
 
-  /* ── TARİHSEL SATIRLAR ── */
-  for (const d of allMakro) {
+  /* ── TARİHSEL SATIRLAR (en yeniden eskiye) ── */
+  for (const d of [...allMakro].reverse()) {
     const ov   = overrides[d.tarih_raw] || {};
     const tr2y_v  = ov.tr2y  != null && ov.tr2y  !== '' ? parseFloat(ov.tr2y)  : null;
     const tr10y_v = ov.tr10y != null && ov.tr10y !== '' ? parseFloat(ov.tr10y) : null;
@@ -2689,10 +2711,10 @@ function renderMakro() {
   html += `</tbody></table>`;
   document.getElementById('makroTableWrap').innerHTML = html;
 
-  /* En son tarihi görünür yap — kısa delay ile wrap scroll'u hazır olsun */
+  /* En yeni tarih artık en üstte — başa scroll */
   setTimeout(() => {
     const wrap = document.getElementById('makroTableWrap');
-    if (wrap) wrap.scrollTop = wrap.scrollHeight;
+    if (wrap) wrap.scrollTop = 0;
   }, 50);
 
   bindMakroEvents(fcInputs, overrides);
