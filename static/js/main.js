@@ -1302,22 +1302,21 @@ function renderDT() {
 
 /* Grafik: İhracat YoY % */
 function renderDTIhracatYoY() {
-  const data  = allDT;
-  const vals  = yoy(data.map(d => d.ihracat), 12);
+  const data   = allDT;
+  const vals   = yoy(data.map(d => d.ihracat), 12);
   const labels = data.map(d => monthKey(d.tarih));
   if (charts['dtIhracatYoyChart']) charts['dtIhracatYoyChart'].destroy();
   const canvas = document.getElementById('dtIhracatYoyChart');
   if (!canvas) return;
   charts['dtIhracatYoyChart'] = new Chart(canvas, {
-    type: 'bar',
+    type: 'line',
     data: {
       labels,
       datasets: [{
         label: 'İhracat YoY %',
         data: vals,
-        backgroundColor: vals.map(v => v == null ? 'transparent' : v >= 0 ? 'rgba(16,185,129,0.6)' : 'rgba(239,68,68,0.6)'),
-        borderColor:     vals.map(v => v == null ? 'transparent' : v >= 0 ? '#10b981' : '#ef4444'),
-        borderWidth: 1, borderRadius: 2,
+        borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.08)',
+        borderWidth: 2, pointRadius: 0, tension: 0.3, fill: true,
       }]
     },
     options: {
@@ -1334,22 +1333,21 @@ function renderDTIhracatYoY() {
 
 /* Grafik: İthalat YoY % */
 function renderDTIthalatYoY() {
-  const data  = allDT;
-  const vals  = yoy(data.map(d => d.ithalat), 12);
+  const data   = allDT;
+  const vals   = yoy(data.map(d => d.ithalat), 12);
   const labels = data.map(d => monthKey(d.tarih));
   if (charts['dtIthalatYoyChart']) charts['dtIthalatYoyChart'].destroy();
   const canvas = document.getElementById('dtIthalatYoyChart');
   if (!canvas) return;
   charts['dtIthalatYoyChart'] = new Chart(canvas, {
-    type: 'bar',
+    type: 'line',
     data: {
       labels,
       datasets: [{
         label: 'İthalat YoY %',
         data: vals,
-        backgroundColor: vals.map(v => v == null ? 'transparent' : v >= 0 ? 'rgba(239,68,68,0.6)' : 'rgba(16,185,129,0.6)'),
-        borderColor:     vals.map(v => v == null ? 'transparent' : v >= 0 ? '#ef4444' : '#10b981'),
-        borderWidth: 1, borderRadius: 2,
+        borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.08)',
+        borderWidth: 2, pointRadius: 0, tension: 0.3, fill: true,
       }]
     },
     options: {
