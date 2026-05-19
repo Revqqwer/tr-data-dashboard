@@ -1295,7 +1295,73 @@ function renderDT() {
   renderDTRoll12();
   renderDTMA();
   renderDTTable();
+  renderDTIhracatYoY();
+  renderDTIthalatYoY();
   bindToggleLegends();
+}
+
+/* Grafik: İhracat YoY % */
+function renderDTIhracatYoY() {
+  const data  = allDT;
+  const vals  = yoy(data.map(d => d.ihracat), 12);
+  const labels = data.map(d => monthKey(d.tarih));
+  if (charts['dtIhracatYoyChart']) charts['dtIhracatYoyChart'].destroy();
+  const canvas = document.getElementById('dtIhracatYoyChart');
+  if (!canvas) return;
+  charts['dtIhracatYoyChart'] = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'İhracat YoY %',
+        data: vals,
+        backgroundColor: vals.map(v => v == null ? 'transparent' : v >= 0 ? 'rgba(16,185,129,0.6)' : 'rgba(239,68,68,0.6)'),
+        borderColor:     vals.map(v => v == null ? 'transparent' : v >= 0 ? '#10b981' : '#ef4444'),
+        borderWidth: 1, borderRadius: 2,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.y != null ? ctx.parsed.y.toFixed(1) + '%' : '—'}` } } },
+      scales: {
+        x: { ticks: { color: '#6b7a99', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+        y: { ticks: { color: '#6b7a99', font: { size: 10 }, callback: v => v + '%' }, grid: { color: 'rgba(255,255,255,0.06)' } }
+      }
+    }
+  });
+  requestAnimationFrame(() => { if (charts['dtIhracatYoyChart']) charts['dtIhracatYoyChart'].resize(); });
+}
+
+/* Grafik: İthalat YoY % */
+function renderDTIthalatYoY() {
+  const data  = allDT;
+  const vals  = yoy(data.map(d => d.ithalat), 12);
+  const labels = data.map(d => monthKey(d.tarih));
+  if (charts['dtIthalatYoyChart']) charts['dtIthalatYoyChart'].destroy();
+  const canvas = document.getElementById('dtIthalatYoyChart');
+  if (!canvas) return;
+  charts['dtIthalatYoyChart'] = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'İthalat YoY %',
+        data: vals,
+        backgroundColor: vals.map(v => v == null ? 'transparent' : v >= 0 ? 'rgba(239,68,68,0.6)' : 'rgba(16,185,129,0.6)'),
+        borderColor:     vals.map(v => v == null ? 'transparent' : v >= 0 ? '#ef4444' : '#10b981'),
+        borderWidth: 1, borderRadius: 2,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.y != null ? ctx.parsed.y.toFixed(1) + '%' : '—'}` } } },
+      scales: {
+        x: { ticks: { color: '#6b7a99', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+        y: { ticks: { color: '#6b7a99', font: { size: 10 }, callback: v => v + '%' }, grid: { color: 'rgba(255,255,255,0.06)' } }
+      }
+    }
+  });
+  requestAnimationFrame(() => { if (charts['dtIthalatYoyChart']) charts['dtIthalatYoyChart'].resize(); });
 }
 
 /* Grafik 1: 12A Hareketli Toplam */
