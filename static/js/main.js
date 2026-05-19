@@ -1698,10 +1698,10 @@ function renderBoPTable(data) {
         <th class="bop-c-sermaye" style="font-weight:800">Toplam</th>
         <th class="bop-c-nethata" style="font-weight:800">Toplam</th>
         <th class="bop-c-finans"  style="font-weight:800">Toplam</th>
-        <th class="bop-c-finans">Rezervler</th>
         <th class="bop-c-finans">Diğer Yat.</th>
         <th class="bop-c-finans">Portföy</th>
         <th class="bop-c-finans">Doğrudan Yat.</th>
+        <th class="bop-c-finans">Rezervler</th>
       </tr>
     </thead>
     <tbody>`;
@@ -1722,10 +1722,10 @@ function renderBoPTable(data) {
       ${cell(d.sermaye,  true)}
       ${cell(d.net_hata, true)}
       ${cell(d.finans,   true)}
-      ${cell(d.rezerv)}
       ${cell(d.diger_yat)}
       ${cell(d.portfoy)}
       ${cell(d.dogrudan)}
+      ${cell(d.rezerv)}
     </tr>`;
   }
 
