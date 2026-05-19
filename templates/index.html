@@ -768,7 +768,7 @@
     <!-- 12A MA Grafikler — Satır 2 -->
     <div class="grid-stack-item" gs-w="6" gs-h="5" gs-x="0" gs-y="16">
       <div class="grid-stack-item-content chart-card">
-        <div class="chart-header"><h2>Birincil Gelir Dengesi – 12A Hareketli Toplam (Mn USD)</h2></div>
+        <div class="chart-header"><h2>Birincil Gelir Dengesi (Dış Borç Faizi, Yabancıya Kâr/Temettü Transferi) – 12A Hareketli Toplam (Mn USD)</h2></div>
         <div class="chart-wrap" data-canvas="bop12BirincilChart"><canvas id="bop12BirincilChart"></canvas></div>
       </div>
     </div>
@@ -796,7 +796,7 @@
     <!-- 12A MA Grafikler — Satır 4 -->
     <div class="grid-stack-item" gs-w="6" gs-h="5" gs-x="0" gs-y="26">
       <div class="grid-stack-item-content chart-card">
-        <div class="chart-header"><h2>Diğer Yatırımlar – 12A Hareketli Toplam (Mn USD)</h2></div>
+        <div class="chart-header"><h2>Diğer Yatırımlar (DTH + Yurt Dışı Kredileri) – 12A Hareketli Toplam (Mn USD)</h2></div>
         <div class="chart-wrap" data-canvas="bop12DigerChart"><canvas id="bop12DigerChart"></canvas></div>
       </div>
     </div>
@@ -866,12 +866,24 @@
     </div>
 
     <!-- Kaynakça -->
-    <div class="grid-stack-item" gs-w="12" gs-h="3" gs-x="0" gs-y="63" gs-no-move="true" gs-no-resize="true">
+    <div class="grid-stack-item" gs-w="12" gs-h="6" gs-x="0" gs-y="63" gs-no-move="true" gs-no-resize="true">
       <div class="grid-stack-item-content">
         <div class="source-note-card">
           <div><strong>Kaynak:</strong> TCMB EVDS (evds3.tcmb.gov.tr) · Aylık yayım · Birim: Milyon USD &nbsp;·&nbsp; Tüm seri kodları <em>TP.ODEAYRSUNUM6</em> ön ekini taşır</div>
           <div><strong>Seriler:</strong> <code>Q1</code> Cari &nbsp;·&nbsp; <code>Q4</code> Dış Ticaret &nbsp;·&nbsp; <code>Q20</code> Hizmet &nbsp;·&nbsp; <code>Q68</code> Birincil Gelir &nbsp;·&nbsp; <code>Q92</code> İkincil Gelir &nbsp;·&nbsp; <code>Q99</code> Sermaye &nbsp;·&nbsp; <code>Q210</code> Net Hata &nbsp;·&nbsp; <code>Q101</code> Finans &nbsp;·&nbsp; <code>Q204</code> Rezervler &nbsp;·&nbsp; <code>Q136</code> Diğer Yat. &nbsp;·&nbsp; <code>Q114</code> Portföy &nbsp;·&nbsp; <code>Q102</code> Doğrudan &nbsp;·&nbsp; <code>Q115</code> Portföy Varlık &nbsp;·&nbsp; <code>Q119</code> Portföy Yüküm. &nbsp;·&nbsp; <code>Q103</code> DYY Varlık &nbsp;·&nbsp; <code>Q108</code> DYY Yüküm.</div>
-          <div><strong>Birincil Gelir</strong> (<code>Q68</code>): Yabancılar bizden daha fazla faiz &amp; kâr götürüyor &nbsp;·&nbsp; <strong>Diğer Yat.</strong> (<code>Q136</code>): Dış kredi / banka borçlanması &nbsp;·&nbsp; <strong>Portföy Varlık</strong> (<code>Q115</code>): Türk yatırımcıların yurt dışı menkul kıymet alımları &nbsp;·&nbsp; <strong>Portföy Yüküm.</strong> (<code>Q119</code>): Yabancıların Türk hisse &amp; tahvil alımları &nbsp;·&nbsp; <strong>DYY Varlık</strong> (<code>Q103</code>): Türklerin yurt dışında doğrudan yatırımları &nbsp;·&nbsp; <strong>DYY Yüküm.</strong> (<code>Q108</code>): Yabancıların Türkiye'ye doğrudan yatırımları</div>
+          <div>
+            <strong>Birincil Gelir Dengesi</strong> (<code>Q68</code>): Dış borç faizi, yabancıya kâr/temettü transferi — Türkiye'nin yurt dışına ödediği faiz &amp; kâr transferleri ile aldığı arasındaki fark; kronik negatif kalem.
+            &nbsp;·&nbsp;
+            <strong>İkincil Gelir</strong> (<code>Q92</code>): İşçi dövizi ve karşılıksız transferlerin net durumu — yurt dışındaki Türk işçilerinin gönderdiği dövizler başlıca kaynağı.
+          </div>
+          <div>
+            <strong>Diğer Yatırımlar</strong> (<code>Q136</code>): Doğrudan yatırım ve portföy dışında kalan tüm sermaye hareketlerinin toplandığı kalem. Üç ana alt grup:
+            &nbsp;<strong>a)</strong> <em>Efektif &amp; Mevduat</em> — yurt içi yerleşiklerin döviz mevduatı + yabancıların Türk bankalarındaki mevduatı &nbsp;
+            <strong>b)</strong> <em>Krediler</em> — bankaların ve şirketlerin yurt dışından aldığı/ödediği krediler &nbsp;
+            <strong>c)</strong> <em>Ticari Krediler</em> — ihracat/ithalatta vadeli ödemeler.
+            &nbsp;·&nbsp;
+            <strong>Portföy Varlık</strong> (<code>Q115</code>): Türk yatırımcıların yurt dışı menkul kıymet alımları &nbsp;·&nbsp; <strong>Portföy Yüküm.</strong> (<code>Q119</code>): Yabancıların Türk hisse &amp; tahvil alımları &nbsp;·&nbsp; <strong>DYY Varlık</strong> (<code>Q103</code>): Türklerin yurt dışında doğrudan yatırımları &nbsp;·&nbsp; <strong>DYY Yüküm.</strong> (<code>Q108</code>): Yabancıların Türkiye'ye doğrudan yatırımları
+          </div>
         </div>
       </div>
     </div>
