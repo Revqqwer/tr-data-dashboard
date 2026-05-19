@@ -88,6 +88,11 @@ def init_tables():
             updated_at  TEXT NOT NULL,
             PRIMARY KEY (username, page)
         )''')
+        conn.execute('''CREATE TABLE IF NOT EXISTS tr_yield_cache (
+            ym    TEXT PRIMARY KEY,
+            tr2y  REAL,
+            tr10y REAL
+        )''')
 init_tables()
 
 
@@ -763,67 +768,31 @@ def makro():
 
 @app.route('/api/tr-yields')
 def tr_yields():
-    """TR 2Y ve 10Y tahvil faizleri. ?debug=1 ile kaynak loglarını döner."""
+    """TR 2Y ve 10Y tahvil faizleri (cache DB + scanner). ?debug=1 ile logları döner."""
     import datetime as _dt
     result = {}
     log    = []
 
-    # ── 1. Yahoo Finance ──────────────────────────────────────────
-    for ticker, key in [('TR2YT=RR', 'tr2y'), ('TR10YT=RR', 'tr10y')]:
-        try:
-            r = _http.get(
-                f'https://query1.finance.yahoo.com/v8/finance/chart/{ticker}',
-                params={'interval': '1mo', 'range': '10y'},
-                headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'},
-                timeout=10
-            )
-            log.append(f'yahoo:{ticker} status={r.status_code}')
-            body = r.json()
-            chart = body.get('chart', {}).get('result', [])
-            if not chart:
-                log.append(f'yahoo:{ticker} no result; err={body.get("chart",{}).get("error")}')
-                continue
-            ts_arr = chart[0].get('timestamp', [])
-            cl_arr = chart[0].get('indicators', {}).get('quote', [{}])[0].get('close', [])
-            count  = 0
-            for ts, c in zip(ts_arr, cl_arr):
-                if c is None:
-                    continue
-                ym = _dt.datetime.utcfromtimestamp(ts).strftime('%Y-%m')
-                result.setdefault(ym, {})[key] = round(c, 2)
-                count += 1
-            log.append(f'yahoo:{ticker} rows={count}')
-        except Exception as e:
-            log.append(f'yahoo:{ticker} exc={e}')
+    # ── 1. DB cache (collect_tr_yields.py tarafından doldurulur) ──
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            rows = conn.execute('SELECT ym, tr2y, tr10y FROM tr_yield_cache ORDER BY ym').fetchall()
+        for ym, tr2y, tr10y in rows:
+            entry = {}
+            if tr2y  is not None: entry['tr2y']  = tr2y
+            if tr10y is not None: entry['tr10y'] = tr10y
+            if entry:
+                result[ym] = entry
+        log.append(f'db_cache rows={len(rows)}')
+    except Exception as e:
+        log.append(f'db_cache exc={e}')
 
-    # ── 2. Stooq CSV (yedek) ──────────────────────────────────────
-    stooq_map = [('2ytr.b', 'tr2y'), ('10ytr.b', 'tr10y')]
-    for sticker, key in stooq_map:
-        if any(key in v for v in result.values()):
-            continue
-        try:
-            r = _http.get(
-                f'https://stooq.com/q/d/l/?s={sticker}&i=m',
-                headers={'User-Agent': 'Mozilla/5.0'},
-                timeout=10
-            )
-            log.append(f'stooq:{sticker} status={r.status_code} len={len(r.text)}')
-            for line in r.text.splitlines()[1:]:
-                parts = line.split(',')
-                if len(parts) < 5:
-                    continue
-                date_s, close_s = parts[0], parts[4]
-                try:
-                    ym = date_s[:7]
-                    result.setdefault(ym, {})[key] = round(float(close_s), 2)
-                except ValueError:
-                    pass
-        except Exception as e:
-            log.append(f'stooq:{sticker} exc={e}')
-
-    # ── 3. TradingView scanner (güncel değer, son yedek) ──────────
-    need = [sym for k, sym in [('tr2y', 'TVC:TR02Y'), ('tr10y', 'TVC:TR10Y')]
-            if not any(k in v for v in result.values())]
+    # ── 2. TradingView scanner (güncel ay — cache eksikse doldur) ─
+    now_ym = _dt.datetime.utcnow().strftime('%Y-%m')
+    cached = result.get(now_ym, {})
+    need   = []
+    if 'tr2y'  not in cached: need.append('TVC:TR02Y')
+    if 'tr10y' not in cached: need.append('TVC:TR10Y')
     if need:
         try:
             r = _http.post(
@@ -838,16 +807,40 @@ def tr_yields():
                 timeout=8
             )
             log.append(f'tv_scanner status={r.status_code} body={r.text[:200]}')
-            now_ym = _dt.datetime.utcnow().strftime('%Y-%m')
+            scanner_vals = {}
             for item in r.json().get('data', []):
                 s = item.get('s', '')
                 c = (item.get('d') or [None])[0]
                 if c is None:
                     continue
                 if 'TR02Y' in s:
-                    result.setdefault(now_ym, {})['tr2y']  = round(c, 2)
+                    scanner_vals['tr2y']  = round(c, 2)
                 elif 'TR10Y' in s:
-                    result.setdefault(now_ym, {})['tr10y'] = round(c, 2)
+                    scanner_vals['tr10y'] = round(c, 2)
+            if scanner_vals:
+                result.setdefault(now_ym, {}).update(scanner_vals)
+                # cache'e de yaz
+                try:
+                    with sqlite3.connect(DB_PATH) as conn:
+                        existing = conn.execute(
+                            'SELECT tr2y, tr10y FROM tr_yield_cache WHERE ym=?', (now_ym,)
+                        ).fetchone()
+                        if existing:
+                            new_tr2y  = scanner_vals.get('tr2y',  existing[0])
+                            new_tr10y = scanner_vals.get('tr10y', existing[1])
+                            conn.execute(
+                                'UPDATE tr_yield_cache SET tr2y=?, tr10y=? WHERE ym=?',
+                                (new_tr2y, new_tr10y, now_ym)
+                            )
+                        else:
+                            conn.execute(
+                                'INSERT INTO tr_yield_cache(ym, tr2y, tr10y) VALUES(?,?,?)',
+                                (now_ym,
+                                 scanner_vals.get('tr2y'),
+                                 scanner_vals.get('tr10y'))
+                            )
+                except Exception as e:
+                    log.append(f'cache_write exc={e}')
         except Exception as e:
             log.append(f'tv_scanner exc={e}')
 
