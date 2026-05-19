@@ -763,11 +763,12 @@ def makro():
 
 @app.route('/api/tr-yields')
 def tr_yields():
-    """TR 2Y ve 10Y tahvil faizlerini Yahoo Finance + TradingView scanner'dan çek."""
+    """TR 2Y ve 10Y tahvil faizleri. ?debug=1 ile kaynak loglarını döner."""
     import datetime as _dt
     result = {}
+    log    = []
 
-    # 1. Yahoo Finance — 10 yıllık aylık tarih (birincil kaynak)
+    # ── 1. Yahoo Finance ──────────────────────────────────────────
     for ticker, key in [('TR2YT=RR', 'tr2y'), ('TR10YT=RR', 'tr10y')]:
         try:
             r = _http.get(
@@ -776,22 +777,53 @@ def tr_yields():
                 headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'},
                 timeout=10
             )
-            chart = r.json().get('chart', {}).get('result', [])
+            log.append(f'yahoo:{ticker} status={r.status_code}')
+            body = r.json()
+            chart = body.get('chart', {}).get('result', [])
             if not chart:
+                log.append(f'yahoo:{ticker} no result; err={body.get("chart",{}).get("error")}')
                 continue
             ts_arr = chart[0].get('timestamp', [])
             cl_arr = chart[0].get('indicators', {}).get('quote', [{}])[0].get('close', [])
+            count  = 0
             for ts, c in zip(ts_arr, cl_arr):
                 if c is None:
                     continue
                 ym = _dt.datetime.utcfromtimestamp(ts).strftime('%Y-%m')
                 result.setdefault(ym, {})[key] = round(c, 2)
-        except Exception:
-            pass
+                count += 1
+            log.append(f'yahoo:{ticker} rows={count}')
+        except Exception as e:
+            log.append(f'yahoo:{ticker} exc={e}')
 
-    # 2. TradingView scanner — sadece mevcut değer (Yahoo başarısız olursa)
-    need = [sym for key, sym in [('tr2y', 'TVC:TR02Y'), ('tr10y', 'TVC:TR10Y')]
-            if not any(key in v for v in result.values())]
+    # ── 2. Stooq CSV (yedek) ──────────────────────────────────────
+    stooq_map = [('2ytr.b', 'tr2y'), ('10ytr.b', 'tr10y')]
+    for sticker, key in stooq_map:
+        if any(key in v for v in result.values()):
+            continue
+        try:
+            r = _http.get(
+                f'https://stooq.com/q/d/l/?s={sticker}&i=m',
+                headers={'User-Agent': 'Mozilla/5.0'},
+                timeout=10
+            )
+            log.append(f'stooq:{sticker} status={r.status_code} len={len(r.text)}')
+            for line in r.text.splitlines()[1:]:
+                parts = line.split(',')
+                if len(parts) < 5:
+                    continue
+                date_s, close_s = parts[0], parts[4]
+                try:
+                    ym = date_s[:7]
+                    result.setdefault(ym, {})[key] = round(float(close_s), 2)
+                except ValueError:
+                    pass
+        except Exception as e:
+            log.append(f'stooq:{sticker} exc={e}')
+
+    # ── 3. TradingView scanner (güncel değer, son yedek) ──────────
+    need = [sym for k, sym in [('tr2y', 'TVC:TR02Y'), ('tr10y', 'TVC:TR10Y')]
+            if not any(k in v for v in result.values())]
     if need:
         try:
             r = _http.post(
@@ -805,6 +837,7 @@ def tr_yields():
                 },
                 timeout=8
             )
+            log.append(f'tv_scanner status={r.status_code} body={r.text[:200]}')
             now_ym = _dt.datetime.utcnow().strftime('%Y-%m')
             for item in r.json().get('data', []):
                 s = item.get('s', '')
@@ -815,10 +848,13 @@ def tr_yields():
                     result.setdefault(now_ym, {})['tr2y']  = round(c, 2)
                 elif 'TR10Y' in s:
                     result.setdefault(now_ym, {})['tr10y'] = round(c, 2)
-        except Exception:
-            pass
+        except Exception as e:
+            log.append(f'tv_scanner exc={e}')
 
-    return jsonify(result)
+    out = dict(result)
+    if request.args.get('debug'):
+        out['_debug'] = log
+    return jsonify(out)
 
 
 # ── Profil ────────────────────────────────────────────────────────────────────

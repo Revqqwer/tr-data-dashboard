@@ -2609,8 +2609,8 @@ async function loadMakro() {
       const overrides = storage.overrides || {};
       let changed = false;
       for (const d of allMakro) {
-        const ym  = d.tarih_raw.slice(0, 7);
-        const yld = yields[ym];
+        const ym  = d.tarih_raw.slice(0, 7);            // YYYY-MM
+        const yld = yields[ym];                          // _debug gibi key'ler eşleşmez
         if (!yld) continue;
         overrides[d.tarih_raw] = overrides[d.tarih_raw] || {};
         if (yld.tr2y  != null && !overrides[d.tarih_raw].tr2y)  { overrides[d.tarih_raw].tr2y  = yld.tr2y;  changed = true; }
@@ -2662,8 +2662,8 @@ function renderMakro() {
 <tbody><tr class="makro-divider"><td colspan="13">── TAHMİN BÖLÜMÜ ──</td></tr></tbody>
 <tbody id="makroFcBody">`;
 
-  /* ── TAHMİN SATIRLARI ── */
-  for (let i = 0; i < fcRows.length; i++) {
+  /* ── TAHMİN SATIRLARI (en uzak gelecekten en yakına) ── */
+  for (let i = fcRows.length - 1; i >= 0; i--) {
     const fc = fcRows[i]; const inp = fcInputs[i];
     html += `<tr class="fc-row" data-idx="${i}">
   <td class="date-cell">${makroFmtDate(fc.tarih_raw)}</td>
