@@ -891,14 +891,14 @@ function renderKdKobiYoy(data) {
   );
 }
 
-/* KK – Taksitli YoY (sol) vs Taksitsiz YoY (sağ) + KK Toplam 13H */
+/* KK – Taksitli YoY (sol) vs Taksitsiz YoY (sağ) + KK Toplam YoY */
 function renderKdKkYoy(data) {
   kdDualAxis(
     'kdKkYoyChart',
     'Taksitli YoY %',  KD_COLORS.taksitli,  yoy(data.map(d => d.kk_taksitli)),
     'Taksitsiz YoY %', KD_COLORS.taksitsiz, yoy(data.map(d => d.kk_taksitsiz)),
     data.map(d => formatDateTR(d.tarih)),
-    'KK Toplam 13H %', growth13w(data.map(d => d.kk_toplam))
+    'KK Toplam YoY %', yoy(data.map(d => d.kk_toplam))
   );
 }
 
