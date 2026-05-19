@@ -2659,6 +2659,30 @@ function renderMakro() {
   <th>Spread</th>
   <th>Proxy Reel Kur</th>
 </tr></thead>
+<tbody><tr class="makro-divider"><td colspan="13">── TAHMİN BÖLÜMÜ ──</td></tr></tbody>
+<tbody id="makroFcBody">`;
+
+  /* ── TAHMİN SATIRLARI ── */
+  for (let i = 0; i < fcRows.length; i++) {
+    const fc = fcRows[i]; const inp = fcInputs[i];
+    html += `<tr class="fc-row" data-idx="${i}">
+  <td class="date-cell">${makroFmtDate(fc.tarih_raw)}</td>
+  <td data-c="sepet">${fc.sepet != null ? fc.sepet.toFixed(2) : '—'}</td>
+  <td><input type="number" class="makro-input fc-input" data-key="mom_enf"  data-idx="${i}" value="${inp.mom_enf  || ''}" placeholder="%" step="0.01"></td>
+  <td class="${clz(fc.yoy_enf)}" data-c="yoy_enf">${pct(fc.yoy_enf)}</td>
+  <td data-c="usdtry">${fc.usdtry != null ? fc.usdtry.toFixed(4) : '—'}</td>
+  <td><input type="number" class="makro-input fc-input" data-key="mom_kur"  data-idx="${i}" value="${inp.mom_kur  || ''}" placeholder="%" step="0.01"></td>
+  <td><input type="text"   class="makro-input note-input fc-input" data-key="note" data-idx="${i}" value="${(inp.note || '').replace(/"/g,'&quot;')}" placeholder="Not..."></td>
+  <td><input type="number" class="makro-input fc-input" data-key="pol_faiz" data-idx="${i}" value="${inp.pol_faiz || ''}" placeholder="%" step="0.01"></td>
+  <td class="${clz(fc.reel_faiz)}" data-c="reel_faiz">${fc.reel_faiz != null ? fc.reel_faiz.toFixed(2) + '%' : '—'}</td>
+  <td><input type="number" class="makro-input fc-input" data-key="tr2y"     data-idx="${i}" value="${inp.tr2y    || ''}" placeholder="%" step="0.01"></td>
+  <td><input type="number" class="makro-input fc-input" data-key="tr10y"    data-idx="${i}" value="${inp.tr10y   || ''}" placeholder="%" step="0.01"></td>
+  <td class="${clz(fc.spread)}" data-c="spread">${fc.spread != null ? (fc.spread >= 0 ? '+' : '') + fc.spread.toFixed(2) : '—'}</td>
+  <td data-c="proxy_kur">${fc.proxy_kur != null ? fc.proxy_kur.toFixed(2) : '—'}</td>
+</tr>`;
+  }
+
+  html += `</tbody>
 <tbody id="makroHistBody">`;
 
   /* ── TARİHSEL SATIRLAR (en yeniden eskiye) ── */
@@ -2681,30 +2705,6 @@ function renderMakro() {
   <td><input type="number" class="makro-input hist-num" data-key="tr10y" value="${ov.tr10y || ''}" placeholder="—" step="0.01"></td>
   <td class="${clz(spr_v)}" data-c="spread">${spr_v != null ? (spr_v >= 0 ? '+' : '') + spr_v.toFixed(2) : '—'}</td>
   <td>${d.proxy_kur != null ? d.proxy_kur.toFixed(2) : '—'}</td>
-</tr>`;
-  }
-
-  html += `</tbody>
-<tbody><tr class="makro-divider"><td colspan="13">── TAHMİN BÖLÜMÜ ──</td></tr></tbody>
-<tbody id="makroFcBody">`;
-
-  /* ── TAHMİN SATIRLARI ── */
-  for (let i = 0; i < fcRows.length; i++) {
-    const fc = fcRows[i]; const inp = fcInputs[i];
-    html += `<tr class="fc-row" data-idx="${i}">
-  <td class="date-cell">${makroFmtDate(fc.tarih_raw)}</td>
-  <td data-c="sepet">${fc.sepet != null ? fc.sepet.toFixed(2) : '—'}</td>
-  <td><input type="number" class="makro-input fc-input" data-key="mom_enf"  data-idx="${i}" value="${inp.mom_enf  || ''}" placeholder="%" step="0.01"></td>
-  <td class="${clz(fc.yoy_enf)}" data-c="yoy_enf">${pct(fc.yoy_enf)}</td>
-  <td data-c="usdtry">${fc.usdtry != null ? fc.usdtry.toFixed(4) : '—'}</td>
-  <td><input type="number" class="makro-input fc-input" data-key="mom_kur"  data-idx="${i}" value="${inp.mom_kur  || ''}" placeholder="%" step="0.01"></td>
-  <td><input type="text"   class="makro-input note-input fc-input" data-key="note" data-idx="${i}" value="${(inp.note || '').replace(/"/g,'&quot;')}" placeholder="Not..."></td>
-  <td><input type="number" class="makro-input fc-input" data-key="pol_faiz" data-idx="${i}" value="${inp.pol_faiz || ''}" placeholder="%" step="0.01"></td>
-  <td class="${clz(fc.reel_faiz)}" data-c="reel_faiz">${fc.reel_faiz != null ? fc.reel_faiz.toFixed(2) + '%' : '—'}</td>
-  <td><input type="number" class="makro-input fc-input" data-key="tr2y"     data-idx="${i}" value="${inp.tr2y    || ''}" placeholder="%" step="0.01"></td>
-  <td><input type="number" class="makro-input fc-input" data-key="tr10y"    data-idx="${i}" value="${inp.tr10y   || ''}" placeholder="%" step="0.01"></td>
-  <td class="${clz(fc.spread)}" data-c="spread">${fc.spread != null ? (fc.spread >= 0 ? '+' : '') + fc.spread.toFixed(2) : '—'}</td>
-  <td data-c="proxy_kur">${fc.proxy_kur != null ? fc.proxy_kur.toFixed(2) : '—'}</td>
 </tr>`;
   }
 
