@@ -1941,11 +1941,18 @@ function renderTurizmKisiBasi(data) {
   });
 }
 
-/* Grafik 2: Ziyaretçi Sayısı */
+/* Grafik 2: Toplam Ziyaretçi – 12 Aylık Toplam */
 function renderTurizmZiyaretci(data) {
+  /* Rolling 12 tüm veri üzerinde hesaplanır; sonra filtreli aralığa kesilir */
+  const allRaw = allTurizm.map(d => d.ziyaretci);
+  const roll12 = allRaw.map((_, i) => {
+    if (i < 11) return null;
+    const sum = allRaw.slice(i - 11, i + 1).reduce((a, v) => a + (v ?? 0), 0);
+    return +(sum / 1e6).toFixed(2);
+  });
+  const offset = allTurizm.length - data.length;
+  const vals   = roll12.slice(offset);
   const labels = data.map(d => monthKey(d.tarih));
-  /* Ziyaretçi sayısı ham kişi — grafikte milyona bölerek göster */
-  const vals   = data.map(d => d.ziyaretci != null ? +(d.ziyaretci / 1e6).toFixed(3) : null);
 
   if (charts['turizmZiyaretciChart']) charts['turizmZiyaretciChart'].destroy();
   const canvas = document.getElementById('turizmZiyaretciChart');
@@ -1955,7 +1962,7 @@ function renderTurizmZiyaretci(data) {
     data: {
       labels,
       datasets: [{
-        label: 'Ziyaretçi Sayısı',
+        label: '12A Toplam Ziyaretçi',
         data: vals,
         borderColor: '#10b981',
         backgroundColor: 'rgba(16,185,129,0.08)',
