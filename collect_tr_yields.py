@@ -1,26 +1,123 @@
 """
-TR 2Y ve 10Y tahvil faizi tarihsel verisi — tvDatafeed kullanarak TradingView'dan çeker.
+TR 2Y ve 10Y tahvil faizi tarihsel verisi.
+TradingView WebSocket protokolünü doğrudan kullanır — ek paket gerekmez.
 
 Kullanım (PythonAnywhere bash):
-    pip3.10 install --user tvDatafeed
     cd ~/tr-data-dashboard && python3.10 collect_tr_yields.py
-
-İlk çalıştırmada 10 yıl (120 bar) geçmişi çeker ve tr_yield_cache tablosunu doldurur.
-Sonraki çalıştırmalarda mevcut kayıtları günceller (UPSERT).
 """
+import json
 import os
+import random
+import re
 import sqlite3
-import datetime
+import string
+from datetime import datetime
 
 DB_PATH = os.path.join(os.path.dirname(__file__), 'data', 'cache.db')
+N_BARS  = 120   # ~10 yıl aylık veri
 
 SYMBOLS = [
     ('TR02Y', 'TVC', 'tr2y'),
     ('TR10Y', 'TVC', 'tr10y'),
 ]
 
-N_BARS = 120  # ~10 yıl aylık veri
 
+# ── TradingView WebSocket yardımcıları ────────────────────────────────────────
+
+def _rand(n=12):
+    return ''.join(random.choices(string.ascii_lowercase, k=n))
+
+
+def _pack(func, args):
+    body = json.dumps({'m': func, 'p': args}, separators=(',', ':'))
+    return f'~m~{len(body)}~m~{body}'
+
+
+def _parse(raw):
+    """~m~N~m~... formatındaki mesajları parçala."""
+    out = []
+    while raw:
+        m = re.match(r'^~m~(\d+)~m~', raw)
+        if not m:
+            break
+        n     = int(m.group(1))
+        start = m.end()
+        out.append(raw[start: start + n])
+        raw = raw[start + n:]
+    return out
+
+
+def fetch_tv_monthly(symbol, exchange, n_bars=N_BARS):
+    """
+    TradingView'dan aylık (1M) kapanış verisi çeker.
+    Döner: list of (ym, close)  örn. [('2024-01', 36.5), ...]
+    """
+    from websocket import create_connection, WebSocketTimeoutException
+
+    url = (
+        'wss://data.tradingview.com/socket.io/websocket'
+        '?from=chart%2F&date=&type=chart'
+    )
+    ws = create_connection(
+        url,
+        headers={'Origin': 'https://www.tradingview.com'},
+        timeout=15,
+    )
+
+    chart_sess = 'cs_' + _rand()
+    sym_json   = json.dumps({'adjustment': 'splits', 'symbol': f'{exchange}:{symbol}'})
+
+    ws.send(_pack('set_auth_token',    ['unauthorized_user_token']))
+    ws.send(_pack('chart_create_session', [chart_sess, '']))
+    ws.send(_pack('resolve_symbol',    [chart_sess, 'ser_1', f'={sym_json}']))
+    ws.send(_pack('create_series',     [chart_sess, 's1', 's1', 'ser_1', '1M', n_bars]))
+
+    result = []
+    attempts = 0
+
+    while attempts < 30:
+        try:
+            raw = ws.recv()
+        except WebSocketTimeoutException:
+            attempts += 1
+            continue
+        except Exception:
+            break
+
+        for pkt in _parse(raw):
+            # heartbeat
+            if re.match(r'^~h~\d+$', pkt):
+                ws.send(f'~m~{len(pkt)}~m~{pkt}')
+                continue
+            try:
+                msg = json.loads(pkt)
+            except Exception:
+                continue
+
+            if msg.get('m') == 'timescale_update':
+                bars = (
+                    msg.get('p', [{}] * 2)[1]
+                       .get('s1', {})
+                       .get('s', [])
+                )
+                for bar in bars:
+                    v = bar.get('v', [])
+                    if len(v) >= 5:
+                        ts    = v[0]
+                        close = v[4]
+                        ym    = datetime.utcfromtimestamp(ts).strftime('%Y-%m')
+                        result.append((ym, round(float(close), 2)))
+                if result:
+                    ws.close()
+                    return result
+
+        attempts += 1
+
+    ws.close()
+    return result
+
+
+# ── DB ────────────────────────────────────────────────────────────────────────
 
 def ensure_table(conn):
     conn.execute('''CREATE TABLE IF NOT EXISTS tr_yield_cache (
@@ -31,79 +128,65 @@ def ensure_table(conn):
     conn.commit()
 
 
+def upsert(conn, ym, col, value):
+    existing = conn.execute(
+        'SELECT tr2y, tr10y FROM tr_yield_cache WHERE ym=?', (ym,)
+    ).fetchone()
+    if existing:
+        new_2y  = value if col == 'tr2y'  else existing[0]
+        new_10y = value if col == 'tr10y' else existing[1]
+        conn.execute(
+            'UPDATE tr_yield_cache SET tr2y=?, tr10y=? WHERE ym=?',
+            (new_2y, new_10y, ym)
+        )
+    else:
+        tr2y  = value if col == 'tr2y'  else None
+        tr10y = value if col == 'tr10y' else None
+        conn.execute(
+            'INSERT INTO tr_yield_cache(ym, tr2y, tr10y) VALUES(?,?,?)',
+            (ym, tr2y, tr10y)
+        )
+
+
+# ── Ana akış ─────────────────────────────────────────────────────────────────
+
 def collect():
     try:
-        from tvDatafeed import TvDatafeed, Interval
+        import websocket  # noqa: F401
     except ImportError:
-        print("tvDatafeed kurulu değil. Şu komutu çalıştır:")
-        print("  pip3.10 install --user tvDatafeed")
-        return
-
-    tv = TvDatafeed()
-
-    all_data: dict[str, dict] = {}  # ym -> {tr2y: ..., tr10y: ...}
-
-    for symbol, exchange, col in SYMBOLS:
-        print(f"Çekiliyor: {exchange}:{symbol} …", flush=True)
-        try:
-            df = tv.get_hist(symbol, exchange, interval=Interval.in_monthly, n_bars=N_BARS)
-            if df is None or df.empty:
-                print(f"  → Veri boş: {symbol}")
-                continue
-            df = df.reset_index()
-            count = 0
-            for _, row in df.iterrows():
-                dt = row.get('datetime') or row.get('index')
-                close = row.get('close')
-                if close is None or (hasattr(close, '__class__') and str(close) == 'nan'):
-                    continue
-                if hasattr(dt, 'strftime'):
-                    ym = dt.strftime('%Y-%m')
-                else:
-                    ym = str(dt)[:7]
-                all_data.setdefault(ym, {})[col] = round(float(close), 2)
-                count += 1
-            print(f"  → {count} ay")
-        except Exception as e:
-            print(f"  → Hata: {e}")
-
-    if not all_data:
-        print("Hiç veri çekilemedi.")
+        print("websocket-client kurulu değil:")
+        print("  pip3.10 install --user websocket-client")
         return
 
     with sqlite3.connect(DB_PATH) as conn:
         ensure_table(conn)
-        upserted = 0
-        for ym, vals in sorted(all_data.items()):
-            existing = conn.execute(
-                'SELECT tr2y, tr10y FROM tr_yield_cache WHERE ym=?', (ym,)
-            ).fetchone()
-            if existing:
-                new_tr2y  = vals.get('tr2y',  existing[0])
-                new_tr10y = vals.get('tr10y', existing[1])
-                conn.execute(
-                    'UPDATE tr_yield_cache SET tr2y=?, tr10y=? WHERE ym=?',
-                    (new_tr2y, new_tr10y, ym)
-                )
-            else:
-                conn.execute(
-                    'INSERT INTO tr_yield_cache(ym, tr2y, tr10y) VALUES(?,?,?)',
-                    (ym, vals.get('tr2y'), vals.get('tr10y'))
-                )
-            upserted += 1
-        conn.commit()
 
-    print(f"\nTamamlandı: {upserted} ay kaydedildi → {DB_PATH}")
+        for symbol, exchange, col in SYMBOLS:
+            print(f'Çekiliyor: {exchange}:{symbol} …', flush=True)
+            try:
+                rows = fetch_tv_monthly(symbol, exchange)
+            except Exception as e:
+                print(f'  → Hata: {e}')
+                continue
 
-    # Özet: son 6 ay
+            if not rows:
+                print('  → Veri gelmedi')
+                continue
+
+            for ym, close in rows:
+                upsert(conn, ym, col, close)
+            conn.commit()
+            print(f'  → {len(rows)} ay kaydedildi')
+
+    # Özet
     with sqlite3.connect(DB_PATH) as conn:
         rows = conn.execute(
-            'SELECT ym, tr2y, tr10y FROM tr_yield_cache ORDER BY ym DESC LIMIT 6'
+            'SELECT ym, tr2y, tr10y FROM tr_yield_cache ORDER BY ym DESC LIMIT 8'
         ).fetchall()
-    print("\nSon 6 ay:")
+    print(f'\nSon 8 ay ({DB_PATH}):')
     print(f"{'Ay':<10} {'TR2Y':>8} {'TR10Y':>8}")
     for ym, tr2y, tr10y in rows:
-        print(f"{ym:<10} {(tr2y or '-'):>8} {(tr10y or '-'):>8}")
+        print(f"{ym:<10} {(str(tr2y) if tr2y else '-'):>8} {(str(tr10y) if tr10y else '-'):>8}")
 
 
 if __name__ == '__main__':
