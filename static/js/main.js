@@ -1295,71 +1295,57 @@ function renderDT() {
   renderDTRoll12();
   renderDTMA();
   renderDTTable();
-  renderDTIhracatYoY();
-  renderDTIthalatYoY();
+  renderDTYoY();
   bindToggleLegends();
 }
 
-/* Grafik: İhracat YoY % */
-function renderDTIhracatYoY() {
-  const data   = allDT;
-  const vals   = yoy(data.map(d => d.ihracat), 12);
-  const labels = data.map(d => monthKey(d.tarih));
-  if (charts['dtIhracatYoyChart']) charts['dtIhracatYoyChart'].destroy();
-  const canvas = document.getElementById('dtIhracatYoyChart');
+/* Grafik: İhracat & İthalat YoY % */
+function renderDTYoY() {
+  const data    = allDT;
+  const labels  = data.map(d => monthKey(d.tarih));
+  const ihracat = yoy(data.map(d => d.ihracat), 12);
+  const ithalat = yoy(data.map(d => d.ithalat), 12);
+  if (charts['dtYoyChart']) charts['dtYoyChart'].destroy();
+  const canvas = document.getElementById('dtYoyChart');
   if (!canvas) return;
-  charts['dtIhracatYoyChart'] = new Chart(canvas, {
+  charts['dtYoyChart'] = new Chart(canvas, {
     type: 'line',
     data: {
       labels,
-      datasets: [{
-        label: 'İhracat YoY %',
-        data: vals,
-        borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.08)',
-        borderWidth: 2, pointRadius: 0, tension: 0.3, fill: true,
-      }]
+      datasets: [
+        {
+          label: 'İhracat YoY %',
+          data: ihracat,
+          borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.07)',
+          borderWidth: 2, pointRadius: 0, tension: 0.3, fill: false,
+        },
+        {
+          label: 'İthalat YoY %',
+          data: ithalat,
+          borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.07)',
+          borderWidth: 2, pointRadius: 0, tension: 0.3, fill: false,
+        },
+      ]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.y != null ? ctx.parsed.y.toFixed(1) + '%' : '—'}` } } },
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          mode: 'index', intersect: false,
+          callbacks: {
+            label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y != null ? ctx.parsed.y.toFixed(1) + '%' : '—'}`
+          }
+        }
+      },
       scales: {
         x: { ticks: { color: '#6b7a99', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
         y: { ticks: { color: '#6b7a99', font: { size: 10 }, callback: v => v + '%' }, grid: { color: 'rgba(255,255,255,0.06)' } }
       }
     }
   });
-  requestAnimationFrame(() => { if (charts['dtIhracatYoyChart']) charts['dtIhracatYoyChart'].resize(); });
-}
-
-/* Grafik: İthalat YoY % */
-function renderDTIthalatYoY() {
-  const data   = allDT;
-  const vals   = yoy(data.map(d => d.ithalat), 12);
-  const labels = data.map(d => monthKey(d.tarih));
-  if (charts['dtIthalatYoyChart']) charts['dtIthalatYoyChart'].destroy();
-  const canvas = document.getElementById('dtIthalatYoyChart');
-  if (!canvas) return;
-  charts['dtIthalatYoyChart'] = new Chart(canvas, {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [{
-        label: 'İthalat YoY %',
-        data: vals,
-        borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.08)',
-        borderWidth: 2, pointRadius: 0, tension: 0.3, fill: true,
-      }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.y != null ? ctx.parsed.y.toFixed(1) + '%' : '—'}` } } },
-      scales: {
-        x: { ticks: { color: '#6b7a99', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
-        y: { ticks: { color: '#6b7a99', font: { size: 10 }, callback: v => v + '%' }, grid: { color: 'rgba(255,255,255,0.06)' } }
-      }
-    }
-  });
-  requestAnimationFrame(() => { if (charts['dtIthalatYoyChart']) charts['dtIthalatYoyChart'].resize(); });
+  requestAnimationFrame(() => { if (charts['dtYoyChart']) charts['dtYoyChart'].resize(); });
 }
 
 /* Grafik 1: 12A Hareketli Toplam */
