@@ -2735,8 +2735,9 @@ function makroUpdateFcCells(fcRows) {
   const clz = v => v == null ? '' : v >= 0 ? 'positive' : 'negative';
   const tbody = document.getElementById('makroFcBody');
   if (!tbody) return;
-  tbody.querySelectorAll('tr.fc-row').forEach((tr, i) => {
-    if (i >= fcRows.length) return;
+  tbody.querySelectorAll('tr.fc-row').forEach(tr => {
+    const i = parseInt(tr.dataset.idx);
+    if (isNaN(i) || i >= fcRows.length) return;
     const fc = fcRows[i];
     const set = (attr, text, cls) => {
       const el = tr.querySelector(`[data-c="${attr}"]`);
