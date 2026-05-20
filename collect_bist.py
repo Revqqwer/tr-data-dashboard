@@ -206,6 +206,19 @@ def save(conn, name, period, data):
 
 # ── Ana akış ─────────────────────────────────────────────────────────────────
 
+def db_save_endeks(rows):
+    """Her endeks için kısa ömürlü connection aç, yaz, kapat — lock sorunu olmaz."""
+    conn = sqlite3.connect(str(DB_PATH), timeout=60)
+    try:
+        conn.execute('PRAGMA journal_mode=WAL')
+        init_db(conn)
+        for (name, period, data) in rows:
+            save(conn, name, period, data)
+        conn.commit()
+    finally:
+        conn.close()
+
+
 def collect():
     try:
         import websocket  # noqa
@@ -216,40 +229,41 @@ def collect():
     log.info(f'BİST kolektör başladı — {len(ENDEKSLER)} endeks')
     t0 = time.time()
 
-    with sqlite3.connect(str(DB_PATH), timeout=60) as conn:
-        init_db(conn)
-        total = len(ENDEKSLER)
+    total = len(ENDEKSLER)
+    for i, (name, symbol) in enumerate(ENDEKSLER.items(), 1):
+        log.info(f'[{i:2d}/{total}] {name} ({symbol})')
+        rows = []
 
-        for i, (name, symbol) in enumerate(ENDEKSLER.items(), 1):
-            log.info(f'[{i:2d}/{total}] {name} ({symbol})')
+        # ── Günlük: 1A / 3A / 6A / 1Y ────────────────────────────
+        d_dates, d_closes = fetch_tv_ws(symbol, EXCHANGE, DAILY_N, '1D')
+        if d_dates:
+            for period, n in DAILY_SLICES.items():
+                data = make_period_data(d_dates, d_closes, n)
+                if data:
+                    rows.append((name, period, data))
+            log.info(f'         günlük OK  ({len(d_dates)} bar, '
+                     f'1Y={make_period_data(d_dates,d_closes,365)["pct"]:+.1f}%)')
+        else:
+            log.warning(f'         günlük veri alınamadı')
 
-            # ── Günlük: 1A / 3A / 6A / 1Y ────────────────────────
-            d_dates, d_closes = fetch_tv_ws(symbol, EXCHANGE, DAILY_N, '1D')
-            if d_dates:
-                for period, n in DAILY_SLICES.items():
-                    data = make_period_data(d_dates, d_closes, n)
-                    if data:
-                        save(conn, name, period, data)
-                log.info(f'         günlük OK  ({len(d_dates)} bar, '
-                         f'1Y={make_period_data(d_dates,d_closes,365)["pct"]:+.1f}%)')
-            else:
-                log.warning(f'         günlük veri alınamadı')
+        time.sleep(0.5)
 
-            time.sleep(0.5)
+        # ── Haftalık: 3Y / 5Y ─────────────────────────────────────
+        w_dates, w_closes = fetch_tv_ws(symbol, EXCHANGE, WEEKLY_N, '1W')
+        if w_dates:
+            for period, n in WEEKLY_SLICES.items():
+                data = make_period_data(w_dates, w_closes, n)
+                if data:
+                    rows.append((name, period, data))
+            log.info(f'         haftalık OK ({len(w_dates)} bar)')
+        else:
+            log.warning(f'         haftalık veri alınamadı')
 
-            # ── Haftalık: 3Y / 5Y ─────────────────────────────────
-            w_dates, w_closes = fetch_tv_ws(symbol, EXCHANGE, WEEKLY_N, '1W')
-            if w_dates:
-                for period, n in WEEKLY_SLICES.items():
-                    data = make_period_data(w_dates, w_closes, n)
-                    if data:
-                        save(conn, name, period, data)
-                log.info(f'         haftalık OK ({len(w_dates)} bar)')
-            else:
-                log.warning(f'         haftalık veri alınamadı')
+        # Kısa ömürlü connection ile kaydet
+        if rows:
+            db_save_endeks(rows)
 
-            conn.commit()
-            time.sleep(0.5)
+        time.sleep(0.5)
 
     elapsed = round(time.time() - t0)
     log.info(f'Tamamlandı — {elapsed // 60}d {elapsed % 60}s')
