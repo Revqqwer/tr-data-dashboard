@@ -9,7 +9,7 @@ Kullanım (PythonAnywhere bash / scheduled task):
 
 PA scheduled task önerisi: her gün 20:00 UTC
 """
-import json, re, sqlite3, time, logging, random, string
+import json, os, re, sqlite3, time, logging, random, string
 from datetime import datetime
 from pathlib import Path
 
@@ -22,6 +22,7 @@ log = logging.getLogger(__name__)
 
 BASE_DIR  = Path(__file__).parent
 DB_PATH   = BASE_DIR / 'data' / 'bist_cache.db'
+TEMP_PATH = BASE_DIR / 'data' / 'bist_cache_building.db'
 EXCHANGE  = 'BIST'
 
 ENDEKSLER = {
@@ -206,16 +207,11 @@ def save(conn, name, period, data):
 
 # ── Ana akış ─────────────────────────────────────────────────────────────────
 
-def db_save_endeks(rows):
-    """Her endeks için kısa ömürlü connection aç, yaz, kapat."""
-    conn = sqlite3.connect(str(DB_PATH), timeout=60)
-    try:
-        init_db(conn)
-        for (name, period, data) in rows:
-            save(conn, name, period, data)
-        conn.commit()
-    finally:
-        conn.close()
+def db_save_endeks(rows, conn):
+    """Verilen bağlantıya endeks verilerini yaz."""
+    for (name, period, data) in rows:
+        save(conn, name, period, data)
+    conn.commit()
 
 
 def collect():
@@ -226,43 +222,58 @@ def collect():
         return
 
     log.info(f'BİST kolektör başladı — {len(ENDEKSLER)} endeks')
+    log.info(f'Geçici DB: {TEMP_PATH}')
     t0 = time.time()
 
-    total = len(ENDEKSLER)
-    for i, (name, symbol) in enumerate(ENDEKSLER.items(), 1):
-        log.info(f'[{i:2d}/{total}] {name} ({symbol})')
-        rows = []
+    # Temiz geçici DB aç — Flask'ın bist_cache.db'sine hiç dokunmuyoruz
+    if TEMP_PATH.exists():
+        TEMP_PATH.unlink()
 
-        # ── Günlük: 1A / 3A / 6A / 1Y ────────────────────────────
-        d_dates, d_closes = fetch_tv_ws(symbol, EXCHANGE, DAILY_N, '1D')
-        if d_dates:
-            for period, n in DAILY_SLICES.items():
-                data = make_period_data(d_dates, d_closes, n)
-                if data:
-                    rows.append((name, period, data))
-            log.info(f'         günlük OK  ({len(d_dates)} bar, '
-                     f'1Y={make_period_data(d_dates,d_closes,365)["pct"]:+.1f}%)')
-        else:
-            log.warning(f'         günlük veri alınamadı')
+    conn = sqlite3.connect(str(TEMP_PATH))
+    try:
+        init_db(conn)
 
-        time.sleep(0.5)
+        total = len(ENDEKSLER)
+        for i, (name, symbol) in enumerate(ENDEKSLER.items(), 1):
+            log.info(f'[{i:2d}/{total}] {name} ({symbol})')
+            rows = []
 
-        # ── Haftalık: 3Y / 5Y ─────────────────────────────────────
-        w_dates, w_closes = fetch_tv_ws(symbol, EXCHANGE, WEEKLY_N, '1W')
-        if w_dates:
-            for period, n in WEEKLY_SLICES.items():
-                data = make_period_data(w_dates, w_closes, n)
-                if data:
-                    rows.append((name, period, data))
-            log.info(f'         haftalık OK ({len(w_dates)} bar)')
-        else:
-            log.warning(f'         haftalık veri alınamadı')
+            # ── Günlük: 1A / 3A / 6A / 1Y ────────────────────────────
+            d_dates, d_closes = fetch_tv_ws(symbol, EXCHANGE, DAILY_N, '1D')
+            if d_dates:
+                for period, n in DAILY_SLICES.items():
+                    data = make_period_data(d_dates, d_closes, n)
+                    if data:
+                        rows.append((name, period, data))
+                log.info(f'         günlük OK  ({len(d_dates)} bar, '
+                         f'1Y={make_period_data(d_dates,d_closes,365)["pct"]:+.1f}%)')
+            else:
+                log.warning(f'         günlük veri alınamadı')
 
-        # Kısa ömürlü connection ile kaydet
-        if rows:
-            db_save_endeks(rows)
+            time.sleep(0.5)
 
-        time.sleep(0.5)
+            # ── Haftalık: 3Y / 5Y ─────────────────────────────────────
+            w_dates, w_closes = fetch_tv_ws(symbol, EXCHANGE, WEEKLY_N, '1W')
+            if w_dates:
+                for period, n in WEEKLY_SLICES.items():
+                    data = make_period_data(w_dates, w_closes, n)
+                    if data:
+                        rows.append((name, period, data))
+                log.info(f'         haftalık OK ({len(w_dates)} bar)')
+            else:
+                log.warning(f'         haftalık veri alınamadı')
+
+            if rows:
+                db_save_endeks(rows, conn)
+
+            time.sleep(0.5)
+
+    finally:
+        conn.close()
+
+    # Tüm veriler geçici DB'ye yazıldı — atomik swap
+    os.replace(str(TEMP_PATH), str(DB_PATH))
+    log.info(f'DB güncellendi: {DB_PATH}')
 
     elapsed = round(time.time() - t0)
     log.info(f'Tamamlandı — {elapsed // 60}d {elapsed % 60}s')
