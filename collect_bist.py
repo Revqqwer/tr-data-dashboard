@@ -1,10 +1,12 @@
 """
-BİST endeks verisi kolektörü — PythonAnywhere scheduled task.
+BİST endeks + hisse verisi kolektörü — PythonAnywhere scheduled task.
 
-Optimizasyon: her endeks için sadece 2 TV isteği (günlük + haftalık)
-ve slice ile tüm 6 dönem hesaplanır. ~5-10 dakika sürer.
+Optimizasyon:
+  • Her endeks için 2 TV isteği (günlük + haftalık), slice ile 6 dönem.
+  • Her benzersiz hisse için 2 TV isteği; tüm endeks×dönem kombinasyonları hesaplanır.
+  • Tüm veri geçici DB'ye yazılır, bitince atomik os.replace() ile canlıya alınır.
 
-Kullanım (PythonAnywhere bash / scheduled task):
+Kullanım:
     cd ~/tr-data-dashboard && python3.10 collect_bist.py
 
 PA scheduled task önerisi: her gün 20:00 UTC
@@ -13,6 +15,12 @@ import json, os, re, sqlite3, time, logging, random, string
 from datetime import datetime
 from pathlib import Path
 
+try:
+    import openpyxl
+    _HAS_OPENPYXL = True
+except ImportError:
+    _HAS_OPENPYXL = False
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s %(message)s',
@@ -20,10 +28,11 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
-BASE_DIR  = Path(__file__).parent
-DB_PATH   = BASE_DIR / 'data' / 'bist_cache.db'
-TEMP_PATH = BASE_DIR / 'data' / 'bist_cache_building.db'
-EXCHANGE  = 'BIST'
+BASE_DIR   = Path(__file__).parent
+DB_PATH    = BASE_DIR / 'data' / 'bist_cache.db'
+TEMP_PATH  = BASE_DIR / 'data' / 'bist_cache_building.db'
+EXCEL_PATH = BASE_DIR / 'data' / 'Endeksler.xlsx'
+EXCHANGE   = 'BIST'
 
 ENDEKSLER = {
     "BIST 100":                  "XU100",
@@ -179,6 +188,133 @@ def make_period_data(dates, closes, n):
     }
 
 
+# ── Excel: endeks bileşenleri ─────────────────────────────────────────────────
+
+def _normalize(s):
+    s = s.upper()
+    for fr, to in [('Ü','U'),('Ö','O'),('Ç','C'),('Ş','S'),('İ','I'),('Ğ','G'),
+                   ('ü','u'),('ö','o'),('ç','c'),('ş','s'),('ı','i'),('ğ','g')]:
+        s = s.replace(fr, to)
+    return re.sub(r'[^A-Z0-9]+', ' ', s).strip()
+
+
+def load_excel():
+    """Endeksler.xlsx'ten endeks→hisse listesini yükler."""
+    if not _HAS_OPENPYXL:
+        log.warning('openpyxl yok, hisse koleksiyonu atlanıyor')
+        return {}
+    if not EXCEL_PATH.exists():
+        log.warning(f'Endeksler.xlsx bulunamadı: {EXCEL_PATH}')
+        return {}
+    try:
+        wb = openpyxl.load_workbook(str(EXCEL_PATH))
+        ws = wb.active
+        compositions = {}
+        current, stocks = None, []
+        skip = {'Endeksler Listesi', 'Sira', None, 'Kod'}
+        for row in ws.iter_rows(values_only=True):
+            v0, v1, v2 = row[0], row[1], row[2]
+            if (isinstance(v0, str) and v1 is None and v2 is None
+                    and v0.strip() not in skip and v0.strip()):
+                if current:
+                    compositions[current] = stocks
+                current, stocks = v0.strip(), []
+            elif current and v1 and v1 not in ('Kod', ''):
+                stocks.append({'kod': str(v1), 'ad': str(v2 or v1),
+                               'ticker': f'{v1}.IS'})
+        if current:
+            compositions[current] = stocks
+        log.info(f'Excel: {len(compositions)} endeks yüklendi')
+        return compositions
+    except Exception as e:
+        log.error(f'Excel hata: {e}')
+        return {}
+
+
+def collect_stocks(conn, compositions):
+    """Tüm endeks bileşenlerinin getirisini TV'den çekip DB'ye yazar."""
+    if not compositions:
+        log.warning('Excel verisi yok, hisse koleksiyonu atlanıyor')
+        return
+
+    # ENDEKSLER anahtarları ile Excel anahtarlarını eşleştir
+    endeks_stocks = {}   # dashboard_name → [stock_dicts]
+    for dash_name in ENDEKSLER:
+        n = _normalize(dash_name)
+        for excel_key, stocks in compositions.items():
+            if _normalize(excel_key) == n:
+                endeks_stocks[dash_name] = stocks
+                break
+
+    # Benzersiz hisseler
+    unique = {}   # kod → stock_info
+    for stocks in endeks_stocks.values():
+        for s in stocks:
+            if s['kod'] not in unique:
+                unique[s['kod']] = s
+
+    total_s = len(unique)
+    log.info(f'Hisse kolektörü: {total_s} benzersiz hisse, {len(endeks_stocks)} endeks')
+
+    # Her benzersiz hisse için 2 TV isteği → 6 dönem slice
+    returns_map = {}   # kod → {period: pct}
+    price_map   = {}   # kod → last_price
+
+    for i, (kod, s) in enumerate(unique.items(), 1):
+        if i == 1 or i % 100 == 0:
+            log.info(f'  Hisse [{i}/{total_s}]')
+
+        d_dates, d_closes = fetch_tv_ws(kod, EXCHANGE, DAILY_N, '1D')
+        time.sleep(0.3)
+        w_dates, w_closes = fetch_tv_ws(kod, EXCHANGE, WEEKLY_N, '1W')
+        time.sleep(0.3)
+
+        rets = {}
+        if d_dates and len(d_closes) >= 2:
+            price_map[kod] = d_closes[-1]
+            for period, n_bars in DAILY_SLICES.items():
+                n2 = min(n_bars, len(d_closes))
+                c  = d_closes[-n2:]
+                if c[0]:
+                    rets[period] = round((c[-1] / c[0] - 1) * 100, 2)
+        if w_dates and len(w_closes) >= 2:
+            for period, n_bars in WEEKLY_SLICES.items():
+                n2 = min(n_bars, len(w_closes))
+                c  = w_closes[-n2:]
+                if c[0]:
+                    rets[period] = round((c[-1] / c[0] - 1) * 100, 2)
+        if rets:
+            returns_map[kod] = rets
+
+    log.info(f'Hisse çekimi bitti ({len(returns_map)}/{total_s} başarılı), DB\'ye yazılıyor...')
+
+    now = int(time.time())
+    all_periods = list(DAILY_SLICES.keys()) + list(WEEKLY_SLICES.keys())
+    for dash_name, stocks in endeks_stocks.items():
+        for period in all_periods:
+            result = []
+            for s in stocks:
+                kod = s['kod']
+                result.append({
+                    'kod':   kod,
+                    'ad':    s['ad'],
+                    'ticker': s['ticker'],
+                    'pct':   returns_map.get(kod, {}).get(period),
+                    'price': price_map.get(kod),
+                })
+            result.sort(
+                key=lambda x: x['pct'] if x['pct'] is not None else -9999,
+                reverse=True)
+            conn.execute("""
+                INSERT OR REPLACE INTO stock_returns
+                (index_name, period, data, updated_at)
+                VALUES (?,?,?,?)""",
+                (dash_name, period, json.dumps(result), now))
+        conn.commit()
+
+    log.info(f'Hisse DB yazıldı: {len(endeks_stocks)} endeks × {len(all_periods)} dönem')
+
+
 # ── DB ────────────────────────────────────────────────────────────────────────
 
 def init_db(conn):
@@ -192,6 +328,14 @@ def init_db(conn):
             pct        REAL,
             updated_at INTEGER,
             PRIMARY KEY (name, period)
+        )""")
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS stock_returns (
+            index_name TEXT,
+            period     TEXT,
+            data       TEXT,
+            updated_at INTEGER,
+            PRIMARY KEY (index_name, period)
         )""")
     conn.commit()
 
@@ -267,6 +411,10 @@ def collect():
                 db_save_endeks(rows, conn)
 
             time.sleep(0.5)
+
+        # ── Hisse getirileri ──────────────────────────────────────
+        compositions = load_excel()
+        collect_stocks(conn, compositions)
 
     finally:
         conn.close()
