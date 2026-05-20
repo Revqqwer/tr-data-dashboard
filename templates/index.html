@@ -103,6 +103,17 @@
       </a>
     </div>
 
+    <!-- ── Ayırıcı ── -->
+    <div style="height:1px;background:rgba(255,255,255,0.1);margin:8px 4px;"></div>
+
+    <!-- ── 5. BİST Endeksleri ── -->
+    <div class="nav-section">
+      <a href="#" class="nav-item nav-section-title" data-page="bist-endeks" style="text-transform:uppercase;font-size:10px;letter-spacing:0.08em;font-weight:700;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/><circle cx="19" cy="9" r="2"/></svg>
+        BİST Endeksleri
+      </a>
+    </div>
+
   </nav>
 
   <script>
@@ -1158,19 +1169,37 @@
     ></iframe>
   </div>
 
-  <!-- ── BIST TRACKER TOPBAR ── -->
+  <!-- ── BIST PORTFÖY TOPBAR ── -->
   <header class="topbar hidden" id="topbar-bist">
     <div class="topbar-title">
-      <h1>BİST Tracker</h1>
+      <h1>BIST Portföy</h1>
+      <span class="topbar-sub">Hisse Senedi Portföy Takibi · Gerçekleşmiş K/Z · Açık Pozisyonlar</span>
+    </div>
+  </header>
+
+  <!-- ── BIST PORTFÖY iframe ── -->
+  <div class="page-content hidden" id="page-bist" style="padding:0;overflow:hidden;">
+    <iframe
+      src="/tefas/bist"
+      id="bist-iframe"
+      style="width:100%;height:calc(100vh - 56px);border:none;display:block;"
+      loading="lazy"
+    ></iframe>
+  </div>
+
+  <!-- ── BİST ENDEKSLERİ TOPBAR ── -->
+  <header class="topbar hidden" id="topbar-bist-endeks">
+    <div class="topbar-title">
+      <h1>BİST Endeksleri</h1>
       <span class="topbar-sub">Endeks Getiri Takibi · Sektör Performansı · Hisse Detayı</span>
     </div>
   </header>
 
-  <!-- ── BIST TRACKER iframe ── -->
-  <div class="page-content hidden" id="page-bist" style="padding:0;overflow:hidden;">
+  <!-- ── BİST ENDEKSLERİ iframe ── -->
+  <div class="page-content hidden" id="page-bist-endeks" style="padding:0;overflow:hidden;">
     <iframe
       src="/bist/"
-      id="bist-iframe"
+      id="bist-endeks-iframe"
       style="width:100%;height:calc(100vh - 56px);border:none;display:block;"
       loading="lazy"
     ></iframe>
