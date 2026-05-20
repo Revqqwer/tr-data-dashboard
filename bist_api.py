@@ -233,14 +233,15 @@ def find_excel_key(name):
 # ── SQLite DB ─────────────────────────────────────────────────────────────────
 
 def get_bist_conn():
-    conn = sqlite3.connect(str(BIST_DB_PATH), timeout=30)
+    conn = sqlite3.connect(str(BIST_DB_PATH), timeout=30,
+                           check_same_thread=False)
     conn.row_factory = sqlite3.Row
-    conn.execute('PRAGMA journal_mode=WAL')
     return conn
 
 
 def init_bist_db():
     with get_bist_conn() as conn:
+        conn.execute('PRAGMA journal_mode=WAL')
         conn.execute("""
             CREATE TABLE IF NOT EXISTS index_history (
                 name       TEXT,
