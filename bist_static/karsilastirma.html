@@ -173,13 +173,6 @@ function render() {
     return sortDir * (av - bv);
   });
 
-  // BIST 100 her zaman üste (sadece name sort'ta değil, hepsinde)
-  const bist100idx = rows.findIndex(r => r.name === 'BIST 100');
-  if (bist100idx > 0) {
-    const [bist100] = rows.splice(bist100idx, 1);
-    rows.unshift(bist100);
-  }
-
   const allPeriods = PERIODS.filter(p => periods.includes(p));
 
   let html = `

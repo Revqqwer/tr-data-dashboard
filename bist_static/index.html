@@ -131,40 +131,6 @@
   .bar-bg { height: 6px; background: rgba(0,0,0,.08); border-radius: 3px; overflow: hidden; }
   .bar-fg { height: 100%; border-radius: 3px; }
 
-  /* ── Özet getiri tablosu ── */
-  .summary-section {
-    background: var(--surface);
-    border-top: 2px solid var(--border);
-    padding: 20px 24px 28px;
-    flex-shrink: 0;
-  }
-  .summary-title {
-    font-size: 0.85rem; font-weight: 700; color: var(--text);
-    margin-bottom: 14px; letter-spacing: .02em;
-  }
-  .summary-wrap { overflow-x: auto; }
-  .summary-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; white-space: nowrap; }
-  .summary-table thead th {
-    background: #f0f2f6; color: var(--muted);
-    padding: 7px 14px; text-align: right;
-    font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
-    cursor: pointer; user-select: none; border-bottom: 2px solid var(--border);
-  }
-  .summary-table thead th:first-child { text-align: left; }
-  .summary-table thead th:hover { color: var(--accent); }
-  .summary-table thead th.sort-asc::after  { content: ' ↑'; }
-  .summary-table thead th.sort-desc::after { content: ' ↓'; }
-  .summary-table tbody tr { border-bottom: 1px solid rgba(0,0,0,.06); transition: background .1s; }
-  .summary-table tbody tr:hover { background: rgba(37,99,235,.04); }
-  .summary-table tbody tr.bist100-row { background: rgba(37,99,235,.06); }
-  .summary-table tbody tr.bist100-row td { font-weight: 700; }
-  .summary-table td { padding: 6px 14px; text-align: right; font-variant-numeric: tabular-nums; }
-  .summary-table td:first-child { text-align: left; color: var(--text); font-weight: 500; }
-  .summary-table tr.bist100-row td:first-child { color: var(--accent); }
-  .cell-pos { color: var(--green); }
-  .cell-neg { color: var(--red); }
-  .cell-na  { color: #ccc; }
-
   /* scrollbar */
   ::-webkit-scrollbar { width: 5px; height: 5px; }
   ::-webkit-scrollbar-track { background: transparent; }
@@ -218,19 +184,6 @@
       </div>
     </div>
 
-  </div>
-</div>
-
-<!-- Özet getiri tablosu -->
-<div class="summary-section">
-  <div class="summary-title">📊 Zaman Dilimlerine Göre Endeks Getirileri</div>
-  <div class="summary-wrap">
-    <table class="summary-table" id="summaryTable">
-      <thead id="summaryHead"></thead>
-      <tbody id="summaryBody">
-        <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px">Yükleniyor…</td></tr>
-      </tbody>
-    </table>
   </div>
 </div>
 
@@ -508,68 +461,8 @@ document.getElementById('periodBar').addEventListener('click', e => {
   loadHistory(period);
 });
 
-// ─── Özet tablo ───────────────────────────────────────────────────────────────
-const PERIOD_LABELS = { '1a':'1A', '3a':'3A', '6a':'6A', '1y':'1Y', '3y':'3Y', '5y':'5Y' };
-let summaryData    = {};
-let summaryPeriods = [];
-let sumSortCol     = '1y';
-let sumSortAsc     = false;
-
-async function loadSummary() {
-  try {
-    const res = await fetch('/bist/api/returns-summary');
-    const json = await res.json();
-    summaryPeriods = json.periods;
-    summaryData    = json.data;
-    renderSummary();
-  } catch(e) { console.error('Summary hata:', e); }
-}
-
-function renderSummary() {
-  const periods = summaryPeriods;
-  if (!periods.length) return;
-
-  document.getElementById('summaryHead').innerHTML = `<tr>
-    <th data-scol="name">Endeks</th>
-    ${periods.map(p => `<th data-scol="${p}">${PERIOD_LABELS[p] || p}</th>`).join('')}
-  </tr>`;
-
-  const names = Object.keys(summaryData).sort((a, b) => {
-    const va = sumSortCol === 'name' ? a : (summaryData[a]?.[sumSortCol] ?? -9999);
-    const vb = sumSortCol === 'name' ? b : (summaryData[b]?.[sumSortCol] ?? -9999);
-    if (typeof va === 'string') return sumSortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
-    return sumSortAsc ? va - vb : vb - va;
-  });
-
-  document.getElementById('summaryBody').innerHTML = names.map(name => {
-    const isBist100 = name === 'BIST 100';
-    const rowCls    = isBist100 ? 'bist100-row' : '';
-    const cells = periods.map(p => {
-      const v = summaryData[name]?.[p];
-      if (v == null) return `<td class="cell-na">—</td>`;
-      const cls  = v >= 0 ? 'cell-pos' : 'cell-neg';
-      const sign = v >= 0 ? '+' : '';
-      return `<td class="${cls}">${sign}${v.toFixed(2)}%</td>`;
-    }).join('');
-    return `<tr class="${rowCls}"><td>${name}</td>${cells}</tr>`;
-  }).join('');
-
-  document.querySelectorAll('#summaryHead th[data-scol]').forEach(th => {
-    th.classList.remove('sort-asc','sort-desc');
-    if (th.dataset.scol === sumSortCol)
-      th.classList.add(sumSortAsc ? 'sort-asc' : 'sort-desc');
-    th.addEventListener('click', () => {
-      const col = th.dataset.scol;
-      if (sumSortCol === col) sumSortAsc = !sumSortAsc;
-      else { sumSortCol = col; sumSortAsc = col === 'name'; }
-      renderSummary();
-    });
-  });
-}
-
 // ─── Başlat ───────────────────────────────────────────────────────────────────
 loadHistory(period);
-loadSummary();
 </script>
 </body>
 </html>
