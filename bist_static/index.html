@@ -408,8 +408,21 @@ function selectIdx(name) {
 async function loadHistory(p) {
   document.getElementById('spinner').classList.add('show');
   try {
-    const res = await fetch(`/bist/api/history?period=${p}`);
-    histData  = await res.json();
+    const res  = await fetch(`/bist/api/history?period=${p}`);
+    const json = await res.json();
+
+    if (json._loading) {
+      // DB henüz boş — collect_bist.py çalışmamış
+      document.getElementById('spinner').classList.remove('show');
+      document.getElementById('lastUpdate').textContent = '⚠ Veriler henüz hazır değil';
+      document.getElementById('sidebarList').innerHTML =
+        '<div style="padding:16px;font-size:0.78rem;color:#6b7280;line-height:1.6">' +
+        'Veriler hazırlanıyor…<br>PA\'da <code>collect_bist.py</code> çalıştırın.' +
+        '</div>';
+      return;
+    }
+
+    histData = json;
     buildChart(histData);
     renderSidebar(histData);
     document.getElementById('lastUpdate').textContent =
