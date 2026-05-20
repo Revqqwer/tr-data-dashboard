@@ -321,29 +321,6 @@ def is_fresh(updated_at, ttl_hours):
     return (time.time() - updated_at) < ttl_hours * 3600
 
 
-# ── TV'den veri çekme ─────────────────────────────────────────────────────────
-
-def fetch_history_from_tv(period):
-    """Tüm endeksler için TV'den normalize edilmiş geçmiş verisi."""
-    n_bars, resolution = PERIOD_TV.get(period, (365, '1D'))
-    result = {}
-    for name, symbol in ENDEKSLER.items():
-        dates, closes = fetch_tv_ws(symbol, EXCHANGE, n_bars, resolution)
-        if not dates or len(closes) < 2:
-            continue
-        base = closes[0]
-        if base == 0:
-            continue
-        result[name] = {
-            'dates':     dates,
-            'values':    [round(v / base * 100, 2) for v in closes],
-            'lastPrice': closes[-1],
-            'pct':       round((closes[-1] / base - 1) * 100, 2),
-        }
-        time.sleep(0.3)
-    return result
-
-
 def fetch_stocks_from_tv(index_name, period):
     """Belirli endeks bileşenlerinin getirisini TV'den çeker."""
     key = find_excel_key(index_name)
@@ -370,43 +347,6 @@ def fetch_stocks_from_tv(index_name, period):
     return result
 
 
-# ── Arka plan: önbellek yönetimi ──────────────────────────────────────────────
-_refresh_lock = threading.Lock()
-
-
-def refresh_period(period, force=False):
-    with _refresh_lock:
-        if not force:
-            _, updated = db_get_history(period)
-            if updated and is_fresh(updated, REFRESH_HRS):
-                return
-        log.info(f'BİST yenileniyor: {period}')
-        data = fetch_history_from_tv(period)
-        if data:
-            db_save_history(period, data)
-            log.info(f'BİST tamamlandı: {period} ({len(data)} endeks)')
-
-
-def background_prefetch():
-    """Startup'ta tüm dönemler için endeks verisini çeker."""
-    for period in ['1y', '6a', '3a', '1a', '3y', '5y']:
-        try:
-            refresh_period(period)
-        except Exception as e:
-            log.error(f'BİST prefetch hata {period}: {e}')
-    log.info('BİST endeks geçmişi tamamlandı')
-
-
-def daily_refresh_loop():
-    """Her REFRESH_HRS saatte bir veriyi yeniler."""
-    while True:
-        time.sleep(REFRESH_HRS * 3600)
-        log.info('BİST günlük yenileme başlıyor…')
-        for period in ['1y', '6a', '3a', '1a', '3y', '5y']:
-            try:
-                refresh_period(period, force=True)
-            except Exception as e:
-                log.error(f'BİST yenileme hata {period}: {e}')
 
 
 # ── Blueprint rotaları ─────────────────────────────────────────────────────────
@@ -435,16 +375,11 @@ def api_history():
     if not _auth():
         return jsonify({'error': 'Unauthorized'}), 401
     period = request.args.get('period', '1y').lower()
-    data, updated = db_get_history(period)
+    data, _ = db_get_history(period)
     if data:
-        if not is_fresh(updated, REFRESH_HRS):
-            threading.Thread(target=refresh_period, args=(period,), daemon=True).start()
         return jsonify(data)
-    log.info(f'BİST DB boş, TV\'den çekiliyor: {period}')
-    data = fetch_history_from_tv(period)
-    if data:
-        db_save_history(period, data)
-    return jsonify(data or {})
+    # DB boş → collect_bist.py henüz çalışmamış
+    return jsonify({'_loading': True})
 
 
 @bist_bp.route('/api/stocks')
@@ -493,13 +428,13 @@ def api_returns_summary():
 def api_refresh():
     if not _auth():
         return jsonify({'error': 'Unauthorized'}), 401
-    period = request.args.get('period', 'all')
-    def do():
-        periods = list(PERIOD_TV.keys()) if period == 'all' else [period]
-        for p in periods:
-            refresh_period(p, force=True)
-    threading.Thread(target=do, daemon=True).start()
-    return jsonify({'status': 'yenileme başlatıldı', 'period': period})
+    import subprocess, sys
+    script = str(BASE_DIR / 'collect_bist.py')
+    threading.Thread(
+        target=lambda: subprocess.run([sys.executable, script]),
+        daemon=True
+    ).start()
+    return jsonify({'status': 'collect_bist.py arka planda başlatıldı'})
 
 
 @bist_bp.route('/api/cache-status')
@@ -530,9 +465,7 @@ def bist_startup():
     _started = True
     init_bist_db()
     load_excel()
-    threading.Thread(target=background_prefetch, daemon=True).start()
-    threading.Thread(target=daily_refresh_loop,  daemon=True).start()
-    log.info('BİST Tracker başlatıldı')
+    log.info('BİST Tracker başlatıldı (veri: collect_bist.py / PA scheduled task)')
 
 
 bist_startup()
