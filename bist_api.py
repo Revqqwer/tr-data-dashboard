@@ -365,6 +365,13 @@ def bist_index():
     return send_from_directory(str(BIST_STATIC), 'index.html')
 
 
+@bist_bp.route('/karsilastirma')
+def bist_karsilastirma():
+    if not _auth():
+        return redirect(url_for('login'))
+    return send_from_directory(str(BIST_STATIC), 'karsilastirma.html')
+
+
 @bist_bp.route('/api/indices')
 def api_indices():
     if not _auth():

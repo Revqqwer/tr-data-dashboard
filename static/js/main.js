@@ -173,8 +173,10 @@ function switchPage(page) {
     document.getElementById('page-kripto').classList.remove('hidden');
   } else if (page === 'bist') {
     document.getElementById('page-bist').classList.remove('hidden');
-  } else if (page === 'bist-endeks') {
-    document.getElementById('page-bist-endeks').classList.remove('hidden');
+  } else if (page === 'bist-endeks-getiri') {
+    document.getElementById('page-bist-endeks-getiri').classList.remove('hidden');
+  } else if (page === 'bist-endeks-karisim') {
+    document.getElementById('page-bist-endeks-karisim').classList.remove('hidden');
   }
 }
 
