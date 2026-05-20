@@ -233,8 +233,9 @@ def find_excel_key(name):
 # ── SQLite DB ─────────────────────────────────────────────────────────────────
 
 def get_bist_conn():
-    conn = sqlite3.connect(str(BIST_DB_PATH))
+    conn = sqlite3.connect(str(BIST_DB_PATH), timeout=30)
     conn.row_factory = sqlite3.Row
+    conn.execute('PRAGMA journal_mode=WAL')
     return conn
 
 
