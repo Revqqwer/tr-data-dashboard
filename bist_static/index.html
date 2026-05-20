@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BIST Endeks Getiri Takibi</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:      #f5f6f8;
+    --surface: #ffffff;
+    --border:  #e0e3e8;
+    --text:    #1a1d23;
+    --muted:   #6b7280;
+    --accent:  #2563eb;
+    --green:   #16a34a;
+    --red:     #dc2626;
+  }
+
+  html, body { height: 100%; min-height: 100%; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; overflow-y: auto; }
+
+  /* ── Header ── */
+  header {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    padding: 12px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+  }
+  header h1 { font-size: 1rem; font-weight: 700; color: var(--accent); }
+  .period-bar { display: flex; gap: 4px; margin-left: 16px; }
+  .period-btn {
+    padding: 4px 11px; border-radius: 6px; border: 1px solid var(--border);
+    background: transparent; color: var(--muted); font-size: 0.75rem;
+    cursor: pointer; transition: all .15s;
+  }
+  .period-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .period-btn.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 700; }
+  .last-update { margin-left: auto; font-size: 0.7rem; color: var(--muted); }
+
+  /* ── Body layout ── */
+  .body-wrap {
+    display: grid;
+    grid-template-columns: 230px 1fr;
+    height: calc(100vh - 53px);
+    min-height: 420px;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar { border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+  .sidebar-hdr {
+    padding: 10px 14px; font-size: 0.72rem; font-weight: 600;
+    color: var(--muted); text-transform: uppercase; letter-spacing: .06em;
+    border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
+  }
+  .sidebar-list { overflow-y: auto; flex: 1; }
+
+  .idx-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 12px; cursor: pointer;
+    border-left: 3px solid transparent;
+    transition: background .12s, border-color .12s;
+    font-size: 0.8rem;
+  }
+  .idx-item:hover { background: rgba(0,0,0,.04); }
+  .idx-item.active { background: rgba(37,99,235,.07); border-left-color: var(--accent); }
+  .idx-item.dim { opacity: .3; }
+  .idx-item.bist100 { background: rgba(37,99,235,.06); border-left-color: var(--accent) !important; }
+  .idx-item.bist100 .idx-name { font-weight: 700; color: var(--accent); }
+  .idx-item.bist100 .idx-pct  { font-size: 0.82rem; }
+
+  .idx-dot {
+    width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+    cursor: pointer; transition: transform .1s;
+  }
+  .idx-dot:hover { transform: scale(1.35); }
+  .idx-name { flex: 1; line-height: 1.3; }
+  .idx-pct { font-size: 0.75rem; font-weight: 700; font-variant-numeric: tabular-nums; min-width: 54px; text-align: right; }
+  .pos { color: var(--green); }
+  .neg { color: var(--red); }
+
+  /* ── Right column ── */
+  .right-col { display: flex; flex-direction: column; overflow: hidden; }
+
+  /* ── Chart ── */
+  .chart-wrap { flex: 1; position: relative; min-height: 0; padding: 10px 14px 6px; }
+  canvas { display: block; }
+
+  .spinner-overlay {
+    display: none; position: absolute; inset: 0;
+    background: rgba(245,246,248,.85); z-index: 10;
+    align-items: center; justify-content: center; flex-direction: column; gap: 10px;
+    font-size: 0.82rem; color: var(--muted);
+  }
+  .spinner-overlay.show { display: flex; }
+  .spin {
+    width: 26px; height: 26px; border: 3px solid var(--border);
+    border-top-color: var(--accent); border-radius: 50%;
+    animation: rot .8s linear infinite;
+  }
+  @keyframes rot { to { transform: rotate(360deg); } }
+
+  /* ── Stocks panel ── */
+  .stocks-panel { border-top: 1px solid var(--border); height: 260px; display: flex; flex-direction: column; flex-shrink: 0; }
+  .stocks-hdr {
+    padding: 8px 16px; font-size: 0.8rem; font-weight: 600;
+    border-bottom: 1px solid var(--border); flex-shrink: 0;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .stocks-hdr small { color: var(--muted); font-weight: 400; font-size: 0.72rem; }
+  .stocks-body { overflow-y: auto; flex: 1; }
+  .placeholder { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--muted); font-size: 0.85rem; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+  thead th {
+    position: sticky; top: 0; z-index: 1; background: var(--surface);
+    color: var(--muted); padding: 5px 12px; text-align: left;
+    font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em;
+    cursor: pointer; user-select: none; border-bottom: 1px solid var(--border);
+  }
+  thead th:hover { color: var(--text); }
+  tbody tr { border-bottom: 1px solid rgba(0,0,0,.07); }
+  tbody tr:hover { background: rgba(37,99,235,.04); }
+  td { padding: 5px 12px; }
+  .td-right { text-align: right; font-variant-numeric: tabular-nums; }
+  .td-bar { width: 90px; }
+  .bar-bg { height: 6px; background: rgba(0,0,0,.08); border-radius: 3px; overflow: hidden; }
+  .bar-fg { height: 100%; border-radius: 3px; }
+
+  /* ── Özet getiri tablosu ── */
+  .summary-section {
+    background: var(--surface);
+    border-top: 2px solid var(--border);
+    padding: 20px 24px 28px;
+    flex-shrink: 0;
+  }
+  .summary-title {
+    font-size: 0.85rem; font-weight: 700; color: var(--text);
+    margin-bottom: 14px; letter-spacing: .02em;
+  }
+  .summary-wrap { overflow-x: auto; }
+  .summary-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; white-space: nowrap; }
+  .summary-table thead th {
+    background: #f0f2f6; color: var(--muted);
+    padding: 7px 14px; text-align: right;
+    font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+    cursor: pointer; user-select: none; border-bottom: 2px solid var(--border);
+  }
+  .summary-table thead th:first-child { text-align: left; }
+  .summary-table thead th:hover { color: var(--accent); }
+  .summary-table thead th.sort-asc::after  { content: ' ↑'; }
+  .summary-table thead th.sort-desc::after { content: ' ↓'; }
+  .summary-table tbody tr { border-bottom: 1px solid rgba(0,0,0,.06); transition: background .1s; }
+  .summary-table tbody tr:hover { background: rgba(37,99,235,.04); }
+  .summary-table tbody tr.bist100-row { background: rgba(37,99,235,.06); }
+  .summary-table tbody tr.bist100-row td { font-weight: 700; }
+  .summary-table td { padding: 6px 14px; text-align: right; font-variant-numeric: tabular-nums; }
+  .summary-table td:first-child { text-align: left; color: var(--text); font-weight: 500; }
+  .summary-table tr.bist100-row td:first-child { color: var(--accent); }
+  .cell-pos { color: var(--green); }
+  .cell-neg { color: var(--red); }
+  .cell-na  { color: #ccc; }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📈 BIST Endeks Getiri Takibi</h1>
+  <div class="period-bar" id="periodBar">
+    <button class="period-btn" data-p="1a">1A</button>
+    <button class="period-btn" data-p="3a">3A</button>
+    <button class="period-btn" data-p="6a">6A</button>
+    <button class="period-btn active" data-p="1y">1Y</button>
+    <button class="period-btn" data-p="3y">3Y</button>
+    <button class="period-btn" data-p="5y">5Y</button>
+  </div>
+  <div class="last-update" id="lastUpdate">Yükleniyor…</div>
+</header>
+
+<div class="body-wrap">
+
+  <!-- Sidebar: endeks listesi + getiri -->
+  <aside class="sidebar">
+    <div class="sidebar-hdr">
+      Endeksler
+      <span id="visCount" style="font-weight:400"></span>
+    </div>
+    <div class="sidebar-list" id="sidebarList"></div>
+  </aside>
+
+  <!-- Sağ: grafik + hisse paneli -->
+  <div class="right-col">
+
+    <div class="chart-wrap">
+      <canvas id="mainChart"></canvas>
+      <div class="spinner-overlay" id="spinner">
+        <div class="spin"></div>
+        <span>Veriler çekiliyor…</span>
+      </div>
+    </div>
+
+    <div class="stocks-panel">
+      <div class="stocks-hdr" id="stocksHdr">
+        Hisse Detayı
+        <small id="stocksSub">— Sol listeden bir endekse tıklayın</small>
+      </div>
+      <div class="stocks-body" id="stocksBody">
+        <div class="placeholder">Endeks seçin</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Özet getiri tablosu -->
+<div class="summary-section">
+  <div class="summary-title">📊 Zaman Dilimlerine Göre Endeks Getirileri</div>
+  <div class="summary-wrap">
+    <table class="summary-table" id="summaryTable">
+      <thead id="summaryHead"></thead>
+      <tbody id="summaryBody">
+        <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px">Yükleniyor…</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+// ─── Renk paleti (33 endeks) ─────────────────────────────────────────────────
+const PALETTE = [
+  '#58a6ff','#3fb950','#f85149','#d29922','#a371f7',
+  '#ffa657','#4fc3f7','#ff6b6b','#26c6da','#ff9800',
+  '#e91e63','#00bcd4','#8bc34a','#ff5722','#9c27b0',
+  '#00e5ff','#76ff03','#ff4081','#ffea00','#1de9b6',
+  '#f06292','#aed581','#4dd0e1','#ffb74d','#ce93d8',
+  '#80cbc4','#ef9a9a','#fff176','#b39ddb','#a5d6a7',
+  '#f48fb1','#80deea','#ffcc80',
+];
+
+// ─── State ───────────────────────────────────────────────────────────────────
+let period       = '1y';
+let histData     = {};
+let hidden       = new Set();
+let activeIdx    = null;
+let chart        = null;
+let colorMap     = {};
+let stocksData   = [];
+let sortCol      = 'pct';
+let sortAsc      = false;
+
+// ─── Chart ───────────────────────────────────────────────────────────────────
+const ctx = document.getElementById('mainChart').getContext('2d');
+
+function buildChart(data) {
+  const names = Object.keys(data);
+  names.forEach((n, i) => { if (!colorMap[n]) colorMap[n] = PALETTE[i % PALETTE.length]; });
+
+  const allDates = [...new Set(names.flatMap(n => data[n].dates))].sort();
+
+  const datasets = names.map(name => {
+    const d = data[name], map = {};
+    d.dates.forEach((dt, i) => map[dt] = d.values[i]);
+    return {
+      label:           name,
+      data:            allDates.map(dt => ({ x: dt, y: map[dt] ?? null })),
+      borderColor:     colorMap[name],
+      backgroundColor: colorMap[name] + '18',
+      borderWidth:     name === 'BIST 100' ? 3.5 : 1.8,
+      pointRadius:     0,
+      pointHoverRadius:3,
+      tension:         0.2,
+      hidden:          hidden.has(name),
+      spanGaps:        true,
+      order:           name === 'BIST 100' ? 0 : 1,
+    };
+  });
+
+  if (chart) chart.destroy();
+
+  chart = new Chart(ctx, {
+    type: 'line',
+    data: { datasets },
+    options: {
+      responsive:          true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          display:  true,
+          position: 'bottom',
+          onClick: (_e, legendItem) => {
+            const name = chart.data.datasets[legendItem.datasetIndex].label;
+            toggleIdx(name);
+          },
+          labels: {
+            boxWidth:  10,
+            boxHeight: 10,
+            padding:   10,
+            font: { size: 10 },
+            color: '#6b7280',
+            generateLabels: (ch) => ch.data.datasets.map((ds, i) => ({
+              text:        ds.label.replace('BIST ', ''),
+              fillStyle:   ds.borderColor,
+              strokeStyle: ds.borderColor,
+              lineWidth:   2,
+              hidden:      !!ds.hidden,
+              datasetIndex: i,
+            })),
+          },
+        },
+        tooltip: {
+          itemSort: (a, b) => (b.raw?.y ?? -Infinity) - (a.raw?.y ?? -Infinity),
+          callbacks: {
+            label: c => {
+              const v = c.raw?.y;
+              if (v == null) return null;
+              const p = (v - 100).toFixed(2);
+              return ` ${c.dataset.label}: ${p >= 0 ? '+' : ''}${p}%`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          type:  'time',
+          time:  { tooltipFormat: 'dd MMM yyyy' },
+          ticks: { color: '#8b949e', maxTicksLimit: 10, font: { size: 10 } },
+          grid:  { color: 'rgba(0,0,0,.08)' },
+        },
+        y: {
+          ticks: {
+            color: '#6b7280', font: { size: 10 },
+            callback: v => (v - 100).toFixed(0) + '%',
+          },
+          grid:  { color: 'rgba(0,0,0,.08)' },
+        }
+      }
+    }
+  });
+}
+
+// ─── Sidebar ─────────────────────────────────────────────────────────────────
+function renderSidebar(data) {
+  const names = Object.keys(data).sort((a, b) => (data[b].pct ?? -9999) - (data[a].pct ?? -9999));
+  const list  = document.getElementById('sidebarList');
+
+  list.innerHTML = names.map(name => {
+    const d    = data[name];
+    const pct  = d.pct;
+    const sign = pct >= 0 ? '+' : '';
+    const cls  = pct >= 0 ? 'pos' : 'neg';
+    const dim  = hidden.has(name) ? 'dim' : '';
+    const act  = activeIdx === name ? 'active' : '';
+    const b100 = name === 'BIST 100' ? 'bist100' : '';
+    const col  = colorMap[name] || '#6b7280';
+    return `
+      <div class="idx-item ${dim} ${act} ${b100}" data-name="${name}">
+        <span class="idx-dot" data-dot="${name}" style="background:${col}" title="Grafikte göster/gizle"></span>
+        <span class="idx-name">${name}</span>
+        <span class="idx-pct ${cls}">${sign}${pct != null ? pct.toFixed(2) : '—'}%</span>
+      </div>`;
+  }).join('');
+
+  list.querySelectorAll('.idx-item').forEach(el => {
+    el.addEventListener('click', e => {
+      const name = el.dataset.name;
+      if (e.target.dataset.dot) {
+        toggleIdx(name);
+      } else {
+        selectIdx(name);
+      }
+    });
+  });
+
+  const vis = Object.keys(data).length - hidden.size;
+  document.getElementById('visCount').textContent = `${vis}/${Object.keys(data).length}`;
+}
+
+// ─── Toggle ───────────────────────────────────────────────────────────────────
+function toggleIdx(name) {
+  if (hidden.has(name)) hidden.delete(name);
+  else hidden.add(name);
+
+  if (chart) {
+    const ds = chart.data.datasets.find(d => d.label === name);
+    if (ds) { ds.hidden = hidden.has(name); chart.update(); }
+  }
+  renderSidebar(histData);
+}
+
+// ─── Endeks seç ───────────────────────────────────────────────────────────────
+function selectIdx(name) {
+  activeIdx = name;
+  renderSidebar(histData);
+  loadStocks(name);
+}
+
+// ─── History fetch ────────────────────────────────────────────────────────────
+async function loadHistory(p) {
+  document.getElementById('spinner').classList.add('show');
+  try {
+    const res = await fetch(`/bist/api/history?period=${p}`);
+    histData  = await res.json();
+    buildChart(histData);
+    renderSidebar(histData);
+    document.getElementById('lastUpdate').textContent =
+      'Güncelleme: ' + new Date().toLocaleTimeString('tr-TR');
+    if (activeIdx && histData[activeIdx]) loadStocks(activeIdx);
+  } catch(e) { console.error(e); }
+  finally { document.getElementById('spinner').classList.remove('show'); }
+}
+
+// ─── Stocks fetch ─────────────────────────────────────────────────────────────
+async function loadStocks(name) {
+  document.getElementById('stocksHdr').innerHTML =
+    `${name} <small id="stocksSub">Yükleniyor…</small>`;
+  document.getElementById('stocksBody').innerHTML =
+    '<div class="placeholder"><div class="spin" style="border-top-color:#2563eb"></div></div>';
+  try {
+    const res  = await fetch(`/bist/api/stocks?index=${encodeURIComponent(name)}&period=${period}`);
+    stocksData = await res.json();
+    renderStocks(name);
+  } catch {
+    document.getElementById('stocksBody').innerHTML = '<div class="placeholder">Veri çekilemedi</div>';
+  }
+}
+
+function renderStocks(name) {
+  const sorted = [...stocksData].sort((a, b) => {
+    const va = typeof a[sortCol] === 'string' ? a[sortCol] : (a[sortCol] ?? -9999);
+    const vb = typeof b[sortCol] === 'string' ? b[sortCol] : (b[sortCol] ?? -9999);
+    if (typeof va === 'string') return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+    return sortAsc ? va - vb : vb - va;
+  });
+
+  const maxAbs = Math.max(...sorted.map(s => Math.abs(s.pct ?? 0)), 1);
+
+  document.getElementById('stocksHdr').innerHTML =
+    `${name} <small id="stocksSub">— ${sorted.length} hisse · ${period.toUpperCase()}</small>`;
+
+  document.getElementById('stocksBody').innerHTML = `
+    <table>
+      <thead><tr>
+        <th data-col="kod">Kod</th>
+        <th data-col="ad">Şirket</th>
+        <th data-col="price" class="td-right">Fiyat</th>
+        <th data-col="pct"   class="td-right">Getiri</th>
+        <th class="td-bar">Performans</th>
+      </tr></thead>
+      <tbody>
+        ${sorted.map(s => {
+          const pct    = s.pct;
+          const cls    = pct == null ? '' : pct >= 0 ? 'pos' : 'neg';
+          const sign   = pct != null && pct >= 0 ? '+' : '';
+          const pctTxt = pct != null ? `${sign}${pct.toFixed(2)}%` : '—';
+          const barW   = pct != null ? (Math.abs(pct) / maxAbs * 100).toFixed(1) : 0;
+          const barClr = pct == null ? '#555' : pct >= 0 ? 'var(--green)' : 'var(--red)';
+          return `<tr>
+            <td><strong>${s.kod}</strong></td>
+            <td style="color:var(--muted);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.ad}</td>
+            <td class="td-right">${s.price != null ? s.price.toLocaleString('tr-TR') : '—'}</td>
+            <td class="td-right ${cls}" style="font-weight:700">${pctTxt}</td>
+            <td class="td-bar"><div class="bar-bg"><div class="bar-fg" style="width:${barW}%;background:${barClr}"></div></div></td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>`;
+
+  document.querySelectorAll('thead th[data-col]').forEach(th => {
+    th.addEventListener('click', () => {
+      const col = th.dataset.col;
+      if (sortCol === col) sortAsc = !sortAsc;
+      else { sortCol = col; sortAsc = col !== 'pct'; }
+      renderStocks(name);
+    });
+  });
+}
+
+// ─── Period butonları ─────────────────────────────────────────────────────────
+document.getElementById('periodBar').addEventListener('click', e => {
+  const btn = e.target.closest('.period-btn');
+  if (!btn) return;
+  document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  period = btn.dataset.p;
+  loadHistory(period);
+});
+
+// ─── Özet tablo ───────────────────────────────────────────────────────────────
+const PERIOD_LABELS = { '1a':'1A', '3a':'3A', '6a':'6A', '1y':'1Y', '3y':'3Y', '5y':'5Y' };
+let summaryData    = {};
+let summaryPeriods = [];
+let sumSortCol     = '1y';
+let sumSortAsc     = false;
+
+async function loadSummary() {
+  try {
+    const res = await fetch('/bist/api/returns-summary');
+    const json = await res.json();
+    summaryPeriods = json.periods;
+    summaryData    = json.data;
+    renderSummary();
+  } catch(e) { console.error('Summary hata:', e); }
+}
+
+function renderSummary() {
+  const periods = summaryPeriods;
+  if (!periods.length) return;
+
+  document.getElementById('summaryHead').innerHTML = `<tr>
+    <th data-scol="name">Endeks</th>
+    ${periods.map(p => `<th data-scol="${p}">${PERIOD_LABELS[p] || p}</th>`).join('')}
+  </tr>`;
+
+  const names = Object.keys(summaryData).sort((a, b) => {
+    const va = sumSortCol === 'name' ? a : (summaryData[a]?.[sumSortCol] ?? -9999);
+    const vb = sumSortCol === 'name' ? b : (summaryData[b]?.[sumSortCol] ?? -9999);
+    if (typeof va === 'string') return sumSortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+    return sumSortAsc ? va - vb : vb - va;
+  });
+
+  document.getElementById('summaryBody').innerHTML = names.map(name => {
+    const isBist100 = name === 'BIST 100';
+    const rowCls    = isBist100 ? 'bist100-row' : '';
+    const cells = periods.map(p => {
+      const v = summaryData[name]?.[p];
+      if (v == null) return `<td class="cell-na">—</td>`;
+      const cls  = v >= 0 ? 'cell-pos' : 'cell-neg';
+      const sign = v >= 0 ? '+' : '';
+      return `<td class="${cls}">${sign}${v.toFixed(2)}%</td>`;
+    }).join('');
+    return `<tr class="${rowCls}"><td>${name}</td>${cells}</tr>`;
+  }).join('');
+
+  document.querySelectorAll('#summaryHead th[data-scol]').forEach(th => {
+    th.classList.remove('sort-asc','sort-desc');
+    if (th.dataset.scol === sumSortCol)
+      th.classList.add(sumSortAsc ? 'sort-asc' : 'sort-desc');
+    th.addEventListener('click', () => {
+      const col = th.dataset.scol;
+      if (sumSortCol === col) sumSortAsc = !sumSortAsc;
+      else { sumSortCol = col; sumSortAsc = col === 'name'; }
+      renderSummary();
+    });
+  });
+}
+
+// ─── Başlat ───────────────────────────────────────────────────────────────────
+loadHistory(period);
+loadSummary();
+</script>
+</body>
+</html>

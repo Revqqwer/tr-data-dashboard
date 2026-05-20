@@ -18,6 +18,10 @@ app.secret_key = os.environ.get('SECRET_KEY', 'tr-3nfinans-gizli-anahtar-2024')
 from tefas_api import tefas_bp
 app.register_blueprint(tefas_bp)
 
+# ── BİST Tracker Blueprint ──────────────────────────────────
+from bist_api import bist_bp
+app.register_blueprint(bist_bp)
+
 # ── TEFAS React SPA static dosyalar ────────────────────────
 _TEFAS_BUILD = os.path.join(os.path.dirname(__file__), 'tefas_build')
 
