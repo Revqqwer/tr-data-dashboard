@@ -207,10 +207,9 @@ def save(conn, name, period, data):
 # ── Ana akış ─────────────────────────────────────────────────────────────────
 
 def db_save_endeks(rows):
-    """Her endeks için kısa ömürlü connection aç, yaz, kapat — lock sorunu olmaz."""
+    """Her endeks için kısa ömürlü connection aç, yaz, kapat."""
     conn = sqlite3.connect(str(DB_PATH), timeout=60)
     try:
-        conn.execute('PRAGMA journal_mode=WAL')
         init_db(conn)
         for (name, period, data) in rows:
             save(conn, name, period, data)
