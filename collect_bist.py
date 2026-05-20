@@ -216,7 +216,8 @@ def collect():
     log.info(f'BİST kolektör başladı — {len(ENDEKSLER)} endeks')
     t0 = time.time()
 
-    with sqlite3.connect(str(DB_PATH)) as conn:
+    with sqlite3.connect(str(DB_PATH), timeout=60) as conn:
+        conn.execute('PRAGMA journal_mode=WAL')
         init_db(conn)
         total = len(ENDEKSLER)
 
