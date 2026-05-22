@@ -68,6 +68,7 @@ ENDEKSLER = {
     "BIST ARACI KURUM":          "XAKUR",
     "BIST MENKUL KIYM YO":       "XYORT",
     "BIST TURIZM":               "XTRZM",
+    "FAİZ (TLREF)":              "BISTTLREF",
 }
 
 # 1 TV isteğiyle tüm günlük dönemleri karşıla: 365 günlük bar çek, slice et

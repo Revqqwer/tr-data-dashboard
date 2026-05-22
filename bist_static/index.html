@@ -199,13 +199,17 @@ const PALETTE = [
   '#f48fb1','#80deea','#ffcc80',
 ];
 
+// ─── FAİZ sabiti ─────────────────────────────────────────────────────────────
+const FAIZ_NAME  = 'FAİZ (TLREF)';
+const FAIZ_COLOR = '#f97316';   // turuncu — her zaman bu renk
+
 // ─── State ───────────────────────────────────────────────────────────────────
 let period       = '1y';
 let histData     = {};
 let hidden       = new Set();
 let activeIdx    = null;
 let chart        = null;
-let colorMap     = {};
+let colorMap     = { [FAIZ_NAME]: FAIZ_COLOR };   // FAİZ rengi sabit
 let stocksData   = [];
 let sortCol      = 'pct';
 let sortAsc      = false;
@@ -220,6 +224,7 @@ function buildChart(data) {
   const allDates = [...new Set(names.flatMap(n => data[n].dates))].sort();
 
   const datasets = names.map(name => {
+    const isFaiz = name === FAIZ_NAME;
     const d = data[name], map = {};
     d.dates.forEach((dt, i) => map[dt] = d.values[i]);
     return {
@@ -227,13 +232,14 @@ function buildChart(data) {
       data:            allDates.map(dt => ({ x: dt, y: map[dt] ?? null })),
       borderColor:     colorMap[name],
       backgroundColor: colorMap[name] + '18',
-      borderWidth:     name === 'BIST 100' ? 3.5 : 1.8,
+      borderWidth:     isFaiz ? 2.5 : (name === 'BIST 100' ? 3.5 : 1.8),
+      borderDash:      isFaiz ? [7, 4] : [],
       pointRadius:     0,
       pointHoverRadius:3,
       tension:         0.2,
       hidden:          hidden.has(name),
       spanGaps:        true,
-      order:           name === 'BIST 100' ? 0 : 1,
+      order:           isFaiz ? 0 : (name === 'BIST 100' ? 1 : 2),
     };
   });
 
@@ -277,7 +283,8 @@ function buildChart(data) {
               const v = c.raw?.y;
               if (v == null) return null;
               const p = (v - 100).toFixed(2);
-              return ` ${c.dataset.label}: ${p >= 0 ? '+' : ''}${p}%`;
+              const lbl = c.dataset.label === FAIZ_NAME ? '📊 FAİZ' : c.dataset.label;
+              return ` ${lbl}: ${p >= 0 ? '+' : ''}${p}%`;
             }
           }
         }
@@ -303,10 +310,14 @@ function buildChart(data) {
 
 // ─── Sidebar ─────────────────────────────────────────────────────────────────
 function renderSidebar(data) {
-  const names = Object.keys(data).sort((a, b) => (data[b].pct ?? -9999) - (data[a].pct ?? -9999));
-  const list  = document.getElementById('sidebarList');
+  // FAİZ'i endeks listesinden ayır, endeksleri pct'ye göre sırala
+  const faizData  = data[FAIZ_NAME];
+  const idxNames  = Object.keys(data)
+    .filter(n => n !== FAIZ_NAME)
+    .sort((a, b) => (data[b].pct ?? -9999) - (data[a].pct ?? -9999));
+  const list = document.getElementById('sidebarList');
 
-  list.innerHTML = names.map(name => {
+  function itemHtml(name, extraCls = '') {
     const d    = data[name];
     const pct  = d.pct;
     const sign = pct >= 0 ? '+' : '';
@@ -316,12 +327,18 @@ function renderSidebar(data) {
     const b100 = name === 'BIST 100' ? 'bist100' : '';
     const col  = colorMap[name] || '#6b7280';
     return `
-      <div class="idx-item ${dim} ${act} ${b100}" data-name="${name}">
+      <div class="idx-item ${dim} ${act} ${b100} ${extraCls}" data-name="${name}">
         <span class="idx-dot" data-dot="${name}" style="background:${col}" title="Grafikte göster/gizle"></span>
         <span class="idx-name">${name}</span>
         <span class="idx-pct ${cls}">${sign}${pct != null ? pct.toFixed(2) : '—'}%</span>
       </div>`;
-  }).join('');
+  }
+
+  // FAİZ en üstte sabit, altında ince ayırıcı, sonra endeksler
+  const faizHtml = faizData ? itemHtml(FAIZ_NAME) +
+    '<div style="height:1px;background:rgba(0,0,0,.1);margin:4px 8px 2px"></div>' : '';
+
+  list.innerHTML = faizHtml + idxNames.map(n => itemHtml(n)).join('');
 
   list.querySelectorAll('.idx-item').forEach(el => {
     el.addEventListener('click', e => {
@@ -354,7 +371,17 @@ function toggleIdx(name) {
 function selectIdx(name) {
   activeIdx = name;
   renderSidebar(histData);
-  loadStocks(name);
+  if (name === FAIZ_NAME) {
+    document.getElementById('stocksHdr').innerHTML = '📊 FAİZ (TLREF) <small>— BIST Referans Faiz Oranı</small>';
+    document.getElementById('stocksBody').innerHTML =
+      '<div class="placeholder" style="flex-direction:column;gap:6px;text-align:center">' +
+      '<span style="font-size:1.4rem">📊</span>' +
+      '<span>Faiz oranı için hisse listesi gösterilmez.</span>' +
+      '<span style="font-size:0.72rem;color:var(--muted)">Grafikteki turuncu kesik çizgi TLREF referans faizini temsil eder.</span>' +
+      '</div>';
+  } else {
+    loadStocks(name);
+  }
 }
 
 // ─── History fetch ────────────────────────────────────────────────────────────
