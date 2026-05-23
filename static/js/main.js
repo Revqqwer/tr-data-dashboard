@@ -13,6 +13,7 @@ let allBoP        = [];
 let allKonut      = [];
 let allEnflasyon  = [];
 let allMakro      = [];
+let adminMakroForecast = []; // 3N Finans admin tahmini (server'dan gelir)
 
 /* Ortak inline plugin: son veri noktasını x ekseninde zorla göster */
 const forceLastTickPlugin = {
@@ -2599,12 +2600,17 @@ function makroComputeForecast(historical, inputs) {
 async function loadMakro() {
   showLoading(true);
   try {
-    const [macroRes, yieldsRes] = await Promise.all([
+    const [macroRes, yieldsRes, forecastRes] = await Promise.all([
       fetch('/api/makro'),
       fetch('/api/tr-yields'),
+      fetch('/api/makro-forecast'),
     ]);
     const raw    = await macroRes.json();
     const yields = await yieldsRes.json().catch(() => ({}));
+    const adminFc = await forecastRes.json().catch(() => []);
+
+    // Server'dan gelen admin tahminini global'e yükle
+    adminMakroForecast = Array.isArray(adminFc) ? adminFc : [];
 
     allMakro = raw.map(d => {
       const [dd, mm, yyyy] = d.tarih.split('-');
@@ -2648,11 +2654,17 @@ async function loadMakro() {
 
 function renderMakro() {
   if (!allMakro.length) return;
-  const storage = makroLoadStorage();
+  const storage   = makroLoadStorage();
   const overrides = storage.overrides || {};
-  const fcInputs  = storage.forecast  || [];
+
+  // Tahmin inputları: server'dan gelen 3N Finans tahmini (her yüklenmede sıfırlanır)
+  // Kullanıcı session boyunca düzenleyebilir ama kayıt olmaz
+  const fcInputs = adminMakroForecast.length
+    ? adminMakroForecast.map(r => ({ ...r }))   // shallow copy — in-memory düzenleme
+    : [];
   while (fcInputs.length < 12) fcInputs.push({ mom_enf:'', mom_kur:'', pol_faiz:'', tr2y:'', tr10y:'', note:'' });
   const fcRows = makroComputeForecast(allMakro, fcInputs);
+  const has3n = adminMakroForecast.some(r => r.mom_enf || r.mom_kur || r.pol_faiz || r.tr2y || r.tr10y);
 
   const pct = (v, dp = 2) => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(dp)}%` : '—';
   const num = (v, dp = 2) => v != null ? v.toFixed(dp) : '—';
@@ -2699,7 +2711,11 @@ function renderMakro() {
   }
 
   html += `</tbody>
-<tbody><tr class="makro-divider"><td colspan="13">── TAHMİN BÖLÜMÜ ──</td></tr></tbody>
+<tbody><tr class="makro-divider"><td colspan="13">
+  ── TAHMİN BÖLÜMÜ ──
+  ${has3n ? '<span style="background:rgba(240,180,41,0.15);color:#f0b429;font-size:10px;font-weight:700;letter-spacing:0.8px;padding:2px 8px;border-radius:10px;margin-left:10px;border:1px solid rgba(240,180,41,0.3);">3N FİNANS TAHMİNİ</span>' : ''}
+  <span style="color:#475569;font-size:10px;margin-left:8px;">· Düzenlemeler sayfadan ayrılınca sıfırlanır</span>
+</td></tr></tbody>
 <tbody id="makroHistBody">`;
 
   /* ── TARİHSEL SATIRLAR (en yeniden eskiye) ── */
@@ -2793,25 +2809,22 @@ function bindMakroEvents(fcInputs, overrides) {
     });
   });
 
-  /* Tahmin satırı inputları */
+  /* Tahmin satırı inputları — değişiklikler sadece session'da (localStorage'a yazılmaz) */
   wrap.querySelectorAll('.fc-input').forEach(inp => {
     inp.addEventListener('input', () => {
       const idx = parseInt(inp.dataset.idx);
       const key = inp.dataset.key;
       fcInputs[idx][key] = inp.value;
-      makroSaveStorage({ overrides, forecast: fcInputs });
+      // Kasıtlı: forecast localStorage'a kaydedilmiyor → yenilemede 3N Finans tahmini geri gelir
       const fcRows = makroComputeForecast(allMakro, fcInputs);
       makroUpdateFcCells(fcRows);
     });
   });
 }
 
-/* Tahmin satırı ekle */
+/* Tahmin satırı ekle — sadece session'da, kalıcı değil */
 document.getElementById('addFcRowBtn').addEventListener('click', () => {
-  const storage = makroLoadStorage();
-  storage.forecast = storage.forecast || [];
-  storage.forecast.push({ mom_enf:'', mom_kur:'', pol_faiz:'', tr2y:'', tr10y:'', note:'' });
-  makroSaveStorage(storage);
+  adminMakroForecast.push({ mom_enf:'', mom_kur:'', pol_faiz:'', tr2y:'', tr10y:'', note:'' });
   if (allMakro.length) renderMakro();
 });
 

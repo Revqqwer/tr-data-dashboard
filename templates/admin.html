@@ -149,6 +149,44 @@
     .toast.show { opacity:1; }
     .toast-ok  { background:#166534; color:#bbf7d0; border:1px solid #16a34a; }
     .toast-err { background:#7f1d1d; color:#fca5a5; border:1px solid #ef4444; }
+
+    /* ── Makro Tahmin ── */
+    .mf-section { margin-top:48px; }
+    .mf-section h2 { font-size:14px; letter-spacing:1.5px; text-transform:uppercase;
+      color:#64748b; margin-bottom:6px; }
+    .mf-section .mf-sub { font-size:12px; color:#475569; margin-bottom:18px; }
+    .mf-notice { font-size:12px; color:#475569; margin-bottom:18px;
+      background:rgba(240,180,41,0.06); border:1px solid rgba(240,180,41,0.15);
+      border-radius:8px; padding:10px 14px; line-height:1.6; }
+    .mf-notice b { color:#f0b429; }
+    .mf-table-wrap { background:#161b22; border:1px solid rgba(255,255,255,0.08);
+      border-radius:12px; overflow:auto; margin-bottom:20px; }
+    .mf-table { width:100%; border-collapse:collapse; min-width:800px; }
+    .mf-table th { text-align:center; padding:11px 10px; font-size:10px;
+      letter-spacing:1.2px; text-transform:uppercase; color:#64748b;
+      border-bottom:1px solid rgba(255,255,255,0.06); white-space:nowrap; }
+    .mf-table th:first-child { text-align:left; padding-left:16px; }
+    .mf-table td { padding:8px 6px; border-bottom:1px solid rgba(255,255,255,0.04);
+      vertical-align:middle; text-align:center; }
+    .mf-table td:first-child { padding-left:16px; text-align:left;
+      font-size:12px; font-weight:600; color:#94a3b8; white-space:nowrap; }
+    .mf-table tr:last-child td { border-bottom:none; }
+    .mf-input { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);
+      border-radius:6px; padding:6px 8px; color:#e2e8f0; font-size:13px;
+      outline:none; width:82px; text-align:center; transition:border-color .2s; }
+    .mf-input:focus { border-color:rgba(240,180,41,0.5); }
+    .mf-input.wide { width:160px; }
+    .mf-actions { display:flex; gap:10px; align-items:center; }
+    .mf-btn-save { padding:10px 24px; border:none; border-radius:8px;
+      background:#f0b429; color:#0d1117; font-size:13px; font-weight:700;
+      cursor:pointer; transition:all .15s; }
+    .mf-btn-save:hover { background:#f5c23e; box-shadow:0 4px 14px rgba(240,180,41,0.3); }
+    .mf-btn-clear { padding:9px 18px; border:1px solid rgba(239,68,68,0.3);
+      border-radius:8px; background:rgba(239,68,68,0.08); color:#ef4444;
+      font-size:12px; font-weight:600; cursor:pointer; transition:all .15s; }
+    .mf-btn-clear:hover { background:rgba(239,68,68,0.18); }
+    .mf-month-badge { background:rgba(6,182,212,0.12); color:#06b6d4;
+      border-radius:20px; padding:2px 9px; font-size:11px; font-weight:700; }
   </style>
 </head>
 <body>
@@ -320,6 +358,40 @@
 
   <div class="pf-table-wrap" id="pfTableWrap">
     <div style="padding:32px; text-align:center; color:#475569;">Yükleniyor…</div>
+  </div>
+</div>
+
+<!-- ── Makro Tahmin — 3N Finans ─────────────────────────────────────────── -->
+<div class="mf-section">
+  <h2>Makro Tahmin — 3N Finans</h2>
+  <div class="mf-notice">
+    <b>Bu bölüm sadece admin tarafından düzenlenebilir.</b>
+    Burada girilen tahminler <em>3N Finans Tahmini</em> olarak tüm üyelere gösterilir.
+    Üyeler kendi sayfalarında bu değerleri geçici olarak değiştirebilir, ancak sayfa yenilendiğinde
+    otomatik olarak bu tahminler geri yüklenir. · <b>12 ay</b> ilerisi için giriş yapılabilir.
+  </div>
+  <div class="mf-table-wrap">
+    <table class="mf-table">
+      <thead>
+        <tr>
+          <th style="min-width:160px">Ay</th>
+          <th>MoM Enf (%)</th>
+          <th>MoM Kur (%)</th>
+          <th>TCMB Faiz (%)</th>
+          <th>TR 2Y (%)</th>
+          <th>TR 10Y (%)</th>
+          <th style="min-width:160px">Not</th>
+        </tr>
+      </thead>
+      <tbody id="mfTbody">
+        <tr><td colspan="7" style="padding:32px; text-align:center; color:#475569;">Yükleniyor…</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="mf-actions">
+    <button class="mf-btn-save" onclick="saveMakroFc()">💾 Kaydet</button>
+    <button class="mf-btn-clear" onclick="clearMakroFc()">✕ Tüm Değerleri Sil</button>
+    <span style="font-size:11px; color:#475569; margin-left:8px;">Kaydetmeden ayrılırsanız değişiklikler kaybolur</span>
   </div>
 </div>
 
@@ -682,6 +754,70 @@ async function addNew() {
 }
 
 loadPf();
+
+// ═══════════════════════════════════════════════════════
+//  MAKRO TAHMİN — 3N FİNANS
+// ═══════════════════════════════════════════════════════
+
+function mfMonthLabel(offset) {
+  const d = new Date();
+  d.setDate(1);
+  d.setMonth(d.getMonth() + offset);
+  return d.toLocaleDateString('tr-TR', { month: 'short', year: 'numeric' });
+}
+
+async function loadMakroFc() {
+  try {
+    const res = await fetch(`/admin/${SECRET}/makro-forecast`);
+    const j   = await res.json();
+    const rows = j.rows || [];
+    renderMakroFcTable(rows);
+  } catch(e) { toast('Makro tahmin yüklenemedi: ' + e.message, false); }
+}
+
+function renderMakroFcTable(rows) {
+  const tbody = document.getElementById('mfTbody');
+  if (!tbody) return;
+  // Ensure 12 rows
+  while (rows.length < 12) rows.push({ mom_enf:'', mom_kur:'', pol_faiz:'', tr2y:'', tr10y:'', note:'' });
+  tbody.innerHTML = rows.slice(0, 12).map((r, i) => `
+    <tr data-mf-idx="${i}">
+      <td><span class="mf-month-badge">Ay +${i+1}</span> <span style="color:#64748b;font-size:11px;margin-left:6px">${mfMonthLabel(i+1)}</span></td>
+      <td><input class="mf-input" data-key="mom_enf"  value="${r.mom_enf  || ''}" placeholder="%" step="0.01"></td>
+      <td><input class="mf-input" data-key="mom_kur"  value="${r.mom_kur  || ''}" placeholder="%" step="0.01"></td>
+      <td><input class="mf-input" data-key="pol_faiz" value="${r.pol_faiz || ''}" placeholder="%" step="0.01"></td>
+      <td><input class="mf-input" data-key="tr2y"     value="${r.tr2y     || ''}" placeholder="%" step="0.01"></td>
+      <td><input class="mf-input" data-key="tr10y"    value="${r.tr10y    || ''}" placeholder="%" step="0.01"></td>
+      <td><input class="mf-input wide" data-key="note" value="${(r.note||'').replace(/"/g,'&quot;')}" placeholder="Not..."></td>
+    </tr>
+  `).join('');
+}
+
+async function saveMakroFc() {
+  const rows = [];
+  document.querySelectorAll('#mfTbody tr[data-mf-idx]').forEach(tr => {
+    const r = {};
+    tr.querySelectorAll('input[data-key]').forEach(inp => { r[inp.dataset.key] = inp.value.trim(); });
+    rows.push(r);
+  });
+  try {
+    const res = await fetch(`/admin/${SECRET}/makro-forecast`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ rows }),
+    });
+    const j = await res.json();
+    if (j.ok) toast('Makro tahminler kaydedildi ✓');
+    else toast(j.error || 'Hata', false);
+  } catch(e) { toast(e.message, false); }
+}
+
+function clearMakroFc() {
+  if (!confirm('Tüm 3N Finans tahminlerini silmek istediğinizden emin misiniz?')) return;
+  renderMakroFcTable(Array(12).fill(null).map(() => ({ mom_enf:'', mom_kur:'', pol_faiz:'', tr2y:'', tr10y:'', note:'' })));
+}
+
+loadMakroFc();
 </script>
 
 </body>
