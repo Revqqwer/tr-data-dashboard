@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Parse broker account statement (Ekstre3.pdf) → data/portfolio.json"""
+"""Parse broker account statement (Ekstre3 (1).pdf) → data/portfolio.json"""
 import pdfplumber
 import re
 import json
@@ -9,7 +9,7 @@ import requests
 from datetime import datetime, date
 from collections import defaultdict
 
-PDF_PATH  = os.path.join(os.path.dirname(__file__), '..', '..', 'Downloads', 'Ekstre3.pdf')
+PDF_PATH  = os.path.join(os.path.dirname(__file__), '..', '..', 'Downloads', 'Ekstre3 (1).pdf')
 OUT_PATH  = os.path.join(os.path.dirname(__file__), 'data', 'portfolio.json')
 
 # GENKMH is a rights-derived lot, treat as same stock GENKM
@@ -620,7 +620,7 @@ def main():
     pdf_path = os.path.abspath(PDF_PATH)
     if not os.path.exists(pdf_path):
         # Try the Downloads folder directly
-        pdf_path = os.path.join(os.path.expanduser('~'), 'Downloads', 'Ekstre3.pdf')
+        pdf_path = os.path.join(os.path.expanduser('~'), 'Downloads', 'Ekstre3 (1).pdf')
 
     print(f'Parsing {pdf_path}')
     rows = extract_lines(pdf_path)
@@ -698,7 +698,7 @@ def main():
         benchmark_prices = {}
 
     output = {
-        'period':       '2025-11-12 / 2026-05-07',
+        'period':       '2025-11-13 / 2026-05-23',
         'account_name': 'AHMET EMİN TAHTACI',
         'account_no':   '73285',
         'broker':       'PUSULA Yatırım',
