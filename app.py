@@ -495,18 +495,51 @@ def index():
                            user_name=session.get('user_name', ''))
 
 
-_PORTFOLIO_JSON = os.path.join(os.path.dirname(__file__), 'data', 'portfolio.json')
+_PORTFOLIO_JSON      = os.path.join(os.path.dirname(__file__), 'data', 'portfolio.json')
+_PORTFOLIO_OVERRIDES = os.path.join(os.path.dirname(__file__), 'data', 'portfolio_overrides.json')
+
+import json as _json
+
+def _load_overrides() -> dict:
+    try:
+        with open(_PORTFOLIO_OVERRIDES, encoding='utf-8') as f:
+            return _json.load(f)
+    except FileNotFoundError:
+        return {'open_positions': {}}
+
+def _save_overrides(ov: dict):
+    os.makedirs(os.path.dirname(_PORTFOLIO_OVERRIDES), exist_ok=True)
+    with open(_PORTFOLIO_OVERRIDES, 'w', encoding='utf-8') as f:
+        _json.dump(ov, f, ensure_ascii=False, indent=2)
+
+def _portfolio_with_overrides() -> dict | None:
+    """Load portfolio.json then apply manual overrides on open_positions."""
+    try:
+        with open(_PORTFOLIO_JSON, encoding='utf-8') as f:
+            pf = _json.load(f)
+    except FileNotFoundError:
+        return None
+    ov_pos = _load_overrides().get('open_positions', {})
+    if ov_pos:
+        base = dict(pf.get('open_positions', {}))
+        for ticker, ov in ov_pos.items():
+            qty = float(ov.get('qty', 0))
+            if qty > 0:
+                avg = float(ov.get('avg_cost', 0))
+                base[ticker] = {'qty': qty, 'avg_cost': avg, 'cost_basis': round(qty * avg, 2)}
+            else:
+                base.pop(ticker, None)
+        pf['open_positions'] = base
+    return pf
 
 @app.route('/api/portfolio')
 def api_portfolio():
     if not session.get('logged_in'):
         return jsonify({'error': 'unauthorized'}), 401
-    try:
-        with open(_PORTFOLIO_JSON, encoding='utf-8') as f:
-            import json as _json
-            return _json.load(f)
-    except FileNotFoundError:
+    pf = _portfolio_with_overrides()
+    if pf is None:
         return jsonify({'error': 'portfolio data not found'}), 404
+    return jsonify(pf)
 
 
 # Tickers that require TradingView WebSocket instead of Yahoo Finance
@@ -528,12 +561,9 @@ def api_live_prices():
     if today in _LIVE_PRICE_CACHE:
         return jsonify(_LIVE_PRICE_CACHE[today])
 
-    # Load open positions from portfolio.json
-    try:
-        with open(_PORTFOLIO_JSON, encoding='utf-8') as f:
-            import json as _json
-            pf = _json.load(f)
-    except Exception:
+    # Load open positions (with overrides applied)
+    pf = _portfolio_with_overrides()
+    if pf is None:
         return jsonify({'error': 'portfolio data not found'}), 404
 
     open_tickers = list(pf.get('open_positions', {}).keys())
@@ -582,6 +612,60 @@ def api_live_prices():
         del _LIVE_PRICE_CACHE[k]
 
     return jsonify(prices)
+
+
+# ── Portföy Override Admin Endpoint'leri ────────────────────────────────────
+
+@app.route('/admin/<secret>/portfolio-overrides')
+def admin_portfolio_overrides_get(secret):
+    if secret != ADMIN_SECRET:
+        return jsonify({'error': 'forbidden'}), 403
+    try:
+        with open(_PORTFOLIO_JSON, encoding='utf-8') as f:
+            pf = _json.load(f)
+    except Exception:
+        pf = {}
+    ov = _load_overrides()
+    return jsonify({
+        'base_positions':    pf.get('open_positions', {}),
+        'nsp_current_units': pf.get('nsp_current_units', 0),
+        'nsp_current_value': pf.get('nsp_current_value', 0),
+        'overrides':         ov.get('open_positions', {}),
+    })
+
+
+@app.route('/admin/<secret>/portfolio-override', methods=['POST'])
+def admin_portfolio_override_set(secret):
+    if secret != ADMIN_SECRET:
+        return jsonify({'error': 'forbidden'}), 403
+    data    = request.get_json(silent=True) or {}
+    ticker  = data.get('ticker', '').strip().upper()
+    qty     = data.get('qty')
+    avg     = data.get('avg_cost')
+    if not ticker:
+        return jsonify({'error': 'ticker required'}), 400
+    try:
+        qty = float(qty)
+        avg = float(avg)
+    except (TypeError, ValueError):
+        return jsonify({'error': 'invalid qty or avg_cost'}), 400
+    ov = _load_overrides()
+    if qty <= 0:
+        ov['open_positions'].pop(ticker, None)
+    else:
+        ov['open_positions'][ticker] = {'qty': qty, 'avg_cost': round(avg, 4)}
+    _save_overrides(ov)
+    return jsonify({'ok': True})
+
+
+@app.route('/admin/<secret>/portfolio-override/<ticker>/delete', methods=['POST'])
+def admin_portfolio_override_delete(secret, ticker):
+    if secret != ADMIN_SECRET:
+        return jsonify({'error': 'forbidden'}), 403
+    ov = _load_overrides()
+    ov['open_positions'].pop(ticker.upper(), None)
+    _save_overrides(ov)
+    return jsonify({'ok': True})
 
 
 @app.route('/api/dth')
