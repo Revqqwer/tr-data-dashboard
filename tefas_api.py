@@ -23,7 +23,12 @@ except Exception:
 
 
 def _auth():
-    """Login kontrolü — oturum yoksa 401 döner."""
+    """Artık tüm okuma endpoint'leri public — her zaman None döner."""
+    return None
+
+
+def _require_auth():
+    """Yazma / admin işlemler için zorunlu auth."""
     if not flask_session.get("logged_in"):
         return jsonify({"error": "Unauthorized"}), 401
     return None
@@ -491,8 +496,8 @@ def category_top_funds():
 # ---------------------------------------------------------------------------
 @tefas_bp.route("/api/collect", methods=["POST"])
 def collect_trigger():
-    if not flask_session.get("logged_in"):
-        return jsonify({"error": "Unauthorized"}), 401
+    err = _require_auth()
+    if err: return err
 
     date_str = request.json.get("date") if request.json else None
     target = _parse_date(date_str) or datetime.date.today()
@@ -512,8 +517,8 @@ def collect_trigger():
 @tefas_bp.route("/api/migrate/categories", methods=["POST"])
 def migrate_categories():
     """FundMeta.category = NULL fonlar icin kompozisyon bazli kategori ata."""
-    if not flask_session.get("logged_in"):
-        return jsonify({"error": "Unauthorized"}), 401
+    err = _require_auth()
+    if err: return err
     try:
         with Session(engine) as db:
             result = fa.populate_categories_from_composition(db)
@@ -528,8 +533,8 @@ def migrate_categories():
 @tefas_bp.route("/api/migrate/fix-fund-types", methods=["POST"])
 def fix_fund_types():
     """TEFAS API'den gunceli cekip yanlis fund_type kaydedilmis fonlari duzeltir."""
-    if not flask_session.get("logged_in"):
-        return jsonify({"error": "Unauthorized"}), 401
+    err = _require_auth()
+    if err: return err
     try:
         from tefas_backend.fix_fund_types import fetch_all_fund_types, find_mismatches, apply_fixes
         date_str = (request.json or {}).get("date", datetime.date.today().strftime("%Y%m%d"))
@@ -614,9 +619,8 @@ def crypto_flows():
 
 @tefas_bp.route("/api/crypto/collect", methods=["POST"])
 def crypto_collect():
-    err = _auth()
-    if err:
-        return err
+    err = _require_auth()
+    if err: return err
     try:
         from tefas_backend.crypto_collector import collect_all
         results = collect_all()
@@ -627,9 +631,8 @@ def crypto_collect():
 
 @tefas_bp.route("/api/crypto/import-excel", methods=["POST"])
 def crypto_import_excel():
-    err = _auth()
-    if err:
-        return err
+    err = _require_auth()
+    if err: return err
     try:
         from tefas_backend.crypto_collector import import_from_excel
         filepath = (request.json or {}).get("filepath", "")

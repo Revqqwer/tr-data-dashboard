@@ -28,14 +28,10 @@ _TEFAS_BUILD = os.path.join(os.path.dirname(__file__), 'tefas_build')
 @app.route('/tefas/')
 @app.route('/tefas')
 def tefas_index():
-    if not session.get('logged_in'):
-        return redirect(url_for('login'))
     return send_from_directory(_TEFAS_BUILD, 'index.html')
 
 @app.route('/tefas/<path:path>')
 def tefas_static(path):
-    if not session.get('logged_in'):
-        return redirect(url_for('login'))
     # Gerçek static dosya mı? (assets/, favicon vb.)
     full = os.path.join(_TEFAS_BUILD, path)
     if os.path.isfile(full):
@@ -488,11 +484,10 @@ def _update_last_seen():
 
 @app.route('/')
 def index():
-    if not session.get('logged_in'):
-        return redirect(url_for('login'))
     return render_template('index.html',
                            username=session.get('username', ''),
-                           user_name=session.get('user_name', ''))
+                           user_name=session.get('user_name', ''),
+                           logged_in=session.get('logged_in', False))
 
 
 _PORTFOLIO_JSON      = os.path.join(os.path.dirname(__file__), 'data', 'portfolio.json')
@@ -1166,11 +1161,14 @@ def api_chat_unread():
 
 @app.route('/api/layout/<page>', methods=['GET', 'POST'])
 def api_layout(page):
+    # Misafir kullanıcılar: GET → boş layout, POST → sessizce atla
     if not session.get('logged_in'):
-        return jsonify({'error': 'unauthorized'}), 401
+        if request.method == 'GET':
+            return jsonify({'layout': None})
+        return jsonify({'ok': True})
     me = session.get('username', '')
     if not me:
-        return jsonify({'error': 'no username in session'}), 400
+        return jsonify({'layout': None})
     if request.method == 'GET':
         with sqlite3.connect(DB_PATH) as conn:
             row = conn.execute(
