@@ -87,6 +87,64 @@
     .dot-ok  { width:7px; height:7px; border-radius:50%; background:#22c55e; display:inline-block; }
     .dot-old { width:7px; height:7px; border-radius:50%; background:#f59e0b; display:inline-block; }
     .dot-none{ width:7px; height:7px; border-radius:50%; background:#ef4444; display:inline-block; }
+
+    /* ── Portföy Override ── */
+    .pf-section { margin-top:40px; }
+    .pf-section h2 { font-size:14px; letter-spacing:1.5px; text-transform:uppercase;
+      color:#64748b; margin-bottom:14px; }
+    .pf-notice { font-size:12px; color:#475569; margin-bottom:18px;
+      background:rgba(240,180,41,0.06); border:1px solid rgba(240,180,41,0.15);
+      border-radius:8px; padding:10px 14px; }
+    .pf-notice b { color:#f0b429; }
+
+    .pf-table-wrap { background:#161b22; border:1px solid rgba(255,255,255,0.08);
+      border-radius:12px; overflow:hidden; margin-bottom:24px; }
+    .pf-table { width:100%; border-collapse:collapse; }
+    .pf-table th { text-align:left; padding:12px 16px; font-size:11px;
+      letter-spacing:1.2px; text-transform:uppercase; color:#64748b;
+      border-bottom:1px solid rgba(255,255,255,0.06); }
+    .pf-table td { padding:10px 16px; font-size:13px;
+      border-bottom:1px solid rgba(255,255,255,0.04); vertical-align:middle; }
+    .pf-table tr:last-child td { border-bottom:none; }
+    .pf-table tr:hover td { background:rgba(255,255,255,0.02); }
+
+    .pf-input { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);
+      border-radius:6px; padding:7px 10px; color:#e2e8f0; font-size:13px;
+      outline:none; width:90px; transition:border-color .2s; }
+    .pf-input:focus { border-color:rgba(240,180,41,0.5); }
+    .pf-input.wide { width:120px; }
+
+    .badge-pdf { background:rgba(100,116,139,0.15); color:#64748b;
+      border-radius:20px; padding:2px 8px; font-size:10px; font-weight:600; }
+    .badge-ov  { background:rgba(240,180,41,0.15); color:#f0b429;
+      border-radius:20px; padding:2px 8px; font-size:10px; font-weight:600; }
+    .badge-new { background:rgba(34,197,94,0.15); color:#22c55e;
+      border-radius:20px; padding:2px 8px; font-size:10px; font-weight:600; }
+
+    .pf-btn-save { padding:6px 14px; border:none; border-radius:6px;
+      background:#f0b429; color:#0d1117; font-size:12px; font-weight:700;
+      cursor:pointer; transition:all .15s; }
+    .pf-btn-save:hover { background:#f5c23e; }
+    .pf-btn-reset { padding:6px 12px; border:1px solid rgba(239,68,68,0.3);
+      border-radius:6px; background:rgba(239,68,68,0.08); color:#ef4444;
+      font-size:12px; font-weight:600; cursor:pointer; transition:all .15s; }
+    .pf-btn-reset:hover { background:rgba(239,68,68,0.18); }
+
+    .pf-add-row { display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;
+      padding:18px 20px; background:rgba(255,255,255,0.02);
+      border-top:1px solid rgba(255,255,255,0.06); }
+    .pf-add-row label { display:block; font-size:10px; letter-spacing:1px;
+      text-transform:uppercase; color:#64748b; margin-bottom:5px; }
+    .pf-ticker-inp { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);
+      border-radius:6px; padding:7px 10px; color:#e2e8f0; font-size:13px; font-weight:700;
+      outline:none; width:100px; text-transform:uppercase; transition:border-color .2s; }
+    .pf-ticker-inp:focus { border-color:rgba(34,197,94,0.5); }
+    .toast { position:fixed; bottom:24px; right:24px; padding:10px 18px;
+      border-radius:8px; font-size:13px; font-weight:600; z-index:999;
+      opacity:0; transition:opacity .3s; pointer-events:none; }
+    .toast.show { opacity:1; }
+    .toast-ok  { background:#166534; color:#bbf7d0; border:1px solid #16a34a; }
+    .toast-err { background:#7f1d1d; color:#fca5a5; border:1px solid #ef4444; }
   </style>
 </head>
 <body>
@@ -246,6 +304,194 @@
   <div class="empty">Henuz hic kod yok. Yukardaki formdan ekleyin.</div>
   {% endif %}
 </div>
+
+<!-- ── Portföy Manuel Düzenleme ─────────────────────────────────────────── -->
+<div class="pf-section">
+  <h2>Portföy Manuel Düzenleme</h2>
+  <div class="pf-notice">
+    <b>Nasıl çalışır:</b> Buradaki değerler <code>parse_portfolio.py</code> çıktısının üzerine yazılır.
+    PDF'ten gelen pozisyonlar değişmez; sadece servis edilirken override uygulanır.
+    Sıfırla → PDF değerine döner. Adet 0 girilirse pozisyon gizlenir.
+  </div>
+
+  <div class="pf-table-wrap" id="pfTableWrap">
+    <div style="padding:32px; text-align:center; color:#475569;">Yükleniyor…</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SECRET = '{{ secret }}';
+
+function toast(msg, ok=true) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show ' + (ok ? 'toast-ok' : 'toast-err');
+  setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+async function loadPf() {
+  const wrap = document.getElementById('pfTableWrap');
+  try {
+    const r = await fetch(`/admin/${SECRET}/portfolio-overrides`);
+    const d = await r.json();
+    renderPf(d);
+  } catch(e) {
+    wrap.innerHTML = `<div style="padding:24px;color:#ef4444">Yüklenemedi: ${e.message}</div>`;
+  }
+}
+
+function renderPf(d) {
+  const base = d.base_positions || {};
+  const ovs  = d.overrides      || {};
+
+  // Tüm ticker'ları birleştir (base + sadece override'da olanlar)
+  const allTickers = [...new Set([...Object.keys(base), ...Object.keys(ovs)])].sort();
+
+  let rows = '';
+  for (const t of allTickers) {
+    const b   = base[t] || null;
+    const ov  = ovs[t]  || null;
+    const isOv   = !!ov;
+    const isNew  = ov && !b;
+
+    // Gösterilecek aktif değerler (override varsa onu kullan)
+    const curQty = ov ? ov.qty  : (b ? b.qty  : 0);
+    const curAvg = ov ? ov.avg_cost : (b ? b.avg_cost : 0);
+    const pdfQty = b ? b.qty      : '—';
+    const pdfAvg = b ? b.avg_cost : '—';
+
+    const badge = isNew ? '<span class="badge-new">YENİ</span>'
+                : isOv  ? '<span class="badge-ov">OV</span>'
+                        : '<span class="badge-pdf">PDF</span>';
+
+    rows += `
+    <tr id="row-${t}">
+      <td style="font-family:monospace;font-weight:700;color:#f0b429;letter-spacing:1px;">
+        ${t} ${badge}
+      </td>
+      <td style="color:#475569;font-size:12px;">
+        ${pdfQty !== '—' ? pdfQty + ' lot' : '—'}<br>
+        <span style="font-size:11px;">${pdfAvg !== '—' ? pdfAvg + ' ₺' : ''}</span>
+      </td>
+      <td>
+        <input class="pf-input" id="qty-${t}" type="number" min="0" step="1"
+               value="${curQty}" placeholder="Adet">
+      </td>
+      <td>
+        <input class="pf-input wide" id="avg-${t}" type="number" min="0" step="0.0001"
+               value="${curAvg}" placeholder="Ort. Alış">
+      </td>
+      <td>
+        <div style="display:flex;gap:8px;">
+          <button class="pf-btn-save" onclick="saveRow('${t}')">Kaydet</button>
+          ${isOv ? `<button class="pf-btn-reset" onclick="resetRow('${t}')">Sıfırla</button>` : ''}
+        </div>
+      </td>
+    </tr>`;
+  }
+
+  // NSP satırı (bilgi amaçlı, düzenlenemez)
+  const nspVal = (d.nsp_current_value || 0).toLocaleString('tr-TR', {maximumFractionDigits:0});
+  const nspUnits = (d.nsp_current_units || 0).toLocaleString('tr-TR', {maximumFractionDigits:0});
+
+  document.getElementById('pfTableWrap').innerHTML = `
+    <table class="pf-table">
+      <thead><tr>
+        <th>Hisse</th>
+        <th>PDF Değeri</th>
+        <th>Adet (Override)</th>
+        <th>Ort. Alış (Override)</th>
+        <th>İşlem</th>
+      </tr></thead>
+      <tbody>
+        <tr style="opacity:.5">
+          <td style="font-family:monospace;font-weight:700;color:#a78bfa;">
+            NSP <span class="badge-pdf">PDF</span>
+          </td>
+          <td style="color:#475569;font-size:12px;">${nspUnits} pay<br>
+            <span style="font-size:11px;">${nspVal} ₺</span></td>
+          <td colspan="3" style="color:#475569;font-size:12px;font-style:italic;">
+            NSP para piyasası — manuel düzenleme desteklenmiyor
+          </td>
+        </tr>
+        ${rows}
+      </tbody>
+    </table>
+
+    <!-- Yeni varlık ekle -->
+    <div class="pf-add-row">
+      <div>
+        <label>Ticker</label>
+        <input class="pf-ticker-inp" id="newTicker" placeholder="HISSE" maxlength="8">
+      </div>
+      <div>
+        <label>Adet (lot)</label>
+        <input class="pf-input" id="newQty" type="number" min="1" step="1" placeholder="100">
+      </div>
+      <div>
+        <label>Ort. Alış (₺)</label>
+        <input class="pf-input wide" id="newAvg" type="number" min="0" step="0.0001" placeholder="42.50">
+      </div>
+      <button class="pf-btn-save" onclick="addNew()" style="margin-bottom:0;height:36px;">
+        + Varlık Ekle
+      </button>
+    </div>`;
+}
+
+async function saveRow(ticker) {
+  const qty = parseFloat(document.getElementById(`qty-${ticker}`).value);
+  const avg = parseFloat(document.getElementById(`avg-${ticker}`).value);
+  if (isNaN(qty) || isNaN(avg)) { toast('Geçersiz değer', false); return; }
+  try {
+    const r = await fetch(`/admin/${SECRET}/portfolio-override`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ticker, qty, avg_cost: avg}),
+    });
+    const j = await r.json();
+    if (j.ok) { toast(`${ticker} kaydedildi ✓`); loadPf(); }
+    else toast(j.error || 'Hata', false);
+  } catch(e) { toast(e.message, false); }
+}
+
+async function resetRow(ticker) {
+  if (!confirm(`${ticker} override'ını sıfırlayıp PDF değerine dönmek istiyor musunuz?`)) return;
+  try {
+    const r = await fetch(`/admin/${SECRET}/portfolio-override/${ticker}/delete`, {method:'POST'});
+    const j = await r.json();
+    if (j.ok) { toast(`${ticker} sıfırlandı`); loadPf(); }
+    else toast(j.error || 'Hata', false);
+  } catch(e) { toast(e.message, false); }
+}
+
+async function addNew() {
+  const ticker = document.getElementById('newTicker').value.trim().toUpperCase();
+  const qty    = parseFloat(document.getElementById('newQty').value);
+  const avg    = parseFloat(document.getElementById('newAvg').value);
+  if (!ticker) { toast('Ticker giriniz', false); return; }
+  if (isNaN(qty) || qty <= 0) { toast('Geçerli adet giriniz', false); return; }
+  if (isNaN(avg) || avg < 0)  { toast('Geçerli fiyat giriniz', false); return; }
+  try {
+    const r = await fetch(`/admin/${SECRET}/portfolio-override`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ticker, qty, avg_cost: avg}),
+    });
+    const j = await r.json();
+    if (j.ok) {
+      toast(`${ticker} eklendi ✓`);
+      document.getElementById('newTicker').value = '';
+      document.getElementById('newQty').value    = '';
+      document.getElementById('newAvg').value    = '';
+      loadPf();
+    } else toast(j.error || 'Hata', false);
+  } catch(e) { toast(e.message, false); }
+}
+
+loadPf();
+</script>
 
 </body>
 </html>
