@@ -37,7 +37,30 @@
   }
   .period-btn:hover { border-color: var(--accent); color: var(--accent); }
   .period-btn.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 700; }
+  .period-btn.custom-active { background: #7c3aed; color: #fff; border-color: #7c3aed; font-weight: 700; }
   .last-update { margin-left: auto; font-size: 0.7rem; color: var(--muted); }
+
+  /* ── Özel tarih seçici ── */
+  .custom-bar {
+    display: none; align-items: center; gap: 8px; flex-wrap: wrap;
+    padding: 7px 20px; border-bottom: 1px solid var(--border);
+    background: #f8f9fc; flex-shrink: 0;
+  }
+  .custom-bar.show { display: flex; }
+  .custom-bar label { font-size: 0.72rem; color: var(--muted); font-weight: 600; }
+  .custom-bar input[type=date] {
+    padding: 4px 9px; border: 1px solid var(--border); border-radius: 6px;
+    font-size: 0.78rem; background: #fff; color: var(--text);
+    outline: none; cursor: pointer; transition: border-color .15s;
+  }
+  .custom-bar input[type=date]:focus { border-color: var(--accent); }
+  .custom-bar .apply-btn {
+    padding: 4px 14px; border-radius: 6px; border: none;
+    background: #7c3aed; color: #fff; font-size: 0.75rem; font-weight: 700;
+    cursor: pointer; transition: background .15s;
+  }
+  .custom-bar .apply-btn:hover { background: #6d28d9; }
+  .custom-bar .sep { color: var(--muted); font-size: 0.8rem; }
 
   /* ── Body layout ── */
   .body-wrap {
@@ -47,7 +70,9 @@
     min-height: 420px;
     flex-shrink: 0;
     overflow: hidden;
+    transition: height .15s;
   }
+  .body-wrap.with-custom { height: calc(100vh - 53px - 42px); }
 
   /* ── Sidebar ── */
   .sidebar { border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
@@ -148,9 +173,21 @@
     <button class="period-btn active" data-p="1y">1Y</button>
     <button class="period-btn" data-p="3y">3Y</button>
     <button class="period-btn" data-p="5y">5Y</button>
+    <button class="period-btn" data-p="custom" id="customBtn">Özel</button>
   </div>
   <div class="last-update" id="lastUpdate">Yükleniyor…</div>
 </header>
+
+<!-- Özel tarih seçici satırı -->
+<div class="custom-bar" id="customBar">
+  <label>Başlangıç</label>
+  <input type="date" id="customStart" />
+  <span class="sep">→</span>
+  <label>Bitiş</label>
+  <input type="date" id="customEnd" />
+  <button class="apply-btn" onclick="applyCustom()">Uygula</button>
+  <span id="customMsg" style="font-size:0.72rem;color:var(--muted);margin-left:4px;"></span>
+</div>
 
 <div class="body-wrap">
 
@@ -496,10 +533,95 @@ function renderStocks(name) {
 document.getElementById('periodBar').addEventListener('click', e => {
   const btn = e.target.closest('.period-btn');
   if (!btn) return;
-  document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  period = btn.dataset.p;
-  loadHistory(period);
+
+  const isCustom = btn.dataset.p === 'custom';
+
+  // Tüm butonlardan active / custom-active kaldır
+  document.querySelectorAll('.period-btn').forEach(b => {
+    b.classList.remove('active');
+    b.classList.remove('custom-active');
+  });
+
+  const customBar  = document.getElementById('customBar');
+  const bodyWrap   = document.querySelector('.body-wrap');
+
+  if (isCustom) {
+    btn.classList.add('custom-active');
+    customBar.classList.add('show');
+    bodyWrap.classList.add('with-custom');
+    // Tarihleri doldurmamışsa varsayılan koy: son 90 gün
+    if (!document.getElementById('customStart').value) {
+      const today = new Date();
+      const ago90 = new Date(today); ago90.setDate(today.getDate() - 90);
+      document.getElementById('customEnd').value   = today.toISOString().slice(0, 10);
+      document.getElementById('customStart').value = ago90.toISOString().slice(0, 10);
+    }
+  } else {
+    btn.classList.add('active');
+    customBar.classList.remove('show');
+    bodyWrap.classList.remove('with-custom');
+    period = btn.dataset.p;
+    loadHistory(period);
+  }
+});
+
+// ─── Özel tarih: uygula ───────────────────────────────────────────────────────
+function applyCustom() {
+  const start = document.getElementById('customStart').value;
+  const end   = document.getElementById('customEnd').value;
+  const msg   = document.getElementById('customMsg');
+
+  if (!start || !end) { msg.textContent = '⚠ Tarih seçin'; return; }
+  if (start >= end)   { msg.textContent = '⚠ Başlangıç bitiş tarihinden önce olmalı'; return; }
+
+  msg.textContent = '';
+  loadHistoryCustom(start, end);
+}
+
+async function loadHistoryCustom(start, end) {
+  document.getElementById('spinner').classList.add('show');
+  document.getElementById('lastUpdate').textContent = 'Yükleniyor…';
+  try {
+    const res  = await fetch(`/bist/api/history/custom?start=${start}&end=${end}`);
+    const json = await res.json();
+
+    if (json._loading) {
+      document.getElementById('spinner').classList.remove('show');
+      document.getElementById('lastUpdate').textContent = '⚠ Veriler henüz hazır değil';
+      return;
+    }
+    if (json._empty) {
+      document.getElementById('spinner').classList.remove('show');
+      document.getElementById('lastUpdate').textContent = '⚠ ' + (json.message || 'Veri yok');
+      document.getElementById('customMsg').textContent  = '⚠ Seçilen aralıkta veri bulunamadı';
+      return;
+    }
+    if (json.error) {
+      document.getElementById('spinner').classList.remove('show');
+      document.getElementById('customMsg').textContent = '⚠ ' + json.error;
+      return;
+    }
+
+    histData = applyStopaj(json);
+    buildChart(histData);
+    renderSidebar(histData);
+    document.getElementById('lastUpdate').textContent =
+      `${start} → ${end} · Güncelleme: ` + new Date().toLocaleTimeString('tr-TR');
+    document.getElementById('customMsg').textContent = '';
+    if (activeIdx && histData[activeIdx]) loadStocks(activeIdx);
+  } catch(e) {
+    document.getElementById('customMsg').textContent = '⚠ ' + e.message;
+    console.error(e);
+  } finally {
+    document.getElementById('spinner').classList.remove('show');
+  }
+}
+
+// ─── Enter tuşu ile de Uygula ─────────────────────────────────────────────────
+['customStart', 'customEnd'].forEach(id => {
+  document.getElementById(id).addEventListener('keydown', e => {
+    if (e.key === 'Enter') applyCustom();
+  });
 });
 
 // ─── Başlat ───────────────────────────────────────────────────────────────────
