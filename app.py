@@ -513,23 +513,43 @@ def _save_overrides(ov: dict):
         _json.dump(ov, f, ensure_ascii=False, indent=2)
 
 def _portfolio_with_overrides() -> dict | None:
-    """Load portfolio.json then apply manual overrides on open_positions."""
+    """Load portfolio.json then apply manual overrides (positions, NSP, cash)."""
     try:
         with open(_PORTFOLIO_JSON, encoding='utf-8') as f:
             pf = _json.load(f)
     except FileNotFoundError:
         return None
-    ov_pos = _load_overrides().get('open_positions', {})
+    ov = _load_overrides()
+
+    # ── Pozisyon override'ları ──────────────────────────────────────────────
+    ov_pos = ov.get('open_positions', {})
     if ov_pos:
         base = dict(pf.get('open_positions', {}))
-        for ticker, ov in ov_pos.items():
-            qty = float(ov.get('qty', 0))
+        for ticker, op in ov_pos.items():
+            qty = float(op.get('qty', 0))
             if qty > 0:
-                avg = float(ov.get('avg_cost', 0))
+                avg = float(op.get('avg_cost', 0))
                 base[ticker] = {'qty': qty, 'avg_cost': avg, 'cost_basis': round(qty * avg, 2)}
             else:
                 base.pop(ticker, None)
         pf['open_positions'] = base
+
+    # ── NSP birim override'ı ────────────────────────────────────────────────
+    nsp_units_ov = ov.get('nsp_units_override')
+    if nsp_units_ov is not None:
+        nsp_units_ov = float(nsp_units_ov)
+        pf['nsp_current_units'] = nsp_units_ov
+        nsp_dv = pf.get('nsp_daily_value', [])
+        last_price = nsp_dv[-1]['price'] if nsp_dv else 1.0
+        pf['nsp_current_value'] = round(nsp_units_ov * last_price, 2)
+
+    # ── Nakit (cash) override'ı ────────────────────────────────────────────
+    cash_ov = ov.get('cash_value_override')
+    if cash_ov is not None:
+        pdv = pf.get('portfolio_daily_value', [])
+        if pdv:
+            pdv[-1]['cash_value'] = round(float(cash_ov), 2)
+
     return pf
 
 @app.route('/api/portfolio')
@@ -620,17 +640,31 @@ def api_live_prices():
 def admin_portfolio_overrides_get(secret):
     if secret != ADMIN_SECRET:
         return jsonify({'error': 'forbidden'}), 403
+    # Base (raw PDF) portfolio
     try:
         with open(_PORTFOLIO_JSON, encoding='utf-8') as f:
-            pf = _json.load(f)
+            pf_base = _json.load(f)
     except Exception:
-        pf = {}
+        pf_base = {}
+    # Merged portfolio (overrides applied) — use this for current effective values
+    pf = _portfolio_with_overrides() or {}
     ov = _load_overrides()
+
+    # Last NSP unit price (for unit↔TL conversion in UI)
+    nsp_dv = pf_base.get('nsp_daily_value', [])
+    nsp_last_price = nsp_dv[-1]['price'] if nsp_dv else 1.0
+
+    # Current effective cash value (after cash override if any)
+    pdv = pf.get('portfolio_daily_value', [])
+    cash_value = pdv[-1]['cash_value'] if pdv else 0.0
+
     return jsonify({
-        'base_positions':    pf.get('open_positions', {}),
+        'base_positions':    pf_base.get('open_positions', {}),
         'nsp_current_units': pf.get('nsp_current_units', 0),
         'nsp_current_value': pf.get('nsp_current_value', 0),
-        'overrides':         ov.get('open_positions', {}),
+        'nsp_last_price':    round(nsp_last_price, 6),
+        'cash_value':        round(cash_value, 2),
+        'overrides':         ov,
     })
 
 
@@ -638,10 +672,10 @@ def admin_portfolio_overrides_get(secret):
 def admin_portfolio_override_set(secret):
     if secret != ADMIN_SECRET:
         return jsonify({'error': 'forbidden'}), 403
-    data    = request.get_json(silent=True) or {}
-    ticker  = data.get('ticker', '').strip().upper()
-    qty     = data.get('qty')
-    avg     = data.get('avg_cost')
+    data   = request.get_json(silent=True) or {}
+    ticker = data.get('ticker', '').strip().upper()
+    qty    = data.get('qty')
+    avg    = data.get('avg_cost')
     if not ticker:
         return jsonify({'error': 'ticker required'}), 400
     try:
@@ -649,11 +683,31 @@ def admin_portfolio_override_set(secret):
         avg = float(avg)
     except (TypeError, ValueError):
         return jsonify({'error': 'invalid qty or avg_cost'}), 400
+
     ov = _load_overrides()
+
+    # ── Pozisyon override ──
     if qty <= 0:
         ov['open_positions'].pop(ticker, None)
     else:
         ov['open_positions'][ticker] = {'qty': qty, 'avg_cost': round(avg, 4)}
+
+    # ── NSP birim override (opsiyonel, frontend tarafından hesaplanır) ──
+    nsp_ov = data.get('nsp_units_override')
+    if nsp_ov is not None:
+        try:
+            ov['nsp_units_override'] = round(float(nsp_ov), 4)
+        except (TypeError, ValueError):
+            pass
+
+    # ── Nakit override (opsiyonel) ──
+    cash_ov = data.get('cash_value_override')
+    if cash_ov is not None:
+        try:
+            ov['cash_value_override'] = round(float(cash_ov), 2)
+        except (TypeError, ValueError):
+            pass
+
     _save_overrides(ov)
     return jsonify({'ok': True})
 
@@ -664,6 +718,22 @@ def admin_portfolio_override_delete(secret, ticker):
         return jsonify({'error': 'forbidden'}), 403
     ov = _load_overrides()
     ov['open_positions'].pop(ticker.upper(), None)
+    # Tüm pozisyon override'ları kalktıysa NSP/cash override'larını da temizle
+    data = request.get_json(silent=True) or {}
+    if data.get('clear_funding'):
+        ov.pop('nsp_units_override', None)
+        ov.pop('cash_value_override', None)
+    _save_overrides(ov)
+    return jsonify({'ok': True})
+
+
+@app.route('/admin/<secret>/portfolio-reset-funding', methods=['POST'])
+def admin_portfolio_reset_funding(secret):
+    if secret != ADMIN_SECRET:
+        return jsonify({'error': 'forbidden'}), 403
+    ov = _load_overrides()
+    ov.pop('nsp_units_override', None)
+    ov.pop('cash_value_override', None)
     _save_overrides(ov)
     return jsonify({'ok': True})
 
