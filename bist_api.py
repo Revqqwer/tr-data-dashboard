@@ -406,6 +406,62 @@ def api_stocks():
     return jsonify({'error': 'Veri çekilemedi'}), 500
 
 
+@bist_bp.route('/api/history/custom')
+def api_history_custom():
+    """Özel tarih aralığı için endeks getirilerini döner."""
+    start = request.args.get('start', '').strip()
+    end   = request.args.get('end',   '').strip()
+    if not start or not end or start >= end:
+        return jsonify({'error': 'Geçerli start ve end tarihi gerekli (YYYY-MM-DD)'}), 400
+
+    # Önce günlük veri (1y) dene — daha sonra haftalık (5y) fallback
+    data = None
+    for period_key in ('1y', '5y', '3y'):
+        d, _ = db_get_history(period_key)
+        if not d:
+            continue
+        sample = next(iter(d.values()), {})
+        dates  = sample.get('dates', [])
+        if dates and dates[0] <= start:
+            data = d
+            break
+    if data is None:
+        # en uzun elimizde ne varsa kullan
+        for period_key in ('5y', '3y', '1y', '6a'):
+            d, _ = db_get_history(period_key)
+            if d:
+                data = d
+                break
+
+    if not data:
+        return jsonify({'_loading': True})
+
+    result = {}
+    for name, d in data.items():
+        dates  = d.get('dates',  [])
+        values = d.get('values', [])
+        # Tarih aralığını filtrele
+        pairs = [(dt, v) for dt, v in zip(dates, values) if start <= dt <= end]
+        if len(pairs) < 2:
+            continue
+        fdates, fvalues = zip(*pairs)
+        base = fvalues[0]
+        if not base:
+            continue
+        reindexed = [round(v / base * 100, 2) for v in fvalues]
+        result[name] = {
+            'dates':     list(fdates),
+            'values':    reindexed,
+            'lastPrice': d.get('lastPrice'),
+            'pct':       round(reindexed[-1] - 100, 2),
+        }
+
+    if not result:
+        return jsonify({'_empty': True, 'message': 'Seçilen tarih aralığında veri bulunamadı'})
+
+    return jsonify(result)
+
+
 @bist_bp.route('/api/returns-summary')
 def api_returns_summary():
     periods = list(PERIOD_TV.keys())
