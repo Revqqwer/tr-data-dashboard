@@ -985,6 +985,33 @@ def admin_makro_forecast(secret):
     return jsonify({'ok': True})
 
 
+@app.route('/admin/<secret>/scrape-categories', methods=['POST'])
+def admin_scrape_categories(secret):
+    """Şemsiye fon kategorilerini TEFAS'tan çek ve fund_meta tablosuna yaz."""
+    if secret != ADMIN_SECRET:
+        return jsonify({'error': 'Unauthorized'}), 403
+    try:
+        from tefas_backend.category_scraper import scrape_categories, category_stats
+        force = request.json.get('force', False) if request.is_json else False
+        result = scrape_categories(dry_run=False, force=force)
+        stats = category_stats()
+        return jsonify({'ok': True, 'result': result, 'stats': stats})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
+
+
+@app.route('/admin/<secret>/scrape-categories/stats', methods=['GET'])
+def admin_category_stats(secret):
+    """Mevcut kategori istatistiklerini döner."""
+    if secret != ADMIN_SECRET:
+        return jsonify({'error': 'Unauthorized'}), 403
+    try:
+        from tefas_backend.category_scraper import category_stats
+        return jsonify({'ok': True, 'stats': category_stats()})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
+
+
 @app.route('/api/tr-yields')
 def tr_yields():
     """TR 2Y ve 10Y tahvil faizleri (cache DB + scanner). ?debug=1 ile logları döner."""
