@@ -445,7 +445,12 @@ def api_stocks():
                 daemon=True).start()
         return jsonify(data)
     if not find_excel_key(index_name):
-        return jsonify({'error': f'Endeks bulunamadı: {index_name}'}), 404
+        avail = list(index_compositions.keys())
+        return jsonify({
+            'error': f'Bu endeks için bileşen listesi bulunamadı: {index_name}. '
+                     f'Endeksler.xlsx dosyasında bu endeks tanımlı olmayabilir.',
+            'available': avail,
+        }), 404
     log.info(f'BİST hisse çekiliyor: {index_name} {period}')
     result = fetch_stocks_from_tv(index_name, period)
     if result:

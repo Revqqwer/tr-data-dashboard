@@ -482,10 +482,27 @@ async function loadStocks(name) {
 
   try {
     const res  = await fetch(url);
-    stocksData = await res.json();
+    const json = await res.json();
+    if (!Array.isArray(json)) {
+      // Sunucu hata objesi döndü (endeks Excel'de yok vb.)
+      const msg = json.error || 'Bu endeks için hisse verisi bulunamadı';
+      document.getElementById('stocksHdr').innerHTML =
+        `${name} <small id="stocksSub">— veri yok</small>`;
+      document.getElementById('stocksBody').innerHTML =
+        `<div class="placeholder" style="flex-direction:column;gap:6px;text-align:center;padding:20px">
+          <span style="font-size:1.2rem">📋</span>
+          <span style="font-size:0.82rem;color:var(--muted)">${msg}</span>
+         </div>`;
+      return;
+    }
+    stocksData = json;
     renderStocks(name);
-  } catch {
-    document.getElementById('stocksBody').innerHTML = '<div class="placeholder">Veri çekilemedi</div>';
+  } catch(e) {
+    document.getElementById('stocksBody').innerHTML =
+      `<div class="placeholder" style="flex-direction:column;gap:4px">
+        <span>Veri çekilemedi</span>
+        <span style="font-size:0.72rem;color:var(--muted)">${e.message}</span>
+       </div>`;
   }
 }
 
