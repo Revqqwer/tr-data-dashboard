@@ -63,7 +63,7 @@ ENDEKSLER = {
     "BIST HIZMETLER":            "XUHIZ",
     "BIST MALI":                 "XUMAL",
     "BIST ARACI KURUM":          "XAKUR",
-    "BIST MENKUL KIYM YO":       "XYORT",
+    "BIST MENKUL KIYM Y.O.":     "XYORT",
     "BIST TURIZM":               "XTRZM",
 }
 
