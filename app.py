@@ -738,6 +738,28 @@ def admin_portfolio_reset_funding(secret):
     return jsonify({'ok': True})
 
 
+@app.route('/admin/<secret>/portfolio-set-cash', methods=['POST'])
+def admin_portfolio_set_cash(secret):
+    """Nakit (cash_value_override) değerini doğrudan kaydet."""
+    if secret != ADMIN_SECRET:
+        return jsonify({'error': 'forbidden'}), 403
+    data = request.get_json(silent=True) or {}
+    val  = data.get('cash_value')
+    if val is None:
+        return jsonify({'error': 'cash_value required'}), 400
+    try:
+        val = round(float(val), 2)
+    except (TypeError, ValueError):
+        return jsonify({'error': 'invalid cash_value'}), 400
+    ov = _load_overrides()
+    if val == 0:
+        ov.pop('cash_value_override', None)   # 0 → override'ı kaldır
+    else:
+        ov['cash_value_override'] = val
+    _save_overrides(ov)
+    return jsonify({'ok': True})
+
+
 @app.route('/api/dth')
 def dth():
     rows = query('SELECT tarih, bireysel, tuzel, toplam FROM dth ORDER BY tarih')
