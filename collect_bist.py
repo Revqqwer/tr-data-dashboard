@@ -259,8 +259,9 @@ def collect_stocks(conn, compositions):
     log.info(f'Hisse kolektörü: {total_s} benzersiz hisse, {len(endeks_stocks)} endeks')
 
     # Her benzersiz hisse için 2 TV isteği → 6 dönem slice
-    returns_map = {}   # kod → {period: pct}
-    price_map   = {}   # kod → last_price
+    returns_map  = {}   # kod → {period: pct}
+    price_map    = {}   # kod → last_price
+    history_map  = {}   # kod → {dates: [...], prices: [...]}  ← YENİ
 
     for i, (kod, s) in enumerate(unique.items(), 1):
         if i == 1 or i % 100 == 0:
@@ -274,6 +275,11 @@ def collect_stocks(conn, compositions):
         rets = {}
         if d_dates and len(d_closes) >= 2:
             price_map[kod] = d_closes[-1]
+            # Tam günlük geçmişi sakla (custom tarih sorguları için)
+            history_map[kod] = {
+                'dates':  d_dates,
+                'prices': [round(c, 2) for c in d_closes],
+            }
             for period, n_bars in DAILY_SLICES.items():
                 n2 = min(n_bars, len(d_closes))
                 c  = d_closes[-n2:]
@@ -316,6 +322,15 @@ def collect_stocks(conn, compositions):
 
     log.info(f'Hisse DB yazıldı: {len(endeks_stocks)} endeks × {len(all_periods)} dönem')
 
+    # Tam günlük fiyat geçmişini kaydet (custom tarih sorguları için)
+    for kod, hist in history_map.items():
+        conn.execute("""
+            INSERT OR REPLACE INTO stock_price_history (kod, dates, prices, updated_at)
+            VALUES (?,?,?,?)""",
+            (kod, json.dumps(hist['dates']), json.dumps(hist['prices']), now))
+    conn.commit()
+    log.info(f'Hisse fiyat geçmişi kaydedildi: {len(history_map)} hisse')
+
 
 # ── DB ────────────────────────────────────────────────────────────────────────
 
@@ -338,6 +353,13 @@ def init_db(conn):
             data       TEXT,
             updated_at INTEGER,
             PRIMARY KEY (index_name, period)
+        )""")
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS stock_price_history (
+            kod        TEXT PRIMARY KEY,
+            dates      TEXT,
+            prices     TEXT,
+            updated_at INTEGER
         )""")
     conn.commit()
 
