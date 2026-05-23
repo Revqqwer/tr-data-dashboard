@@ -21,6 +21,30 @@ try:
 except Exception:
     pass  # Tablo zaten varsa sorun değil
 
+# ---------------------------------------------------------------------------
+# Fon adı bazlı kategori filtreleme — TEFAS fon isimleri büyük harfle gelir
+# ---------------------------------------------------------------------------
+_CATEGORY_PRESETS: dict = {
+    "yogun":     {"label": "Hisse Yoğun",    "keywords": ["YOĞUN", "YOGUN"]},
+    "degisken":  {"label": "Değişken",       "keywords": ["DEĞİŞKEN", "DEGISKEN"]},
+    "para_piy":  {"label": "Para Piyasası",  "keywords": ["PARA PİYASASI", "PARA PIYASASI"]},
+    "tahvil":    {"label": "Tahvil / Bono",  "keywords": ["TAHVİL", "TAHVIL", "BORÇLANMA", "BORCLANMA"]},
+    "altin":     {"label": "Altın",          "keywords": ["ALTIN"]},
+    "endeks":    {"label": "Endeks",         "keywords": ["ENDEKS"]},
+    "karma":     {"label": "Karma",          "keywords": ["KARMA"]},
+    "serbest":   {"label": "Serbest",        "keywords": ["SERBEST"]},
+    "katilim":   {"label": "Katılım",        "keywords": ["KATILIM"]},
+    "fon_sepeti":{"label": "Fon Sepeti",     "keywords": ["FON SEPETI", "FON OF FUND"]},
+}
+
+
+def _fname_matches_cat(fname: str, keywords: list) -> bool:
+    """Fon adının belirli kategori anahtar kelimelerinden birini içerip içermediğini kontrol et."""
+    if not keywords:
+        return True
+    fn = (fname or "").upper()
+    return any(kw in fn for kw in keywords)
+
 
 def _auth():
     """Artık tüm okuma endpoint'leri public — her zaman None döner."""
@@ -75,6 +99,12 @@ def available_dates():
 
 
 # ---------------------------------------------------------------------------
+@tefas_bp.route("/api/leaderboard/categories")
+def leaderboard_categories():
+    """Mevcut kategori filtreleri listesi."""
+    return jsonify([{"key": k, "label": v["label"]} for k, v in _CATEGORY_PRESETS.items()])
+
+
 @tefas_bp.route("/api/leaderboard")
 def leaderboard():
     err = _auth()
@@ -86,6 +116,8 @@ def leaderboard():
     end_str   = request.args.get("end")
     limit     = min(int(request.args.get("limit", 50)), 200)
     fund_type = request.args.get("fund_type")
+    cat_key   = request.args.get("cat_key", "").strip()
+    cat_kws   = _CATEGORY_PRESETS.get(cat_key, {}).get("keywords", [])
 
     with Session(engine) as db:
         q = select(FundFlow).where(FundFlow.net_flow.isnot(None))  # type: ignore
@@ -124,6 +156,10 @@ def leaderboard():
                 }
 
             sorted_codes = sorted(flow_sum.keys(), key=lambda c: -flow_sum[c])
+            # Kategori filtresi
+            if cat_kws:
+                sorted_codes = [c for c in sorted_codes
+                                if _fname_matches_cat(fund_info[c].fname or "", cat_kws)]
             inflows  = [row_to_dict_range(c) for c in sorted_codes if flow_sum[c] > 0][:limit]
             outflows = [row_to_dict_range(c) for c in reversed(sorted_codes) if flow_sum[c] < 0][:limit]
             range_label = f"{start_str}/{end_str}"
@@ -149,6 +185,10 @@ def leaderboard():
 
             q = q.order_by(FundFlow.net_flow.desc())  # type: ignore
             rows = db.exec(q).all()
+
+            # Kategori filtresi
+            if cat_kws:
+                rows = [r for r in rows if _fname_matches_cat(r.fname or "", cat_kws)]
 
             def row_to_dict(r):
                 return {
