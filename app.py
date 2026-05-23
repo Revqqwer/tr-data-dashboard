@@ -492,8 +492,23 @@ def index():
 
 _PORTFOLIO_JSON      = os.path.join(os.path.dirname(__file__), 'data', 'portfolio.json')
 _PORTFOLIO_OVERRIDES = os.path.join(os.path.dirname(__file__), 'data', 'portfolio_overrides.json')
+_MAKRO_FORECAST_JSON = os.path.join(os.path.dirname(__file__), 'data', 'makro_forecast.json')
 
 import json as _json
+
+
+def _load_makro_forecast() -> list:
+    try:
+        with open(_MAKRO_FORECAST_JSON, encoding='utf-8') as f:
+            return _json.load(f)
+    except (FileNotFoundError, _json.JSONDecodeError):
+        return []
+
+
+def _save_makro_forecast(rows: list):
+    os.makedirs(os.path.dirname(_MAKRO_FORECAST_JSON), exist_ok=True)
+    with open(_MAKRO_FORECAST_JSON, 'w', encoding='utf-8') as f:
+        _json.dump(rows, f, ensure_ascii=False, indent=2)
 
 def _load_overrides() -> dict:
     try:
@@ -939,6 +954,35 @@ def makro():
             'proxy_kur': proxy,
         })
     return jsonify(result)
+
+
+@app.route('/api/makro-forecast')
+def api_makro_forecast():
+    """3N Finans makro tahminleri — herkese açık."""
+    return jsonify(_load_makro_forecast())
+
+
+@app.route('/admin/<secret>/makro-forecast', methods=['GET', 'POST'])
+def admin_makro_forecast(secret):
+    if secret != ADMIN_SECRET:
+        return jsonify({'error': 'Forbidden'}), 403
+    if request.method == 'GET':
+        return jsonify({'rows': _load_makro_forecast()})
+    data = request.get_json(force=True)
+    rows = data.get('rows', [])
+    # Normalize: her satır {mom_enf, mom_kur, pol_faiz, tr2y, tr10y, note}
+    clean = []
+    for r in rows:
+        clean.append({
+            'mom_enf':  r.get('mom_enf',  ''),
+            'mom_kur':  r.get('mom_kur',  ''),
+            'pol_faiz': r.get('pol_faiz', ''),
+            'tr2y':     r.get('tr2y',     ''),
+            'tr10y':    r.get('tr10y',    ''),
+            'note':     r.get('note',     ''),
+        })
+    _save_makro_forecast(clean)
+    return jsonify({'ok': True})
 
 
 @app.route('/api/tr-yields')
