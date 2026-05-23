@@ -139,6 +139,10 @@
       border-radius:6px; padding:7px 10px; color:#e2e8f0; font-size:13px; font-weight:700;
       outline:none; width:100px; text-transform:uppercase; transition:border-color .2s; }
     .pf-ticker-inp:focus { border-color:rgba(34,197,94,0.5); }
+    .pf-select { background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.15);
+      border-radius:6px; padding:6px 10px; color:#e2e8f0; font-size:12px;
+      outline:none; cursor:pointer; max-width:220px; }
+    .pf-select:focus { border-color:rgba(240,180,41,0.5); }
     .toast { position:fixed; bottom:24px; right:24px; padding:10px 18px;
       border-radius:8px; font-size:13px; font-weight:600; z-index:999;
       opacity:0; transition:opacity .3s; pointer-events:none; }
@@ -310,8 +314,8 @@
   <h2>Portföy Manuel Düzenleme</h2>
   <div class="pf-notice">
     <b>Nasıl çalışır:</b> Buradaki değerler <code>parse_portfolio.py</code> çıktısının üzerine yazılır.
-    PDF'ten gelen pozisyonlar değişmez; sadece servis edilirken override uygulanır.
-    Sıfırla → PDF değerine döner. Adet 0 girilirse pozisyon gizlenir.
+    Finansman seçilirse toplam değer sabit kalır (NSP birim veya nakit düşülür).
+    Sıfırla → PDF değerine döner.
   </div>
 
   <div class="pf-table-wrap" id="pfTableWrap">
@@ -323,6 +327,7 @@
 
 <script>
 const SECRET = '{{ secret }}';
+let pfData = null; // sunucudan gelen güncel durum
 
 function toast(msg, ok=true) {
   const el = document.getElementById('toast');
@@ -331,60 +336,117 @@ function toast(msg, ok=true) {
   setTimeout(() => el.classList.remove('show'), 2800);
 }
 
+function fmt(v) { return v.toLocaleString('tr-TR', {maximumFractionDigits:0}); }
+function fmtF(v,d=2) { return v.toLocaleString('tr-TR', {minimumFractionDigits:d,maximumFractionDigits:d}); }
+
 async function loadPf() {
-  const wrap = document.getElementById('pfTableWrap');
   try {
     const r = await fetch(`/admin/${SECRET}/portfolio-overrides`);
-    const d = await r.json();
-    renderPf(d);
+    pfData = await r.json();
+    renderPf();
   } catch(e) {
-    wrap.innerHTML = `<div style="padding:24px;color:#ef4444">Yüklenemedi: ${e.message}</div>`;
+    document.getElementById('pfTableWrap').innerHTML =
+      `<div style="padding:24px;color:#ef4444">Yüklenemedi: ${e.message}</div>`;
   }
 }
 
-function renderPf(d) {
-  const base = d.base_positions || {};
-  const ovs  = d.overrides      || {};
+function getEffective(ticker) {
+  // Mevcut efektif qty ve avg (override varsa onu, yoksa base)
+  const ov = pfData.overrides?.open_positions?.[ticker];
+  const b  = pfData.base_positions?.[ticker];
+  return { qty: ov ? ov.qty : (b?.qty ?? 0), avg: ov ? ov.avg_cost : (b?.avg_cost ?? 0) };
+}
 
-  // Tüm ticker'ları birleştir (base + sadece override'da olanlar)
+function calcCostChange(ticker, newQty, newAvg) {
+  // Mevcut piyasa değeri vs yeni piyasa değeri (fark = finansman ihtiyacı)
+  const eff = getEffective(ticker);
+  const oldVal = eff.qty * eff.avg;  // basit maliyet farkı yeterli
+  const newVal = newQty * newAvg;
+  return newVal - oldVal; // + → para çıkıyor (alım), - → para giriyor (satım)
+}
+
+function updateCostLabel(ticker) {
+  const qtyEl  = document.getElementById(`qty-${ticker}`);
+  const avgEl  = document.getElementById(`avg-${ticker}`);
+  const lbl    = document.getElementById(`cost-${ticker}`);
+  const fundEl = document.getElementById(`fund-${ticker}`);
+  if (!qtyEl || !avgEl || !lbl) return;
+  const newQty = parseFloat(qtyEl.value) || 0;
+  const newAvg = parseFloat(avgEl.value) || 0;
+  const delta  = calcCostChange(ticker, newQty, newAvg);
+  if (Math.abs(delta) < 1) {
+    lbl.textContent = ''; fundEl.style.display = 'none'; return;
+  }
+  const sign = delta > 0 ? '+' : '';
+  lbl.textContent = `${sign}${fmt(delta)} ₺`;
+  lbl.style.color = delta > 0 ? '#f97316' : '#22c55e';
+  fundEl.style.display = 'block';
+  // Finansman seçeneği etiketlerini güncelle
+  const nspOpt  = fundEl.querySelector('[value="nsp"]');
+  const cashOpt = fundEl.querySelector('[value="cash"]');
+  if (delta > 0) {
+    if (nspOpt)  nspOpt.textContent  = `NSP'den düş (${fmt(pfData.nsp_current_value)} ₺)`;
+    if (cashOpt) cashOpt.textContent = `Nakit'ten düş (${fmt(pfData.cash_value)} ₺)`;
+  } else {
+    if (nspOpt)  nspOpt.textContent  = `NSP'ye ekle (${fmt(pfData.nsp_current_value)} ₺)`;
+    if (cashOpt) cashOpt.textContent = `Nakite ekle (${fmt(pfData.cash_value)} ₺)`;
+  }
+}
+
+function renderPf() {
+  const base = pfData.base_positions || {};
+  const ovs  = pfData.overrides?.open_positions || {};
+  const nspOv = pfData.overrides?.nsp_units_override;
+  const cashOv = pfData.overrides?.cash_value_override;
+
   const allTickers = [...new Set([...Object.keys(base), ...Object.keys(ovs)])].sort();
 
+  // NSP satırı
+  const nspBadge = nspOv != null ? '<span class="badge-ov">OV</span>' : '<span class="badge-pdf">PDF</span>';
+  const nspUnitsDisp = fmt(pfData.nsp_current_units ?? 0);
+  const nspValDisp   = fmt(pfData.nsp_current_value ?? 0);
+  const cashBadge = cashOv != null ? '<span class="badge-ov">OV</span>' : '<span class="badge-pdf">PDF</span>';
+  const cashDisp  = fmt(pfData.cash_value ?? 0);
+
+  // Hisse satırları
   let rows = '';
   for (const t of allTickers) {
-    const b   = base[t] || null;
-    const ov  = ovs[t]  || null;
+    const b      = base[t] || null;
+    const ov     = ovs[t]  || null;
     const isOv   = !!ov;
     const isNew  = ov && !b;
-
-    // Gösterilecek aktif değerler (override varsa onu kullan)
-    const curQty = ov ? ov.qty  : (b ? b.qty  : 0);
-    const curAvg = ov ? ov.avg_cost : (b ? b.avg_cost : 0);
-    const pdfQty = b ? b.qty      : '—';
-    const pdfAvg = b ? b.avg_cost : '—';
-
-    const badge = isNew ? '<span class="badge-new">YENİ</span>'
-                : isOv  ? '<span class="badge-ov">OV</span>'
-                        : '<span class="badge-pdf">PDF</span>';
-
+    const curQty = ov ? ov.qty      : (b?.qty      ?? 0);
+    const curAvg = ov ? ov.avg_cost : (b?.avg_cost ?? 0);
+    const pdfStr = b ? `${b.qty} lot · ${fmtF(b.avg_cost,3)} ₺` : '—';
+    const badge  = isNew ? '<span class="badge-new">YENİ</span>'
+                 : isOv  ? '<span class="badge-ov">OV</span>'
+                          : '<span class="badge-pdf">PDF</span>';
     rows += `
     <tr id="row-${t}">
       <td style="font-family:monospace;font-weight:700;color:#f0b429;letter-spacing:1px;">
         ${t} ${badge}
       </td>
-      <td style="color:#475569;font-size:12px;">
-        ${pdfQty !== '—' ? pdfQty + ' lot' : '—'}<br>
-        <span style="font-size:11px;">${pdfAvg !== '—' ? pdfAvg + ' ₺' : ''}</span>
-      </td>
+      <td style="color:#475569;font-size:12px;">${pdfStr}</td>
       <td>
         <input class="pf-input" id="qty-${t}" type="number" min="0" step="1"
-               value="${curQty}" placeholder="Adet">
+               value="${curQty}" placeholder="Adet"
+               oninput="updateCostLabel('${t}')">
       </td>
       <td>
         <input class="pf-input wide" id="avg-${t}" type="number" min="0" step="0.0001"
-               value="${curAvg}" placeholder="Ort. Alış">
+               value="${curAvg}" placeholder="Ort. Alış"
+               oninput="updateCostLabel('${t}')">
       </td>
       <td>
-        <div style="display:flex;gap:8px;">
+        <span id="cost-${t}" style="font-size:12px;font-weight:700;display:block;margin-bottom:4px;"></span>
+        <select id="fund-${t}" class="pf-select" style="display:none;">
+          <option value="none">Yalnızca hisse değiştir</option>
+          <option value="nsp">NSP'den düş (${fmt(pfData.nsp_current_value)} ₺)</option>
+          <option value="cash">Nakit'ten düş (${fmt(pfData.cash_value)} ₺)</option>
+        </select>
+      </td>
+      <td>
+        <div style="display:flex;gap:8px;align-items:center;">
           <button class="pf-btn-save" onclick="saveRow('${t}')">Kaydet</button>
           ${isOv ? `<button class="pf-btn-reset" onclick="resetRow('${t}')">Sıfırla</button>` : ''}
         </div>
@@ -392,28 +454,29 @@ function renderPf(d) {
     </tr>`;
   }
 
-  // NSP satırı (bilgi amaçlı, düzenlenemez)
-  const nspVal = (d.nsp_current_value || 0).toLocaleString('tr-TR', {maximumFractionDigits:0});
-  const nspUnits = (d.nsp_current_units || 0).toLocaleString('tr-TR', {maximumFractionDigits:0});
-
   document.getElementById('pfTableWrap').innerHTML = `
     <table class="pf-table">
       <thead><tr>
         <th>Hisse</th>
         <th>PDF Değeri</th>
-        <th>Adet (Override)</th>
-        <th>Ort. Alış (Override)</th>
+        <th>Adet</th>
+        <th>Ort. Alış</th>
+        <th>Finansman / Etki</th>
         <th>İşlem</th>
       </tr></thead>
       <tbody>
-        <tr style="opacity:.5">
+        <!-- NSP satırı: bilgi + NSP/cash override göstergesi -->
+        <tr>
           <td style="font-family:monospace;font-weight:700;color:#a78bfa;">
-            NSP <span class="badge-pdf">PDF</span>
+            NSP ${nspBadge}
           </td>
-          <td style="color:#475569;font-size:12px;">${nspUnits} pay<br>
-            <span style="font-size:11px;">${nspVal} ₺</span></td>
-          <td colspan="3" style="color:#475569;font-size:12px;font-style:italic;">
-            NSP para piyasası — manuel düzenleme desteklenmiyor
+          <td style="color:#475569;font-size:12px;">${nspUnitsDisp} pay</td>
+          <td colspan="2" style="color:#e2e8f0;font-size:13px;font-weight:600;">${nspValDisp} ₺</td>
+          <td style="color:#475569;font-size:12px;">
+            NAKİT ${cashBadge} → ${cashDisp} ₺
+          </td>
+          <td>
+            ${(nspOv != null || cashOv != null) ? `<button class="pf-btn-reset" onclick="resetFunding()">Finansmanı Sıfırla</button>` : '<span style="color:#475569;font-size:11px;">—</span>'}
           </td>
         </tr>
         ${rows}
@@ -424,31 +487,85 @@ function renderPf(d) {
     <div class="pf-add-row">
       <div>
         <label>Ticker</label>
-        <input class="pf-ticker-inp" id="newTicker" placeholder="HISSE" maxlength="8">
+        <input class="pf-ticker-inp" id="newTicker" placeholder="HISSE" maxlength="8"
+               oninput="this.value=this.value.toUpperCase()">
       </div>
       <div>
         <label>Adet (lot)</label>
-        <input class="pf-input" id="newQty" type="number" min="1" step="1" placeholder="100">
+        <input class="pf-input" id="newQty" type="number" min="1" step="1" placeholder="100"
+               oninput="updateNewCost()">
       </div>
       <div>
         <label>Ort. Alış (₺)</label>
-        <input class="pf-input wide" id="newAvg" type="number" min="0" step="0.0001" placeholder="42.50">
+        <input class="pf-input wide" id="newAvg" type="number" min="0" step="0.0001" placeholder="42.50"
+               oninput="updateNewCost()">
       </div>
-      <button class="pf-btn-save" onclick="addNew()" style="margin-bottom:0;height:36px;">
-        + Varlık Ekle
+      <div id="newCostWrap" style="display:none;">
+        <label>Maliyet</label>
+        <div id="newCostLbl" style="font-size:13px;font-weight:700;color:#f97316;padding:7px 0;"></div>
+      </div>
+      <div id="newFundWrap" style="display:none;">
+        <label>Finansman</label>
+        <select id="newFund" class="pf-select">
+          <option value="none">Yalnızca hisse ekle</option>
+          <option value="nsp">NSP'den düş (${fmt(pfData.nsp_current_value)} ₺)</option>
+          <option value="cash">Nakit'ten düş (${fmt(pfData.cash_value)} ₺)</option>
+        </select>
+      </div>
+      <button class="pf-btn-save" onclick="addNew()" style="height:36px;align-self:flex-end;">
+        + Ekle
       </button>
     </div>`;
 }
 
+function updateNewCost() {
+  const qty  = parseFloat(document.getElementById('newQty').value) || 0;
+  const avg  = parseFloat(document.getElementById('newAvg').value) || 0;
+  const cost = qty * avg;
+  const lbl  = document.getElementById('newCostLbl');
+  const wrap = document.getElementById('newCostWrap');
+  const fw   = document.getElementById('newFundWrap');
+  if (cost > 0) {
+    lbl.textContent = `+${fmt(cost)} ₺`;
+    wrap.style.display = 'block';
+    fw.style.display   = 'block';
+  } else {
+    wrap.style.display = 'none';
+    fw.style.display   = 'none';
+  }
+}
+
+function buildFundingPayload(fundSrc, costDelta) {
+  // Mevcut efektif değerler (override uygulanmış)
+  const curNspUnits = pfData.nsp_current_units ?? 0;
+  const nspPrice    = pfData.nsp_last_price    ?? 1;
+  const curCash     = pfData.cash_value        ?? 0;
+  const payload     = {};
+  if (fundSrc === 'nsp') {
+    const unitsChange = costDelta / nspPrice;
+    payload.nsp_units_override = Math.max(0, curNspUnits - unitsChange);
+  } else if (fundSrc === 'cash') {
+    payload.cash_value_override = curCash - costDelta;
+  }
+  return payload;
+}
+
 async function saveRow(ticker) {
-  const qty = parseFloat(document.getElementById(`qty-${ticker}`).value);
-  const avg = parseFloat(document.getElementById(`avg-${ticker}`).value);
+  const qty    = parseFloat(document.getElementById(`qty-${ticker}`).value);
+  const avg    = parseFloat(document.getElementById(`avg-${ticker}`).value);
+  const fundEl = document.getElementById(`fund-${ticker}`);
+  const fund   = fundEl ? fundEl.value : 'none';
   if (isNaN(qty) || isNaN(avg)) { toast('Geçersiz değer', false); return; }
+
+  const delta   = calcCostChange(ticker, qty, avg);
+  const funding = (Math.abs(delta) >= 1 && fund !== 'none')
+                  ? buildFundingPayload(fund, delta) : {};
+
   try {
     const r = await fetch(`/admin/${SECRET}/portfolio-override`, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ticker, qty, avg_cost: avg}),
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ticker, qty, avg_cost: avg, ...funding}),
     });
     const j = await r.json();
     if (j.ok) { toast(`${ticker} kaydedildi ✓`); loadPf(); }
@@ -457,11 +574,34 @@ async function saveRow(ticker) {
 }
 
 async function resetRow(ticker) {
-  if (!confirm(`${ticker} override'ını sıfırlayıp PDF değerine dönmek istiyor musunuz?`)) return;
+  if (!confirm(`${ticker} override'ını sıfırlamak istiyor musunuz?`)) return;
   try {
-    const r = await fetch(`/admin/${SECRET}/portfolio-override/${ticker}/delete`, {method:'POST'});
+    const r = await fetch(`/admin/${SECRET}/portfolio-override/${ticker}/delete`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({}),
+    });
     const j = await r.json();
     if (j.ok) { toast(`${ticker} sıfırlandı`); loadPf(); }
+    else toast(j.error || 'Hata', false);
+  } catch(e) { toast(e.message, false); }
+}
+
+async function resetFunding() {
+  if (!confirm('NSP ve Nakit override\'larını sıfırlamak istiyor musunuz?')) return;
+  const ov = pfData.overrides || {};
+  // Sadece funding alanlarını sil; open_positions'ı koru
+  // Bunun için özel bir endpoint yerine, var olan tüm override'ları tekrar kaydediyoruz
+  const cleaned = {...ov};
+  delete cleaned.nsp_units_override;
+  delete cleaned.cash_value_override;
+  // Tüm pozisyonları tek tek sıfırlamak yerine direkt yaz (endpoint yok, her pozisyonu yeniden kaydet)
+  // Kolay yol: boş bir ticker ile set-override çağrısı yapamayız; basit fetch ile üzerine yaz
+  // Bunun için yeni endpoint ekle: POST /admin/<secret>/portfolio-reset-funding
+  try {
+    const r = await fetch(`/admin/${SECRET}/portfolio-reset-funding`, {method:'POST'});
+    const j = await r.json();
+    if (j.ok) { toast('Finansman sıfırlandı'); loadPf(); }
     else toast(j.error || 'Hata', false);
   } catch(e) { toast(e.message, false); }
 }
@@ -470,21 +610,27 @@ async function addNew() {
   const ticker = document.getElementById('newTicker').value.trim().toUpperCase();
   const qty    = parseFloat(document.getElementById('newQty').value);
   const avg    = parseFloat(document.getElementById('newAvg').value);
+  const fund   = document.getElementById('newFund')?.value ?? 'none';
   if (!ticker) { toast('Ticker giriniz', false); return; }
   if (isNaN(qty) || qty <= 0) { toast('Geçerli adet giriniz', false); return; }
   if (isNaN(avg) || avg < 0)  { toast('Geçerli fiyat giriniz', false); return; }
+
+  const cost    = qty * avg;
+  const funding = (cost >= 1 && fund !== 'none')
+                  ? buildFundingPayload(fund, cost) : {};
+
   try {
     const r = await fetch(`/admin/${SECRET}/portfolio-override`, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ticker, qty, avg_cost: avg}),
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ticker, qty, avg_cost: avg, ...funding}),
     });
     const j = await r.json();
     if (j.ok) {
       toast(`${ticker} eklendi ✓`);
-      document.getElementById('newTicker').value = '';
-      document.getElementById('newQty').value    = '';
-      document.getElementById('newAvg').value    = '';
+      ['newTicker','newQty','newAvg'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('newCostWrap').style.display = 'none';
+      document.getElementById('newFundWrap').style.display = 'none';
       loadPf();
     } else toast(j.error || 'Hata', false);
   } catch(e) { toast(e.message, false); }
