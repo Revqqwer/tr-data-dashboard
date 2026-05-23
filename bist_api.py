@@ -261,6 +261,13 @@ def init_bist_db():
                 updated_at INTEGER,
                 PRIMARY KEY (index_name, period)
             )""")
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS stock_price_history (
+                kod        TEXT PRIMARY KEY,
+                dates      TEXT,
+                prices     TEXT,
+                updated_at INTEGER
+            )""")
         conn.commit()
     log.info('BİST DB hazır')
 
@@ -387,6 +394,47 @@ def api_history():
 def api_stocks():
     index_name = request.args.get('index', '')
     period     = request.args.get('period', '1y').lower()
+    start      = request.args.get('start', '').strip()
+    end        = request.args.get('end',   '').strip()
+
+    # ── Özel tarih aralığı modu ───────────────────────────────────────────────
+    if start and end and start < end:
+        key = find_excel_key(index_name)
+        if not key:
+            return jsonify({'error': f'Endeks bulunamadı: {index_name}'}), 404
+        stocks = index_compositions.get(key, [])
+        result = []
+        with get_bist_conn() as conn:
+            for s in stocks:
+                kod = s['kod']
+                row = conn.execute(
+                    'SELECT dates, prices FROM stock_price_history WHERE kod=?',
+                    (kod,)).fetchone()
+                if not row:
+                    result.append({'kod': kod, 'ad': s.get('ad', kod),
+                                   'ticker': s.get('ticker', ''), 'pct': None, 'price': None})
+                    continue
+                dates  = json.loads(row['dates'])
+                prices = json.loads(row['prices'])
+                pairs  = [(d, p) for d, p in zip(dates, prices) if start <= d <= end]
+                if len(pairs) < 2:
+                    result.append({'kod': kod, 'ad': s.get('ad', kod),
+                                   'ticker': s.get('ticker', ''), 'pct': None, 'price': None})
+                    continue
+                _, fprices = zip(*pairs)
+                base = fprices[0]
+                pct  = round((fprices[-1] / base - 1) * 100, 2) if base else None
+                result.append({
+                    'kod':    kod,
+                    'ad':     s.get('ad', kod),
+                    'ticker': s.get('ticker', ''),
+                    'price':  round(fprices[-1], 2),
+                    'pct':    pct,
+                })
+        result.sort(key=lambda x: x['pct'] if x['pct'] is not None else -9999, reverse=True)
+        return jsonify(result)
+
+    # ── Normal dönem modu ─────────────────────────────────────────────────────
     data, updated = db_get_stocks(index_name, period)
     if data:
         if not is_fresh(updated, STOCK_TTL_HRS):

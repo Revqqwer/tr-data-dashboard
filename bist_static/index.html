@@ -241,15 +241,18 @@ const FAIZ_NAME  = 'FAİZ (TLREF)';
 const FAIZ_COLOR = '#f97316';   // turuncu — her zaman bu renk
 
 // ─── State ───────────────────────────────────────────────────────────────────
-let period       = '1y';
-let histData     = {};
-let hidden       = new Set();
-let activeIdx    = null;
-let chart        = null;
-let colorMap     = { [FAIZ_NAME]: FAIZ_COLOR };   // FAİZ rengi sabit
-let stocksData   = [];
-let sortCol      = 'pct';
-let sortAsc      = false;
+let period          = '1y';
+let histData        = {};
+let hidden          = new Set();
+let activeIdx       = null;
+let chart           = null;
+let colorMap        = { [FAIZ_NAME]: FAIZ_COLOR };   // FAİZ rengi sabit
+let stocksData      = [];
+let sortCol         = 'pct';
+let sortAsc         = false;
+let isCustomMode    = false;   // Özel tarih modu aktif mi?
+let customStartDate = '';
+let customEndDate   = '';
 
 // ─── Chart ───────────────────────────────────────────────────────────────────
 const ctx = document.getElementById('mainChart').getContext('2d');
@@ -469,8 +472,16 @@ async function loadStocks(name) {
     `${name} <small id="stocksSub">Yükleniyor…</small>`;
   document.getElementById('stocksBody').innerHTML =
     '<div class="placeholder"><div class="spin" style="border-top-color:#2563eb"></div></div>';
+
+  let url;
+  if (isCustomMode && customStartDate && customEndDate) {
+    url = `/bist/api/stocks?index=${encodeURIComponent(name)}&start=${customStartDate}&end=${customEndDate}`;
+  } else {
+    url = `/bist/api/stocks?index=${encodeURIComponent(name)}&period=${period}`;
+  }
+
   try {
-    const res  = await fetch(`/bist/api/stocks?index=${encodeURIComponent(name)}&period=${period}`);
+    const res  = await fetch(url);
     stocksData = await res.json();
     renderStocks(name);
   } catch {
@@ -488,8 +499,11 @@ function renderStocks(name) {
 
   const maxAbs = Math.max(...sorted.map(s => Math.abs(s.pct ?? 0)), 1);
 
+  const periodLabel = isCustomMode
+    ? `${customStartDate} → ${customEndDate}`
+    : period.toUpperCase();
   document.getElementById('stocksHdr').innerHTML =
-    `${name} <small id="stocksSub">— ${sorted.length} hisse · ${period.toUpperCase()}</small>`;
+    `${name} <small id="stocksSub">— ${sorted.length} hisse · ${periodLabel}</small>`;
 
   document.getElementById('stocksBody').innerHTML = `
     <table>
@@ -560,6 +574,9 @@ document.getElementById('periodBar').addEventListener('click', e => {
     btn.classList.add('active');
     customBar.classList.remove('show');
     bodyWrap.classList.remove('with-custom');
+    isCustomMode    = false;
+    customStartDate = '';
+    customEndDate   = '';
     period = btn.dataset.p;
     loadHistory(period);
   }
@@ -575,6 +592,9 @@ function applyCustom() {
   if (start >= end)   { msg.textContent = '⚠ Başlangıç bitiş tarihinden önce olmalı'; return; }
 
   msg.textContent = '';
+  isCustomMode    = true;
+  customStartDate = start;
+  customEndDate   = end;
   loadHistoryCustom(start, end);
 }
 
