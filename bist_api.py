@@ -354,35 +354,27 @@ def fetch_stocks_from_tv(index_name, period):
 # ── Blueprint rotaları ─────────────────────────────────────────────────────────
 
 def _auth():
-    return session.get('logged_in')
+    return True  # Tüm okuma endpoint'leri artık public
 
 
 @bist_bp.route('/')
 @bist_bp.route('')
 def bist_index():
-    if not _auth():
-        return redirect(url_for('login'))
     return send_from_directory(str(BIST_STATIC), 'index.html')
 
 
 @bist_bp.route('/karsilastirma')
 def bist_karsilastirma():
-    if not _auth():
-        return redirect(url_for('login'))
     return send_from_directory(str(BIST_STATIC), 'karsilastirma.html')
 
 
 @bist_bp.route('/api/indices')
 def api_indices():
-    if not _auth():
-        return jsonify({'error': 'Unauthorized'}), 401
     return jsonify([{'name': k, 'symbol': v} for k, v in ENDEKSLER.items()])
 
 
 @bist_bp.route('/api/history')
 def api_history():
-    if not _auth():
-        return jsonify({'error': 'Unauthorized'}), 401
     period = request.args.get('period', '1y').lower()
     data, _ = db_get_history(period)
     if data:
@@ -393,8 +385,6 @@ def api_history():
 
 @bist_bp.route('/api/stocks')
 def api_stocks():
-    if not _auth():
-        return jsonify({'error': 'Unauthorized'}), 401
     index_name = request.args.get('index', '')
     period     = request.args.get('period', '1y').lower()
     data, updated = db_get_stocks(index_name, period)
@@ -418,8 +408,6 @@ def api_stocks():
 
 @bist_bp.route('/api/returns-summary')
 def api_returns_summary():
-    if not _auth():
-        return jsonify({'error': 'Unauthorized'}), 401
     periods = list(PERIOD_TV.keys())
     with get_bist_conn() as conn:
         rows = conn.execute('SELECT name, period, pct FROM index_history').fetchall()
@@ -435,7 +423,8 @@ def api_returns_summary():
 
 @bist_bp.route('/api/refresh')
 def api_refresh():
-    if not _auth():
+    # Veri yenileme komutu — sadece üyeler
+    if not session.get('logged_in'):
         return jsonify({'error': 'Unauthorized'}), 401
     import subprocess, sys
     script = str(BASE_DIR / 'collect_bist.py')
@@ -448,8 +437,6 @@ def api_refresh():
 
 @bist_bp.route('/api/cache-status')
 def api_cache_status():
-    if not _auth():
-        return jsonify({'error': 'Unauthorized'}), 401
     with get_bist_conn() as conn:
         rows = conn.execute(
             'SELECT period, COUNT(*) as cnt, MAX(updated_at) as ts '
