@@ -465,18 +465,34 @@ function renderPf() {
         <th>İşlem</th>
       </tr></thead>
       <tbody>
-        <!-- NSP satırı: bilgi + NSP/cash override göstergesi -->
-        <tr>
+        <!-- NSP satırı: bilgi amaçlı (override göstergesi) -->
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.06);">
           <td style="font-family:monospace;font-weight:700;color:#a78bfa;">
             NSP ${nspBadge}
           </td>
           <td style="color:#475569;font-size:12px;">${nspUnitsDisp} pay</td>
           <td colspan="2" style="color:#e2e8f0;font-size:13px;font-weight:600;">${nspValDisp} ₺</td>
-          <td style="color:#475569;font-size:12px;">
-            NAKİT ${cashBadge} → ${cashDisp} ₺
-          </td>
+          <td></td>
           <td>
-            ${(nspOv != null || cashOv != null) ? `<button class="pf-btn-reset" onclick="resetFunding()">Finansmanı Sıfırla</button>` : '<span style="color:#475569;font-size:11px;">—</span>'}
+            ${nspOv != null ? `<button class="pf-btn-reset" onclick="resetFunding()">Finansmanı Sıfırla</button>` : '<span style="color:#475569;font-size:11px;">—</span>'}
+          </td>
+        </tr>
+        <!-- NAKİT satırı: düzenlenebilir -->
+        <tr>
+          <td style="font-family:monospace;font-weight:700;color:#22c55e;">
+            NAKİT ${cashBadge}
+          </td>
+          <td style="color:#475569;font-size:12px;">Serbest para</td>
+          <td colspan="2">
+            <input class="pf-input wide" id="cashInput" type="number" min="0" step="1"
+                   value="${pfData.cash_value ?? 0}" placeholder="0">
+          </td>
+          <td style="color:#475569;font-size:12px;padding-top:12px;">₺</td>
+          <td>
+            <div style="display:flex;gap:8px;">
+              <button class="pf-btn-save" onclick="saveCash()">Kaydet</button>
+              ${cashOv != null ? `<button class="pf-btn-reset" onclick="resetCash()">Sıfırla</button>` : ''}
+            </div>
           </td>
         </tr>
         ${rows}
@@ -583,6 +599,35 @@ async function resetRow(ticker) {
     });
     const j = await r.json();
     if (j.ok) { toast(`${ticker} sıfırlandı`); loadPf(); }
+    else toast(j.error || 'Hata', false);
+  } catch(e) { toast(e.message, false); }
+}
+
+async function saveCash() {
+  const val = parseFloat(document.getElementById('cashInput').value);
+  if (isNaN(val) || val < 0) { toast('Geçersiz değer', false); return; }
+  try {
+    const r = await fetch(`/admin/${SECRET}/portfolio-set-cash`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({cash_value: val}),
+    });
+    const j = await r.json();
+    if (j.ok) { toast(`Nakit ${val.toLocaleString('tr-TR',{maximumFractionDigits:0})} ₺ olarak kaydedildi ✓`); loadPf(); }
+    else toast(j.error || 'Hata', false);
+  } catch(e) { toast(e.message, false); }
+}
+
+async function resetCash() {
+  if (!confirm('Nakit override\'ını sıfırlayıp PDF değerine dönmek istiyor musunuz?')) return;
+  try {
+    const r = await fetch(`/admin/${SECRET}/portfolio-set-cash`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({cash_value: 0}),
+    });
+    const j = await r.json();
+    if (j.ok) { toast('Nakit sıfırlandı'); loadPf(); }
     else toast(j.error || 'Hata', false);
   } catch(e) { toast(e.message, false); }
 }
