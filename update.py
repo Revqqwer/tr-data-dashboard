@@ -777,40 +777,60 @@ def update_ab_surplus():
         )''')
     last  = db_last('ab_surplus')
     today = datetime.now()
-    start_str = (last + pd.Timedelta(days=1)).strftime('%d-%m-%Y') if last else '01-01-2002'
-    end_str   = today.strftime('%d-%m-%Y')
 
-    url = (f'{EVDS_BASE}/series=TP.AB.A02-TP.AB.A10-TP.DK.USD.A.YTL'
-           f'&startDate={start_str}&endDate={end_str}&type=json')
-    r = requests.get(url, headers=EVDS_HEADERS, timeout=30, verify=False)
-    r.raise_for_status()
+    # Başlangıç tarihi: DB'deki son kayıttan 1 gün sonrası, yoksa 1990'dan başla
+    start_dt = last + pd.Timedelta(days=1) if last else pd.Timestamp('1990-01-01')
+    end_dt   = pd.Timestamp(today.date())
 
-    rows = []
-    for item in r.json().get('items', []):
-        a02 = item.get('TP_AB_A02')
-        a10 = item.get('TP_AB_A10')
-        usd = item.get('TP_DK_USD_A_YTL')
-        if a02 is None or a10 is None or usd is None:
-            continue
-        parts = item['Tarih'].split('-')
-        if len(parts) == 2:
-            if int(parts[0]) > 31: y, m = parts
-            else:                  m, y = parts
-            tarih = f'{y}-{m.zfill(2)}-01'
-        else:
-            d, m, y = parts; tarih = f'{y}-{m}-{d}'
-        a02_v = float(a02); a10_v = float(a10); usd_v = float(usd)
-        deger = round((a02_v - a10_v) / usd_v, 2) if usd_v else None
-        rows.append((tarih, a02_v, a10_v, usd_v, deger))
+    if start_dt > end_dt:
+        print('  Güncel, atlandı.')
+        return 0
 
-    if rows:
-        with sqlite3.connect(DB_PATH) as conn:
-            conn.executemany('INSERT OR IGNORE INTO ab_surplus VALUES (?,?,?,?,?)', rows)
-            conn.commit()
-        print(f'  +{len(rows)} yeni AB kaydı (son: {rows[-1][0]})')
-    else:
-        print('  Yeni veri yok.')
-    return len(rows)
+    # EVDS tek istekte sınırlı kayıt döndürür → 2 yıllık parçalara böl
+    def parse_items(items):
+        rows = []
+        for item in items:
+            a02 = item.get('TP_AB_A02')
+            a10 = item.get('TP_AB_A10')
+            usd = item.get('TP_DK_USD_A_YTL')
+            if a02 is None or a10 is None or usd is None:
+                continue
+            parts = item['Tarih'].split('-')
+            if len(parts) == 2:
+                if int(parts[0]) > 31: y, m = parts
+                else:                  m, y = parts
+                tarih = f'{y}-{m.zfill(2)}-01'
+            else:
+                d, m, y = parts; tarih = f'{y}-{m}-{d}'
+            a02_v = float(a02); a10_v = float(a10); usd_v = float(usd)
+            deger = round((a02_v - a10_v) / usd_v, 2) if usd_v else None
+            rows.append((tarih, a02_v, a10_v, usd_v, deger))
+        return rows
+
+    total = 0
+    chunk_start = start_dt
+    while chunk_start <= end_dt:
+        chunk_end = min(chunk_start + pd.DateOffset(years=2) - pd.Timedelta(days=1), end_dt)
+        s = chunk_start.strftime('%d-%m-%Y')
+        e = chunk_end.strftime('%d-%m-%Y')
+        url = (f'{EVDS_BASE}/series=TP.AB.A02-TP.AB.A10-TP.DK.USD.A.YTL'
+               f'&startDate={s}&endDate={e}&type=json')
+        try:
+            r = requests.get(url, headers=EVDS_HEADERS, timeout=30, verify=False)
+            r.raise_for_status()
+            rows = parse_items(r.json().get('items', []))
+            if rows:
+                with sqlite3.connect(DB_PATH) as conn:
+                    conn.executemany('INSERT OR IGNORE INTO ab_surplus VALUES (?,?,?,?,?)', rows)
+                    conn.commit()
+                total += len(rows)
+                print(f'  {s} → {e}: +{len(rows)} kayıt')
+        except Exception as ex:
+            print(f'  {s} → {e}: HATA — {ex}')
+        chunk_start = chunk_end + pd.Timedelta(days=1)
+
+    print(f'  Toplam: +{total} yeni AB kaydı')
+    return total
 
 
 def print_summary():
