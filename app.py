@@ -341,7 +341,7 @@ def _data_status():
         ('odeme_dengesi', 'Ödemeler Dengesi',    'EVDS — manuel güncelleme',   'tarih'),
         ('konut',         'Konut',               'EVDS — manuel güncelleme',   'tarih'),
         ('enflasyon',     'Enflasyon (TÜFE)',    'EVDS — manuel güncelleme',   'tarih'),
-        ('ab_surplus',    'Analitik Bilanço',    'EVDS — manuel güncelleme',   'tarih'),
+        ('ab_surplus',    'TCMB Rezervleri',     'EVDS — manuel güncelleme',   'tarih'),
         ('makro',         'Makro Tahmin',        'Manuel güncelleme',          'tarih'),
     ]
     try:
