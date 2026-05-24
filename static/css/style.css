@@ -734,10 +734,11 @@ body {
     position: relative !important;
     inset: 0 !important;
     height: auto !important;
+    overflow: visible !important;
   }
 
   /* Chart cards auto height */
-  .chart-card { height: auto !important; min-height: 0; overflow: visible; }
+  .chart-card { height: auto !important; min-height: 0; overflow: visible !important; }
   .chart-wrap { height: 220px !important; min-height: 200px !important; flex: none !important; }
 
   /* Makro table needs explicit height limit + horizontal scroll */
