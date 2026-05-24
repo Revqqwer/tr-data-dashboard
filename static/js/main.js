@@ -2842,8 +2842,16 @@ let tcmbAbMode = '1y';   // '1y' | '3y' | '5y' | '10y' | 'all' | 'custom'
 
 async function loadAbSurplus() {
   try {
-    const res = await fetch('/api/tcmb-ab');
-    allAbSurplus = await res.json();
+    const abRes = await fetch('/api/tcmb-ab');
+    allAbSurplus = await abRes.json();
+    if (!allMakro.length) {
+      const makroRes = await fetch('/api/makro');
+      const raw = await makroRes.json();
+      allMakro = raw.map(d => {
+        const [dd, mm, yyyy] = d.tarih.split('-');
+        return { ...d, tarih_raw: `${yyyy}-${mm}-${dd}` };
+      });
+    }
     document.getElementById('page-tcmb-ab').classList.remove('hidden');
     renderAbSurplus();
   } catch(e) { console.error('TCMB AB yüklenemedi:', e); }
@@ -2862,14 +2870,15 @@ function setTcmbAbRange(mode) {
   if (mode !== 'custom') renderAbSurplus();
 }
 
-function getFilteredAbSurplus() {
-  if (!allAbSurplus.length) return [];
-  if (tcmbAbMode === 'all') return allAbSurplus;
+/* Ortak tarih filtresi — DD-MM-YYYY tarih alanı olan herhangi bir dizi için */
+function tcmbAbFilterByDate(arr) {
+  if (!arr.length) return [];
+  if (tcmbAbMode === 'all') return arr;
 
   if (tcmbAbMode === 'custom') {
-    const s = document.getElementById('tcmbAbCustomStart').value;  // YYYY-MM-DD
+    const s = document.getElementById('tcmbAbCustomStart').value;
     const e = document.getElementById('tcmbAbCustomEnd').value;
-    return allAbSurplus.filter(d => {
+    return arr.filter(d => {
       const [dd, mm, yyyy] = d.tarih.split('-');
       const iso = `${yyyy}-${mm}-${dd}`;
       if (s && iso < s) return false;
@@ -2878,22 +2887,26 @@ function getFilteredAbSurplus() {
     });
   }
 
-  const yearsMap = { '1y': 1, '3y': 3, '5y': 5, '10y': 10 };
-  const yrs = yearsMap[tcmbAbMode] || 1;
+  const yrs = { '1y': 1, '3y': 3, '5y': 5, '10y': 10 }[tcmbAbMode] || 1;
   const cutoff = new Date();
   cutoff.setFullYear(cutoff.getFullYear() - yrs);
-  const cutoffISO = cutoff.toISOString().slice(0, 10);   // YYYY-MM-DD
-  return allAbSurplus.filter(d => {
+  const cutoffISO = cutoff.toISOString().slice(0, 10);
+  return arr.filter(d => {
     const [dd, mm, yyyy] = d.tarih.split('-');
     return `${yyyy}-${mm}-${dd}` >= cutoffISO;
   });
 }
 
+function getFilteredAbSurplus()  { return tcmbAbFilterByDate(allAbSurplus); }
+function getFilteredProxyKur()   { return tcmbAbFilterByDate(allMakro.filter(d => d.proxy_kur != null)); }
+
 function renderAbSurplus() {
-  const data = getFilteredAbSurplus();
-  if (!data.length) return;
-  renderAbSurplusChart(data);
-  renderAbSurplusTable(data);
+  const abData    = getFilteredAbSurplus();
+  const proxyData = getFilteredProxyKur();
+  if (!abData.length && !proxyData.length) return;
+  if (abData.length)    renderAbSurplusChart(abData);
+  if (proxyData.length) renderProxyKurChart(proxyData);
+  renderAbSurplusTable();
 }
 
 function renderAbSurplusChart(data) {
@@ -2923,7 +2936,34 @@ function renderAbSurplusChart(data) {
   });
 }
 
-function renderAbSurplusTable(data) {
+function renderProxyKurChart(data) {
+  makeChart('proxyKurChart', 'line', {
+    labels: data.map(d => formatDateTR(d.tarih)),
+    datasets: [{
+      label: 'Proxy Reel Kur',
+      data: data.map(d => d.proxy_kur),
+      borderColor: '#10b981',
+      backgroundColor: 'rgba(16,185,129,0.07)',
+      fill: true,
+      tension: 0.3,
+      pointRadius: 0,
+      borderWidth: 2
+    }]
+  }, {
+    responsive: true, maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { display: false },
+      tooltip: { ...baseTip, callbacks: { label: c => ` Proxy Reel Kur: ${fmtDec(c.parsed.y)}` } }
+    },
+    scales: {
+      ...baseScales,
+      y: { ...baseScales.y, ticks: { ...baseScales.y.ticks, callback: v => fmtDec(v, 1) } }
+    }
+  });
+}
+
+function renderAbSurplusTable() {
   /* Aylık ortalamaları hesapla — tüm data üzerinden, en güncel en üstte */
   const monthly = {};
   for (const d of allAbSurplus) {          // tabloda her zaman TÜM veri
