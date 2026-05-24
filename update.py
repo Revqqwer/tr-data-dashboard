@@ -767,6 +767,14 @@ def update_makro():
 
 def update_ab_surplus():
     print('\n── TCMB Analitik Bilanço (AB) ──')
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute('''CREATE TABLE IF NOT EXISTS ab_surplus (
+            tarih   TEXT PRIMARY KEY,
+            a02     REAL,
+            a10     REAL,
+            usd_try REAL,
+            deger   REAL
+        )''')
     last  = db_last('ab_surplus')
     today = datetime.now()
     start_str = (last + pd.Timedelta(days=1)).strftime('%d-%m-%Y') if last else '01-01-2010'
