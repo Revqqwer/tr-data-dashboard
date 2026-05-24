@@ -639,3 +639,136 @@ body {
 }
 .chat-send-btn:hover { background: #2563eb; }
 .chat-hidden { display: none !important; }
+
+/* ══════════════════════════════════════════════
+   MOBİL UYUMLULUK
+   ══════════════════════════════════════════════ */
+
+/* Smooth sidebar slide (always applied) */
+.sidebar { transition: transform 0.25s cubic-bezier(.4,0,.2,1); }
+
+/* Dark overlay shown when sidebar is open on mobile */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 99;
+}
+.sidebar-overlay.visible { display: block; }
+
+/* Hamburger toggle button – hidden on desktop */
+#mobile-menu-btn {
+  display: none;
+  position: fixed;
+  top: 12px;
+  left: 14px;
+  z-index: 200;
+  width: 38px;
+  height: 38px;
+  background: var(--sb-bg);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--sb-text);
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+
+  /* Show hamburger */
+  #mobile-menu-btn { display: flex; }
+
+  /* Sidebar slides off-screen; .mobile-open slides it back */
+  .sidebar { transform: translateX(-100%); }
+  .sidebar.mobile-open { transform: translateX(0); }
+
+  /* Main area fills full width */
+  .main { margin-left: 0; }
+
+  /* Topbar: leave room for hamburger on left */
+  .topbar {
+    padding: 10px 12px 10px 62px;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .topbar h1 { font-size: 14px; }
+  .topbar-sub { font-size: 10px; }
+  .topbar-actions { gap: 6px; }
+
+  /* Compact "Yenile" button – hide text, keep icon */
+  .refresh-btn { font-size: 0 !important; padding: 7px 9px; gap: 0; }
+  .refresh-btn svg { width: 16px !important; height: 16px !important; }
+
+  /* Compact select inputs */
+  .range-select { font-size: 11px !important; padding: 5px 7px !important; max-width: 130px !important; }
+
+  /* ── GridStack: stack items vertically on mobile ── */
+  .grid-stack {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    padding: 8px !important;
+    height: auto !important;
+    min-height: 0 !important;
+  }
+  .grid-stack > .grid-stack-item {
+    position: relative !important;
+    left: 0 !important;
+    top: auto !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    transform: none !important;
+  }
+  .grid-stack > .grid-stack-item > .grid-stack-item-content {
+    position: relative !important;
+    inset: 0 !important;
+    height: auto !important;
+  }
+
+  /* Chart cards auto height */
+  .chart-card { height: auto !important; min-height: 0; }
+  .chart-wrap { height: 220px !important; min-height: 180px !important; }
+
+  /* Makro table needs explicit height limit */
+  #makroTableWrap { max-height: 420px !important; flex: none !important; }
+
+  /* Chart header wraps on small screens */
+  .chart-header { flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .chart-header h2 { font-size: 13px; }
+  .header-right { gap: 6px; flex-wrap: wrap; }
+  .legend { gap: 8px; flex-wrap: wrap; }
+  .legend-item { font-size: 11px; }
+  .toggle-btn { padding: 3px 8px; font-size: 11px; }
+  .date-input-wrap { gap: 5px; }
+  .date-input { padding: 4px 8px; font-size: 11px; }
+  .date-label { font-size: 11px; }
+
+  /* Table max heights */
+  .butce-table-wrap { max-height: 320px; overflow-x: auto; overflow-y: auto; }
+  .bop-wrap { max-height: 320px; overflow-x: auto; overflow-y: auto; }
+
+  /* Source note smaller */
+  .source-note-card { font-size: 10px; padding: 8px 12px; line-height: 1.5; }
+
+  /* Iframe pages: keep consistent height with desktop topbar */
+  .page-content > iframe { height: calc(100vh - 56px) !important; }
+
+  /* Hide GridStack resize handles on touch */
+  .ui-resizable-handle { display: none !important; }
+
+  /* Chat widget */
+  #chat-widget { right: 8px; bottom: 8px; gap: 8px; }
+  .chat-window { width: calc(100vw - 20px); max-width: 320px; }
+  #chat-online-panel { width: 210px; }
+  #chat-online-btn { font-size: 11px; padding: 7px 12px; }
+
+  /* Sidebar footer compact */
+  .sidebar-footer { padding: 10px 14px 12px; }
+  .sb-user-name { font-size: 12px; }
+
+}
