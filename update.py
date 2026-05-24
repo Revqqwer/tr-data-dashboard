@@ -765,10 +765,50 @@ def update_makro():
     return len(rows)
 
 
+def update_ab_surplus():
+    print('\n── TCMB Analitik Bilanço (AB) ──')
+    last  = db_last('ab_surplus')
+    today = datetime.now()
+    start_str = (last + pd.Timedelta(days=1)).strftime('%d-%m-%Y') if last else '01-01-2010'
+    end_str   = today.strftime('%d-%m-%Y')
+
+    url = (f'{EVDS_BASE}/series=TP.AB.A02-TP.AB.A10-TP.DK.USD.A.YTL'
+           f'&startDate={start_str}&endDate={end_str}&type=json')
+    r = requests.get(url, headers=EVDS_HEADERS, timeout=30, verify=False)
+    r.raise_for_status()
+
+    rows = []
+    for item in r.json().get('items', []):
+        a02 = item.get('TP_AB_A02')
+        a10 = item.get('TP_AB_A10')
+        usd = item.get('TP_DK_USD_A_YTL')
+        if a02 is None or a10 is None or usd is None:
+            continue
+        parts = item['Tarih'].split('-')
+        if len(parts) == 2:
+            if int(parts[0]) > 31: y, m = parts
+            else:                  m, y = parts
+            tarih = f'{y}-{m.zfill(2)}-01'
+        else:
+            d, m, y = parts; tarih = f'{y}-{m}-{d}'
+        a02_v = float(a02); a10_v = float(a10); usd_v = float(usd)
+        deger = round((a02_v - a10_v) / usd_v, 2) if usd_v else None
+        rows.append((tarih, a02_v, a10_v, usd_v, deger))
+
+    if rows:
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.executemany('INSERT OR IGNORE INTO ab_surplus VALUES (?,?,?,?,?)', rows)
+            conn.commit()
+        print(f'  +{len(rows)} yeni AB kaydı (son: {rows[-1][0]})')
+    else:
+        print('  Yeni veri yok.')
+    return len(rows)
+
+
 def print_summary():
     print('\n── DB durumu ──')
     with sqlite3.connect(DB_PATH) as conn:
-        for tbl in ['dth', 'credit', 'credit_detail', 'menkul', 'usdtry', 'butce', 'dis_ticaret', 'turizm', 'odeme_dengesi', 'konut', 'enflasyon', 'makro']:
+        for tbl in ['dth', 'credit', 'credit_detail', 'menkul', 'usdtry', 'butce', 'dis_ticaret', 'turizm', 'odeme_dengesi', 'konut', 'enflasyon', 'makro', 'ab_surplus']:
             cnt  = conn.execute(f'SELECT COUNT(*) FROM {tbl}').fetchone()[0]
             last = conn.execute(f'SELECT MAX(tarih) FROM {tbl}').fetchone()[0]
             print(f'  {tbl:<15} {cnt:>6} kayıt   son: {last}')
@@ -790,5 +830,6 @@ if __name__ == '__main__':
     update_konut()
     update_enflasyon()
     update_makro()
+    update_ab_surplus()
     print_summary()
     print('\n✓ Güncelleme tamamlandı.')
