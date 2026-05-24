@@ -683,8 +683,8 @@ body {
   #mobile-menu-btn { display: flex; }
 
   /* Sidebar slides off-screen; .mobile-open slides it back */
-  .sidebar { transform: translateX(-100%); }
-  .sidebar.mobile-open { transform: translateX(0); }
+  .sidebar { transform: translateX(-100%); pointer-events: none; }
+  .sidebar.mobile-open { transform: translateX(0); pointer-events: auto; }
 
   /* Main area fills full width */
   .main { margin-left: 0; }
@@ -731,8 +731,8 @@ body {
   }
 
   /* Chart cards auto height */
-  .chart-card { height: auto !important; min-height: 0; }
-  .chart-wrap { height: 220px !important; min-height: 180px !important; }
+  .chart-card { height: auto !important; min-height: 0; overflow: visible; }
+  .chart-wrap { height: 220px !important; min-height: 200px !important; flex: none !important; }
 
   /* Makro table needs explicit height limit */
   #makroTableWrap { max-height: 420px !important; flex: none !important; }

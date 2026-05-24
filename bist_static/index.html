@@ -160,6 +160,53 @@
   ::-webkit-scrollbar { width: 5px; height: 5px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* ── Mobil uyumluluk ── */
+  @media (max-width: 768px) {
+    header { padding: 8px 12px; gap: 6px; }
+    header h1 { font-size: 0.82rem; }
+    .period-bar { margin-left: 0; gap: 3px; flex-wrap: wrap; }
+    .period-btn { padding: 3px 7px; font-size: 0.68rem; }
+    .last-update { font-size: 0.62rem; margin-left: 0; width: 100%; }
+
+    .custom-bar { padding: 6px 12px; gap: 6px; }
+    .custom-bar input[type=date] { padding: 3px 7px; font-size: 0.72rem; }
+    .custom-bar .apply-btn { padding: 3px 10px; font-size: 0.7rem; }
+
+    /* Stack: index list on top, chart+stocks below */
+    .body-wrap {
+      grid-template-columns: 1fr !important;
+      grid-template-rows: 170px 1fr !important;
+      height: calc(100vh - 48px) !important;
+      overflow: hidden;
+    }
+    .body-wrap.with-custom {
+      height: calc(100vh - 48px - 40px) !important;
+    }
+
+    /* Sidebar becomes a compact list (left column → top row) */
+    .sidebar {
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+      height: 170px;
+    }
+    .sidebar-hdr { padding: 6px 10px; font-size: 0.65rem; }
+    .idx-item { padding: 5px 10px; font-size: 0.75rem; }
+    .idx-pct { font-size: 0.7rem; min-width: 46px; }
+    .idx-dot { width: 8px; height: 8px; }
+
+    /* Right column */
+    .right-col { overflow: hidden; }
+    .chart-wrap { padding: 6px 8px 4px; }
+
+    /* Stocks panel smaller */
+    .stocks-panel { height: 200px; }
+    .stocks-hdr { padding: 6px 10px; font-size: 0.75rem; }
+    table { font-size: 0.72rem; }
+    td { padding: 4px 8px; }
+    thead th { padding: 4px 8px; font-size: 0.65rem; }
+    .td-bar { width: 60px; }
+  }
 </style>
 </head>
 <body>
