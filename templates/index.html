@@ -334,12 +334,19 @@
       <span class="topbar-sub">TCMB EVDS · (TP_AB_A02 − TP_AB_A10) / TP_DK_USD_A_YTL</span>
     </div>
     <div class="topbar-actions">
-      <select id="rangeSelectTcmbAb" class="range-select">
-        <option value="52">Son 1 Yıl</option>
-        <option value="156">Son 3 Yıl</option>
-        <option value="260">Son 5 Yıl</option>
-        <option value="0" selected>Tüm Veri</option>
-      </select>
+      <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;">
+        <button class="toggle-btn active" id="tcmbAbBtn1Y"   onclick="setTcmbAbRange('1y')">1Y</button>
+        <button class="toggle-btn"        id="tcmbAbBtn3Y"   onclick="setTcmbAbRange('3y')">3Y</button>
+        <button class="toggle-btn"        id="tcmbAbBtn5Y"   onclick="setTcmbAbRange('5y')">5Y</button>
+        <button class="toggle-btn"        id="tcmbAbBtn10Y"  onclick="setTcmbAbRange('10y')">10Y</button>
+        <button class="toggle-btn"        id="tcmbAbBtnAll"  onclick="setTcmbAbRange('all')">Tümü</button>
+        <button class="toggle-btn"        id="tcmbAbBtnOzel" onclick="setTcmbAbRange('custom')">Özel</button>
+        <span id="tcmbAbCustomWrap" style="display:none;align-items:center;gap:4px;">
+          <input type="date" id="tcmbAbCustomStart" style="padding:3px 6px;border-radius:6px;border:1px solid var(--border);background:var(--card-bg);color:var(--text-primary);font-size:12px;">
+          <span style="color:var(--text-muted);font-size:12px">—</span>
+          <input type="date" id="tcmbAbCustomEnd"   style="padding:3px 6px;border-radius:6px;border:1px solid var(--border);background:var(--card-bg);color:var(--text-primary);font-size:12px;">
+        </span>
+      </div>
       <button class="refresh-btn" id="refreshBtnTcmbAb">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
         Yenile
@@ -1175,14 +1182,14 @@
     <div class="grid-stack-item" gs-w="12" gs-h="8" gs-x="0" gs-y="0">
       <div class="grid-stack-item-content chart-card">
         <div class="chart-header">
-          <h2>(TP_AB_A02 − TP_AB_A10) / TP_DK_USD_A_YTL</h2>
+          <h2>TCMB REZERVLERİ</h2>
         </div>
         <div class="chart-wrap" data-canvas="tcmbAbChart"><canvas id="tcmbAbChart"></canvas></div>
       </div>
     </div>
 
     <!-- Monthly Table -->
-    <div class="grid-stack-item" gs-w="5" gs-h="16" gs-x="0" gs-y="8">
+    <div class="grid-stack-item" gs-w="6" gs-h="16" gs-x="3" gs-y="8">
       <div class="grid-stack-item-content chart-card table-card">
         <div class="chart-header">
           <h2>Aylık Tablo</h2>
