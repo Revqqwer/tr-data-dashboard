@@ -703,8 +703,11 @@ body {
   .refresh-btn { font-size: 0 !important; padding: 7px 9px; gap: 0; }
   .refresh-btn svg { width: 16px !important; height: 16px !important; }
 
+  /* Exception: "+Tahmin Satırı" button keeps its text */
+  #addFcRowBtn { font-size: 11px !important; padding: 5px 10px !important; gap: 4px !important; }
+
   /* Compact select inputs */
-  .range-select { font-size: 11px !important; padding: 5px 7px !important; max-width: 130px !important; }
+  .range-select { font-size: 11px !important; padding: 5px 7px !important; max-width: 130px !important; min-width: 0 !important; }
 
   /* ── GridStack: stack items vertically on mobile ── */
   /* .hidden must override .grid-stack — higher specificity (0,2,0 > 0,1,0) wins */
@@ -737,8 +740,8 @@ body {
   .chart-card { height: auto !important; min-height: 0; overflow: visible; }
   .chart-wrap { height: 220px !important; min-height: 200px !important; flex: none !important; }
 
-  /* Makro table needs explicit height limit */
-  #makroTableWrap { max-height: 420px !important; flex: none !important; }
+  /* Makro table needs explicit height limit + horizontal scroll */
+  #makroTableWrap { max-height: 420px !important; flex: none !important; overflow-x: auto !important; }
 
   /* Chart header wraps on small screens */
   .chart-header { flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
