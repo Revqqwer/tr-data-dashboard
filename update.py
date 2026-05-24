@@ -777,7 +777,7 @@ def update_ab_surplus():
         )''')
     last  = db_last('ab_surplus')
     today = datetime.now()
-    start_str = (last + pd.Timedelta(days=1)).strftime('%d-%m-%Y') if last else '01-01-2010'
+    start_str = (last + pd.Timedelta(days=1)).strftime('%d-%m-%Y') if last else '01-01-2002'
     end_str   = today.strftime('%d-%m-%Y')
 
     url = (f'{EVDS_BASE}/series=TP.AB.A02-TP.AB.A10-TP.DK.USD.A.YTL'
