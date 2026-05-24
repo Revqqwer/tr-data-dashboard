@@ -34,16 +34,26 @@ log = logging.getLogger(__name__)
 
 log.info("=== Günlük güncelleme başlıyor: %s ===", today)
 
+# ── TEFAS fon verisi ──────────────────────────────────────
 try:
     from tefas_backend.collector import collect_range
 
     end   = today
     start = end - datetime.timedelta(days=3)
 
-    log.info("Çekiliyor: %s -> %s", start, end)
+    log.info("TEFAS çekiliyor: %s -> %s", start, end)
     collect_range(start, end, skip_composition=False, batch_days=7)
-    log.info("=== Tamamlandı ===")
+    log.info("TEFAS tamamlandı.")
 
 except Exception as e:
-    log.exception("Hata: %s", e)
-    sys.exit(1)
+    log.exception("TEFAS hatası: %s", e)
+
+# ── TCMB Rezervleri (Analitik Bilanço) ───────────────────
+try:
+    from update import update_ab_surplus
+    n = update_ab_surplus()
+    log.info("TCMB AB: +%d yeni kayıt.", n)
+except Exception as e:
+    log.exception("TCMB AB hatası: %s", e)
+
+log.info("=== Tamamlandı ===")

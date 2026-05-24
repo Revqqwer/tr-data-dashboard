@@ -2835,8 +2835,10 @@ document.getElementById('addFcRowBtn').addEventListener('click', () => {
 document.getElementById('refreshBtnMakro').addEventListener('click', () => { allMakro = []; loadMakro(); });
 
 /* ════════════════════════════════════════
-   TCMB ANALİTİK BİLANÇO
+   TCMB REZERVLERİ
    ════════════════════════════════════════ */
+
+let tcmbAbMode = '1y';   // '1y' | '3y' | '5y' | '10y' | 'all' | 'custom'
 
 async function loadAbSurplus() {
   try {
@@ -2847,9 +2849,44 @@ async function loadAbSurplus() {
   } catch(e) { console.error('TCMB AB yüklenemedi:', e); }
 }
 
+function setTcmbAbRange(mode) {
+  tcmbAbMode = mode;
+  /* Buton aktif durumunu güncelle */
+  ['1y','3y','5y','10y','all','custom'].forEach(m => {
+    const btn = document.getElementById('tcmbAbBtn' + (m === '1y' ? '1Y' : m === '3y' ? '3Y' : m === '5y' ? '5Y' : m === '10y' ? '10Y' : m === 'all' ? 'All' : 'Ozel'));
+    if (btn) btn.classList.toggle('active', m === mode);
+  });
+  /* Özel tarih inputlarını göster/gizle */
+  const wrap = document.getElementById('tcmbAbCustomWrap');
+  wrap.style.display = mode === 'custom' ? 'flex' : 'none';
+  if (mode !== 'custom') renderAbSurplus();
+}
+
 function getFilteredAbSurplus() {
-  const w = parseInt(document.getElementById('rangeSelectTcmbAb').value);
-  return w === 0 ? allAbSurplus : allAbSurplus.slice(-w);
+  if (!allAbSurplus.length) return [];
+  if (tcmbAbMode === 'all') return allAbSurplus;
+
+  if (tcmbAbMode === 'custom') {
+    const s = document.getElementById('tcmbAbCustomStart').value;  // YYYY-MM-DD
+    const e = document.getElementById('tcmbAbCustomEnd').value;
+    return allAbSurplus.filter(d => {
+      const [dd, mm, yyyy] = d.tarih.split('-');
+      const iso = `${yyyy}-${mm}-${dd}`;
+      if (s && iso < s) return false;
+      if (e && iso > e) return false;
+      return true;
+    });
+  }
+
+  const yearsMap = { '1y': 1, '3y': 3, '5y': 5, '10y': 10 };
+  const yrs = yearsMap[tcmbAbMode] || 1;
+  const cutoff = new Date();
+  cutoff.setFullYear(cutoff.getFullYear() - yrs);
+  const cutoffISO = cutoff.toISOString().slice(0, 10);   // YYYY-MM-DD
+  return allAbSurplus.filter(d => {
+    const [dd, mm, yyyy] = d.tarih.split('-');
+    return `${yyyy}-${mm}-${dd}` >= cutoffISO;
+  });
 }
 
 function renderAbSurplus() {
@@ -2863,7 +2900,7 @@ function renderAbSurplusChart(data) {
   makeChart('tcmbAbChart', 'line', {
     labels: data.map(d => formatDateTR(d.tarih)),
     datasets: [{
-      label: '(A02−A10)/USD',
+      label: 'TCMB Rezervleri',
       data: data.map(d => d.deger),
       borderColor: '#3b7ef8',
       backgroundColor: 'rgba(59,126,248,0.07)',
@@ -2887,9 +2924,9 @@ function renderAbSurplusChart(data) {
 }
 
 function renderAbSurplusTable(data) {
-  /* Aylık ortalamaları hesapla — en güncel en üstte */
+  /* Aylık ortalamaları hesapla — tüm data üzerinden, en güncel en üstte */
   const monthly = {};
-  for (const d of data) {
+  for (const d of allAbSurplus) {          // tabloda her zaman TÜM veri
     const parts = d.tarih.split('-');      // DD-MM-YYYY
     const key   = `${parts[2]}-${parts[1]}`;
     const label = monthKey(d.tarih);
@@ -2900,22 +2937,22 @@ function renderAbSurplusTable(data) {
   const keys = Object.keys(monthly).sort().reverse();
   let html = `<table style="width:100%;border-collapse:collapse;font-size:12px;">
     <thead><tr>
-      <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--border);color:var(--text-muted)">Dönem</th>
-      <th style="text-align:right;padding:6px 10px;border-bottom:1px solid var(--border);color:var(--text-muted)">Ort. Değer</th>
-      <th style="text-align:right;padding:6px 10px;border-bottom:1px solid var(--border);color:var(--text-muted)">Aylık Δ</th>
+      <th style="text-align:left;padding:6px 12px;border-bottom:1px solid var(--border);color:var(--text-muted)">Dönem</th>
+      <th style="text-align:right;padding:6px 12px;border-bottom:1px solid var(--border);color:var(--text-muted)">Ort. Değer</th>
+      <th style="text-align:right;padding:6px 12px;border-bottom:1px solid var(--border);color:var(--text-muted)">Aylık Δ</th>
     </tr></thead><tbody>`;
 
   for (let i = 0; i < keys.length; i++) {
-    const m = monthly[keys[i]];
-    const avg     = m.cnt ? m.sum / m.cnt : null;
-    const prevM   = monthly[keys[i + 1]];
-    const prevAvg = prevM && prevM.cnt ? prevM.sum / prevM.cnt : null;
-    const chg     = (avg != null && prevAvg != null) ? avg - prevAvg : null;
-    const chgCls  = chg == null ? '' : chg >= 0 ? 'color:#10b981' : 'color:#ef4444';
+    const m     = monthly[keys[i]];
+    const avg   = m.cnt ? m.sum / m.cnt : null;
+    const prevM = monthly[keys[i + 1]];
+    const prevA = prevM && prevM.cnt ? prevM.sum / prevM.cnt : null;
+    const chg   = (avg != null && prevA != null) ? avg - prevA : null;
+    const chgStyle = chg == null ? '' : chg >= 0 ? 'color:#10b981' : 'color:#ef4444';
     html += `<tr>
-      <td style="padding:5px 10px;border-bottom:1px solid var(--border)">${m.label}</td>
-      <td style="text-align:right;padding:5px 10px;border-bottom:1px solid var(--border);font-family:monospace">${avg != null ? fmtDec(avg) : '—'}</td>
-      <td style="text-align:right;padding:5px 10px;border-bottom:1px solid var(--border);font-family:monospace;${chgCls}">${chg != null ? (chg >= 0 ? '+' : '') + fmtDec(chg) : '—'}</td>
+      <td style="padding:5px 12px;border-bottom:1px solid var(--border)">${m.label}</td>
+      <td style="text-align:right;padding:5px 12px;border-bottom:1px solid var(--border);font-family:monospace">${avg != null ? fmtDec(avg) : '—'}</td>
+      <td style="text-align:right;padding:5px 12px;border-bottom:1px solid var(--border);font-family:monospace;${chgStyle}">${chg != null ? (chg >= 0 ? '+' : '') + fmtDec(chg) : '—'}</td>
     </tr>`;
   }
 
@@ -2923,7 +2960,9 @@ function renderAbSurplusTable(data) {
   document.getElementById('tcmbAbTableWrap').innerHTML = html;
 }
 
-document.getElementById('rangeSelectTcmbAb').addEventListener('change', renderAbSurplus);
+/* Özel tarih inputları değişince yeniden render et */
+document.getElementById('tcmbAbCustomStart').addEventListener('change', () => { if (tcmbAbMode === 'custom') renderAbSurplus(); });
+document.getElementById('tcmbAbCustomEnd').addEventListener('change',   () => { if (tcmbAbMode === 'custom') renderAbSurplus(); });
 document.getElementById('refreshBtnTcmbAb').addEventListener('click', () => { allAbSurplus = []; loadAbSurplus(); });
 
 /* ── Bootstrap ── */
