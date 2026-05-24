@@ -93,6 +93,13 @@ def init_tables():
             tr2y  REAL,
             tr10y REAL
         )''')
+        conn.execute('''CREATE TABLE IF NOT EXISTS ab_surplus (
+            tarih   TEXT PRIMARY KEY,
+            a02     REAL,
+            a10     REAL,
+            usd_try REAL,
+            deger   REAL
+        )''')
 init_tables()
 
 
@@ -334,6 +341,7 @@ def _data_status():
         ('odeme_dengesi', 'Ödemeler Dengesi',    'EVDS — manuel güncelleme',   'tarih'),
         ('konut',         'Konut',               'EVDS — manuel güncelleme',   'tarih'),
         ('enflasyon',     'Enflasyon (TÜFE)',    'EVDS — manuel güncelleme',   'tarih'),
+        ('ab_surplus',    'Analitik Bilanço',    'EVDS — manuel güncelleme',   'tarih'),
         ('makro',         'Makro Tahmin',        'Manuel güncelleme',          'tarih'),
     ]
     try:
@@ -926,6 +934,20 @@ def enflasyon():
         'lokanta': round(r['lokanta'], 4) if r['lokanta'] is not None else None,
         'sigorta': round(r['sigorta'], 4) if r['sigorta'] is not None else None,
         'kisisel': round(r['kisisel'], 4) if r['kisisel'] is not None else None,
+    } for r in rows])
+
+
+@app.route('/api/tcmb-ab')
+def tcmb_ab():
+    rows = query('SELECT tarih, a02, a10, usd_try, deger FROM ab_surplus ORDER BY tarih')
+    def r2(v): return round(v, 2) if v is not None else None
+    def r4(v): return round(v, 4) if v is not None else None
+    return jsonify([{
+        'tarih':   fmt(r['tarih']),
+        'a02':     r2(r['a02']),
+        'a10':     r2(r['a10']),
+        'usd_try': r4(r['usd_try']),
+        'deger':   r2(r['deger']),
     } for r in rows])
 
 

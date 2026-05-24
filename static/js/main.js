@@ -13,6 +13,7 @@ let allBoP        = [];
 let allKonut      = [];
 let allEnflasyon  = [];
 let allMakro      = [];
+let allAbSurplus  = [];
 let adminMakroForecast = []; // 3N Finans admin tahmini (server'dan gelir)
 
 /* Ortak inline plugin: son veri noktasını x ekseninde zorla göster */
@@ -165,6 +166,9 @@ function switchPage(page) {
   } else if (page === 'enflasyon') {
     if (!allEnflasyon.length) { loadEnflasyon(); }
     else { document.getElementById('page-enflasyon').classList.remove('hidden'); renderEnflasyon(); }
+  } else if (page === 'tcmb-ab') {
+    if (!allAbSurplus.length) { loadAbSurplus(); }
+    else { document.getElementById('page-tcmb-ab').classList.remove('hidden'); renderAbSurplus(); }
   } else if (page === 'makro') {
     if (!allMakro.length) { loadMakro(); }
     else { document.getElementById('page-makro').classList.remove('hidden'); renderMakro(); }
@@ -2829,6 +2833,98 @@ document.getElementById('addFcRowBtn').addEventListener('click', () => {
 });
 
 document.getElementById('refreshBtnMakro').addEventListener('click', () => { allMakro = []; loadMakro(); });
+
+/* ════════════════════════════════════════
+   TCMB ANALİTİK BİLANÇO
+   ════════════════════════════════════════ */
+
+async function loadAbSurplus() {
+  try {
+    const res = await fetch('/api/tcmb-ab');
+    allAbSurplus = await res.json();
+    document.getElementById('page-tcmb-ab').classList.remove('hidden');
+    renderAbSurplus();
+  } catch(e) { console.error('TCMB AB yüklenemedi:', e); }
+}
+
+function getFilteredAbSurplus() {
+  const w = parseInt(document.getElementById('rangeSelectTcmbAb').value);
+  return w === 0 ? allAbSurplus : allAbSurplus.slice(-w);
+}
+
+function renderAbSurplus() {
+  const data = getFilteredAbSurplus();
+  if (!data.length) return;
+  renderAbSurplusChart(data);
+  renderAbSurplusTable(data);
+}
+
+function renderAbSurplusChart(data) {
+  makeChart('tcmbAbChart', 'line', {
+    labels: data.map(d => formatDateTR(d.tarih)),
+    datasets: [{
+      label: '(A02−A10)/USD',
+      data: data.map(d => d.deger),
+      borderColor: '#3b7ef8',
+      backgroundColor: 'rgba(59,126,248,0.07)',
+      fill: true,
+      tension: 0.3,
+      pointRadius: 0,
+      borderWidth: 2
+    }]
+  }, {
+    responsive: true, maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { display: false },
+      tooltip: { ...baseTip, callbacks: { label: c => ` ${fmtDec(c.parsed.y)}` } }
+    },
+    scales: {
+      ...baseScales,
+      y: { ...baseScales.y, ticks: { ...baseScales.y.ticks, callback: v => fmtDec(v, 0) } }
+    }
+  });
+}
+
+function renderAbSurplusTable(data) {
+  /* Aylık ortalamaları hesapla — en güncel en üstte */
+  const monthly = {};
+  for (const d of data) {
+    const parts = d.tarih.split('-');      // DD-MM-YYYY
+    const key   = `${parts[2]}-${parts[1]}`;
+    const label = monthKey(d.tarih);
+    if (!monthly[key]) monthly[key] = { label, sum: 0, cnt: 0 };
+    if (d.deger != null) { monthly[key].sum += d.deger; monthly[key].cnt++; }
+  }
+
+  const keys = Object.keys(monthly).sort().reverse();
+  let html = `<table style="width:100%;border-collapse:collapse;font-size:12px;">
+    <thead><tr>
+      <th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--border);color:var(--text-muted)">Dönem</th>
+      <th style="text-align:right;padding:6px 10px;border-bottom:1px solid var(--border);color:var(--text-muted)">Ort. Değer</th>
+      <th style="text-align:right;padding:6px 10px;border-bottom:1px solid var(--border);color:var(--text-muted)">Aylık Δ</th>
+    </tr></thead><tbody>`;
+
+  for (let i = 0; i < keys.length; i++) {
+    const m = monthly[keys[i]];
+    const avg     = m.cnt ? m.sum / m.cnt : null;
+    const prevM   = monthly[keys[i + 1]];
+    const prevAvg = prevM && prevM.cnt ? prevM.sum / prevM.cnt : null;
+    const chg     = (avg != null && prevAvg != null) ? avg - prevAvg : null;
+    const chgCls  = chg == null ? '' : chg >= 0 ? 'color:#10b981' : 'color:#ef4444';
+    html += `<tr>
+      <td style="padding:5px 10px;border-bottom:1px solid var(--border)">${m.label}</td>
+      <td style="text-align:right;padding:5px 10px;border-bottom:1px solid var(--border);font-family:monospace">${avg != null ? fmtDec(avg) : '—'}</td>
+      <td style="text-align:right;padding:5px 10px;border-bottom:1px solid var(--border);font-family:monospace;${chgCls}">${chg != null ? (chg >= 0 ? '+' : '') + fmtDec(chg) : '—'}</td>
+    </tr>`;
+  }
+
+  html += '</tbody></table>';
+  document.getElementById('tcmbAbTableWrap').innerHTML = html;
+}
+
+document.getElementById('rangeSelectTcmbAb').addEventListener('change', renderAbSurplus);
+document.getElementById('refreshBtnTcmbAb').addEventListener('click', () => { allAbSurplus = []; loadAbSurplus(); });
 
 /* ── Bootstrap ── */
 switchPage('dth');
