@@ -30,7 +30,6 @@ _CATEGORY_PRESETS: dict = {
     "para_piy":  {"label": "Para Piyasası",  "category": "Para Piyasası Şemsiye Fonu"},
     "tahvil":    {"label": "Tahvil / Bono",  "category": "Borçlanma Araçları Şemsiye Fonu"},
     "altin":     {"label": "Altın",          "category": "Kıymetli Madenler Şemsiye Fonu"},
-    "endeks":    {"label": "Endeks",         "category": "Endeks Şemsiye Fonu"},
     "karma":     {"label": "Karma",          "category": "Karma Şemsiye Fonu"},
     "serbest":   {"label": "Serbest",        "category": "Serbest Şemsiye Fonu"},
     "katilim":   {"label": "Katılım",        "category": "Katılım Şemsiye Fonu"},
