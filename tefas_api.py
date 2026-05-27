@@ -308,6 +308,49 @@ def fund_meta(code: str):
 
 
 # ---------------------------------------------------------------------------
+# Portföy dağılımı (composition)
+# ---------------------------------------------------------------------------
+@tefas_bp.route("/api/funds/<code>/composition")
+def fund_composition_route(code: str):
+    err = _auth()
+    if err:
+        return err
+
+    code = code.upper()
+    days = int(request.args.get("days", 1))
+
+    _SKIP = {"id", "code", "trade_date", "fname", "bilFiyat"}
+
+    with Session(engine) as db:
+        date_rows = db.exec(
+            select(FundComposition.trade_date)
+            .where(FundComposition.code == code)  # type: ignore
+            .distinct()
+            .order_by(FundComposition.trade_date.desc())  # type: ignore
+            .limit(days)
+        ).all()
+        if not date_rows:
+            return jsonify([])
+        min_d = min(date_rows)
+        rows = db.exec(
+            select(FundComposition)
+            .where(FundComposition.code == code)  # type: ignore
+            .where(FundComposition.trade_date >= min_d)  # type: ignore
+            .order_by(FundComposition.trade_date)  # type: ignore
+        ).all()
+
+    result = []
+    for r in rows:
+        entry = {"date": r.trade_date.isoformat()}
+        row_dict = r.model_dump() if hasattr(r, "model_dump") else r.dict()
+        for f, val in row_dict.items():
+            if f not in _SKIP and isinstance(val, (int, float)) and val is not None and val != 0.0:
+                entry[f] = round(float(val), 4)
+        result.append(entry)
+    return jsonify(result)
+
+
+# ---------------------------------------------------------------------------
 # Tüm fonlar listesi
 # ---------------------------------------------------------------------------
 @tefas_bp.route("/api/funds")
