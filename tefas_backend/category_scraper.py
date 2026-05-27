@@ -25,6 +25,7 @@ import datetime
 import logging
 import os
 import sys
+import re as _re
 import time
 from typing import Optional
 
@@ -49,6 +50,8 @@ log = logging.getLogger(__name__)
 # Her kural: (fname'de aranacak anahtar kelime, normalleştirilmiş kategori adı)
 # ---------------------------------------------------------------------------
 FNAME_RULES: list[tuple[str, str]] = [
+    # ── SERBEST her zaman önce ──
+    ("SERBEST",             "Serbest Şemsiye Fonu"),
     # ── Spesifik / çakışma riski olanlar önce ──────────────────────────────
     ("FON SEPETİ",          "Fon Sepeti Şemsiye Fonu"),
     ("FON OF FUND",         "Fon Sepeti Şemsiye Fonu"),
@@ -69,8 +72,6 @@ FNAME_RULES: list[tuple[str, str]] = [
     ("HISSE SENEDI",        "Hisse Senedi Şemsiye Fonu"),
     ("DEĞİŞKEN",            "Değişken Şemsiye Fonu"),
     ("DEGISKEN",            "Değişken Şemsiye Fonu"),
-    # ── Genel ──────────────────────────────────────────────────────────────
-    ("SERBEST",             "Serbest Şemsiye Fonu"),
 ]
 
 # BYF fonları için ek kurallar (ETF'ler)
@@ -89,7 +90,8 @@ def classify_fname(fname: str, fund_type: str = "YAT") -> Optional[str]:
     if fund_type == "BYF":
         rules = BYF_EXTRA_RULES + rules  # BYF'e özgü kurallar önce
     for keyword, category in rules:
-        if keyword in upper:
+        pat = r'(?<![A-ZÇŞĞÜÖİ])' + _re.escape(keyword) + r'(?![A-ZÇŞĞÜÖİ])'
+        if _re.search(pat, upper):
             return category
     return None
 
