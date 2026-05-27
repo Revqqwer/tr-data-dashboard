@@ -25,25 +25,17 @@ except Exception:
 # Fon adı bazlı kategori filtreleme — TEFAS fon isimleri büyük harfle gelir
 # ---------------------------------------------------------------------------
 _CATEGORY_PRESETS: dict = {
-    "yogun":     {"label": "Hisse Yoğun",    "keywords": ["YOĞUN", "YOGUN"]},
-    "degisken":  {"label": "Değişken",       "keywords": ["DEĞİŞKEN", "DEGISKEN"]},
-    "para_piy":  {"label": "Para Piyasası",  "keywords": ["PARA PİYASASI", "PARA PIYASASI"]},
-    "tahvil":    {"label": "Tahvil / Bono",  "keywords": ["TAHVİL", "TAHVIL", "BORÇLANMA", "BORCLANMA"]},
-    "altin":     {"label": "Altın",          "keywords": ["ALTIN"]},
-    "endeks":    {"label": "Endeks",         "keywords": ["ENDEKS"]},
-    "karma":     {"label": "Karma",          "keywords": ["KARMA"]},
-    "serbest":   {"label": "Serbest",        "keywords": ["SERBEST"]},
-    "katilim":   {"label": "Katılım",        "keywords": ["KATILIM"]},
-    "fon_sepeti":{"label": "Fon Sepeti",     "keywords": ["FON SEPETI", "FON OF FUND"]},
+    "yogun":     {"label": "Hisse Yoğun",    "category": "Hisse Senedi Şemsiye Fonu"},
+    "degisken":  {"label": "Değişken",       "category": "Değişken Şemsiye Fonu"},
+    "para_piy":  {"label": "Para Piyasası",  "category": "Para Piyasası Şemsiye Fonu"},
+    "tahvil":    {"label": "Tahvil / Bono",  "category": "Borçlanma Araçları Şemsiye Fonu"},
+    "altin":     {"label": "Altın",          "category": "Kıymetli Madenler Şemsiye Fonu"},
+    "endeks":    {"label": "Endeks",         "category": "Endeks Şemsiye Fonu"},
+    "karma":     {"label": "Karma",          "category": "Karma Şemsiye Fonu"},
+    "serbest":   {"label": "Serbest",        "category": "Serbest Şemsiye Fonu"},
+    "katilim":   {"label": "Katılım",        "category": "Katılım Şemsiye Fonu"},
+    "fon_sepeti":{"label": "Fon Sepeti",     "category": "Fon Sepeti Şemsiye Fonu"},
 }
-
-
-def _fname_matches_cat(fname: str, keywords: list) -> bool:
-    """Fon adının belirli kategori anahtar kelimelerinden birini içerip içermediğini kontrol et."""
-    if not keywords:
-        return True
-    fn = (fname or "").upper()
-    return any(kw in fn for kw in keywords)
 
 
 def _auth():
@@ -116,8 +108,8 @@ def leaderboard():
     end_str   = request.args.get("end")
     limit     = min(int(request.args.get("limit", 50)), 200)
     fund_type = request.args.get("fund_type")
-    cat_key   = request.args.get("cat_key", "").strip()
-    cat_kws   = _CATEGORY_PRESETS.get(cat_key, {}).get("keywords", [])
+    cat_key      = request.args.get("cat_key", "").strip()
+    cat_category = _CATEGORY_PRESETS.get(cat_key, {}).get("category", "")
 
     with Session(engine) as db:
         q = select(FundFlow).where(FundFlow.net_flow.isnot(None))  # type: ignore
@@ -157,9 +149,11 @@ def leaderboard():
 
             sorted_codes = sorted(flow_sum.keys(), key=lambda c: -flow_sum[c])
             # Kategori filtresi
-            if cat_kws:
-                sorted_codes = [c for c in sorted_codes
-                                if _fname_matches_cat(fund_info[c].fname or "", cat_kws)]
+            if cat_category:
+                cat_codes = {m.code for m in db.exec(
+                    select(FundMeta).where(FundMeta.category == cat_category)
+                ).all()}
+                sorted_codes = [c for c in sorted_codes if c in cat_codes]
             inflows  = [row_to_dict_range(c) for c in sorted_codes if flow_sum[c] > 0][:limit]
             outflows = [row_to_dict_range(c) for c in reversed(sorted_codes) if flow_sum[c] < 0][:limit]
             range_label = f"{start_str}/{end_str}"
@@ -187,8 +181,11 @@ def leaderboard():
             rows = db.exec(q).all()
 
             # Kategori filtresi
-            if cat_kws:
-                rows = [r for r in rows if _fname_matches_cat(r.fname or "", cat_kws)]
+            if cat_category:
+                cat_codes = {m.code for m in db.exec(
+                    select(FundMeta).where(FundMeta.category == cat_category)
+                ).all()}
+                rows = [r for r in rows if r.code in cat_codes]
 
             def row_to_dict(r):
                 return {

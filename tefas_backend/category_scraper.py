@@ -57,6 +57,7 @@ FNAME_RULES: list[tuple[str, str]] = [
     ("FON OF FUND",         "Fon Sepeti Şemsiye Fonu"),
     ("KATILIM",             "Katılım Şemsiye Fonu"),
     ("KARMA",               "Karma Şemsiye Fonu"),
+    ("ENDEKS",              "Endeks Şemsiye Fonu"),
     ("KIYMETLI MADEN",      "Kıymetli Madenler Şemsiye Fonu"),
     ("KIYMETLİ MADEN",      "Kıymetli Madenler Şemsiye Fonu"),
     ("GÜMÜŞ",               "Kıymetli Madenler Şemsiye Fonu"),
