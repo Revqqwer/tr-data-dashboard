@@ -571,6 +571,40 @@ def category_top_funds():
 
 
 # ---------------------------------------------------------------------------
+# Global Piyasa Takip
+# ---------------------------------------------------------------------------
+@tefas_bp.route("/api/global-market")
+def global_market_data():
+    err = _auth()
+    if err:
+        return err
+    try:
+        from tefas_backend.global_market import get_all_data, get_last_updated
+        data       = get_all_data()
+        last_upd   = get_last_updated()
+        return jsonify({"data": data, "last_updated": last_upd})
+    except Exception as e:
+        return jsonify({"error": str(e), "data": {}, "last_updated": None}), 500
+
+
+@tefas_bp.route("/api/global-market/collect", methods=["POST"])
+def global_market_collect():
+    err = _require_auth()
+    if err:
+        return err
+    try:
+        from tefas_backend.global_market import collect_all
+        force   = (request.json or {}).get("force", False)
+        results = collect_all(force=force)
+        ok      = sum(1 for v in results.values() if isinstance(v, int) and v > 0)
+        skip    = sum(1 for v in results.values() if v == "skip")
+        errors  = {k: v for k, v in results.items() if isinstance(v, str) and v != "skip"}
+        return jsonify({"status": "ok", "updated": ok, "skipped": skip, "errors": errors})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
 # Manuel veri toplama tetikleyici (sadece admin için)
 # ---------------------------------------------------------------------------
 @tefas_bp.route("/api/collect", methods=["POST"])

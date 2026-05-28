@@ -107,6 +107,14 @@
       </a>
     </div>
 
+    <!-- ── Global Piyasa Takip ── -->
+    <div class="nav-section">
+      <a href="#" class="nav-item nav-section-title" data-page="global" style="text-transform:uppercase;font-size:10px;letter-spacing:0.08em;font-weight:700;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        Global Piyasa Takip
+      </a>
+    </div>
+
     <!-- ── Ayırıcı ── -->
     <div style="height:1px;background:rgba(255,255,255,0.1);margin:8px 4px;"></div>
 
@@ -1284,6 +1292,24 @@
     <iframe
       src="/tefas/bist"
       id="bist-iframe"
+      style="width:100%;height:calc(100vh - 56px);border:none;display:block;"
+      loading="lazy"
+    ></iframe>
+  </div>
+
+  <!-- ── GLOBAL PİYASA TAKİP TOPBAR ── -->
+  <header class="topbar hidden" id="topbar-global">
+    <div class="topbar-title">
+      <h1>🌍 Global Piyasa Takip</h1>
+      <span class="topbar-sub">Faizler · FX · Commodities · Endeksler · TradingView verisi</span>
+    </div>
+  </header>
+
+  <!-- ── GLOBAL PİYASA TAKİP iframe ── -->
+  <div class="page-content hidden" id="page-global" style="padding:0;overflow:hidden;">
+    <iframe
+      src="/tefas/global"
+      id="global-iframe"
       style="width:100%;height:calc(100vh - 56px);border:none;display:block;"
       loading="lazy"
     ></iframe>
