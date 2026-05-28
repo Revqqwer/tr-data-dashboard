@@ -115,8 +115,9 @@ function switchPage(page) {
   // Sayfaları gizle
   document.querySelectorAll('.page-content').forEach(el => el.classList.add('hidden'));
 
-  // GridStack — henüz yoksa init et (sayfa hidden olsa da grid çalışır)
-  if (!grids[page]) {
+  // GridStack — iframe sayfalarını atla, henüz yoksa init et
+  const _iframePages = ['tefas','kripto','bist','bist-endeks-getiri','bist-endeks-karisim','global'];
+  if (!grids[page] && !_iframePages.includes(page)) {
     grids[page] = GridStack.init({
       column: 12,
       cellHeight: 60,
@@ -186,6 +187,8 @@ function switchPage(page) {
     document.getElementById('page-bist-endeks-getiri').classList.remove('hidden');
   } else if (page === 'bist-endeks-karisim') {
     document.getElementById('page-bist-endeks-karisim').classList.remove('hidden');
+  } else if (page === 'global') {
+    document.getElementById('page-global').classList.remove('hidden');
   }
 }
 
