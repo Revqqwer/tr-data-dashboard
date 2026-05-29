@@ -2,6 +2,32 @@
    TR DATA DASHBOARD – main.js
    ════════════════════════════════════════ */
 
+/* ── Sidebar toggle ────────────────────────────────────────────────────────── */
+(function () {
+  // Sayfa yüklenirken animasyonsuz olarak önceki durumu uygula
+  if (localStorage.getItem('sb_collapsed') === '1') {
+    document.body.classList.add('no-sb-transition', 'sidebar-collapsed');
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        document.body.classList.remove('no-sb-transition');
+      });
+    });
+  }
+})();
+
+function toggleSidebar() {
+  document.body.classList.toggle('sidebar-collapsed');
+  var collapsed = document.body.classList.contains('sidebar-collapsed');
+  localStorage.setItem('sb_collapsed', collapsed ? '1' : '0');
+  // Transition bittikten sonra grafikleri/gridleri yeniden boyutlandır
+  setTimeout(function () {
+    window.dispatchEvent(new Event('resize'));
+    Object.values(charts).forEach(function (c) { try { c.resize(); } catch (e) {} });
+    Object.values(grids).forEach(function (g) { try { g.onParentResize(); } catch (e) {} });
+  }, 270);
+}
+/* ─────────────────────────────────────────────────────────────────────────── */
+
 let allDth    = [];
 let allMenkul = [];
 let allKredi      = [];
