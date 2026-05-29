@@ -204,10 +204,6 @@ function switchPage(page) {
   } else if (page === 'kripto') {
     document.getElementById('page-kripto').classList.remove('hidden');
   } else if (page === 'bist') {
-    if (typeof IS_LOGGED_IN !== 'undefined' && !IS_LOGGED_IN) {
-      window.location.href = '/login';
-      return;
-    }
     document.getElementById('page-bist').classList.remove('hidden');
   } else if (page === 'bist-endeks-getiri') {
     document.getElementById('page-bist-endeks-getiri').classList.remove('hidden');
