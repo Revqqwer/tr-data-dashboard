@@ -572,8 +572,6 @@ def _portfolio_with_overrides() -> dict | None:
 
 @app.route('/api/portfolio')
 def api_portfolio():
-    if not session.get('logged_in'):
-        return jsonify({'error': 'unauthorized'}), 401
     pf = _portfolio_with_overrides()
     if pf is None:
         return jsonify({'error': 'portfolio data not found'}), 404
@@ -590,9 +588,6 @@ _LIVE_PRICE_CACHE: dict = {}
 @app.route('/api/portfolio/live-prices')
 def api_live_prices():
     """Return current BIST prices for open portfolio positions (cached per trading day)."""
-    if not session.get('logged_in'):
-        return jsonify({'error': 'unauthorized'}), 401
-
     import datetime as _dt
     today = _dt.date.today().isoformat()
 
