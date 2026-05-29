@@ -579,12 +579,13 @@ def global_market_data():
     if err:
         return err
     try:
-        from tefas_backend.global_market import get_all_data, get_last_updated
+        from tefas_backend.global_market import get_all_data, get_4h_data, get_last_updated
         data       = get_all_data()
+        data_4h    = get_4h_data()
         last_upd   = get_last_updated()
-        return jsonify({"data": data, "last_updated": last_upd})
+        return jsonify({"data": data, "data_4h": data_4h, "last_updated": last_upd})
     except Exception as e:
-        return jsonify({"error": str(e), "data": {}, "last_updated": None}), 500
+        return jsonify({"error": str(e), "data": {}, "data_4h": {}, "last_updated": None}), 500
 
 
 @tefas_bp.route("/api/global-market/collect", methods=["POST"])
