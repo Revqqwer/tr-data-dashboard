@@ -16,7 +16,50 @@
   </div>
   <nav class="sidebar-nav">
 
-    <!-- ── 1. Ana Başlık: Türkiye Ekonomi Verileri ── -->
+    <!-- ── 0. Global Piyasa Takip ── -->
+    <div class="nav-section">
+      <a href="#" class="nav-item nav-section-title" data-page="global" style="text-transform:uppercase;font-size:10px;letter-spacing:0.08em;font-weight:700;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        Global Piyasa Takip
+      </a>
+    </div>
+
+    <!-- ── Ayırıcı ── -->
+    <div style="height:1px;background:rgba(255,255,255,0.1);margin:8px 4px;"></div>
+
+    <!-- ── 1. BİST Endeksleri ── -->
+    <div class="nav-section">
+      <div class="nav-section-title" id="section-title-bist-endeks" style="text-transform:uppercase;font-size:10px;letter-spacing:0.08em;font-weight:700;cursor:pointer;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/><circle cx="19" cy="9" r="2"/></svg>
+        BİST Endeksleri
+      </div>
+      <div class="nav-section-items" id="section-items-bist-endeks">
+        <a href="#" class="nav-item" data-page="bist-endeks-getiri">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+          Endeks Getiri Takibi
+        </a>
+        <a href="#" class="nav-item" data-page="bist-endeks-karisim">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
+          Dönem Karşılaştırması
+        </a>
+      </div>
+    </div>
+
+    <!-- ── Ayırıcı ── -->
+    <div style="height:1px;background:rgba(255,255,255,0.1);margin:8px 4px;"></div>
+
+    <!-- ── 2. Fonlar Para Akışı ── -->
+    <div class="nav-section">
+      <a href="#" class="nav-item nav-section-title" data-page="tefas" style="text-transform:uppercase;font-size:10px;letter-spacing:0.08em;font-weight:700;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/><circle cx="19" cy="9" r="2"/></svg>
+        Fonlar Para Akışı
+      </a>
+    </div>
+
+    <!-- ── Ayırıcı ── -->
+    <div style="height:1px;background:rgba(255,255,255,0.1);margin:8px 4px;"></div>
+
+    <!-- ── 3. Türkiye Ekonomi Verileri ── -->
     <div class="nav-section">
       <div class="nav-section-title collapsed" id="section-title-ekonomi">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><polyline points="7 12 12 7 17 12"/></svg>
@@ -77,28 +120,6 @@
     <!-- ── Ayırıcı ── -->
     <div style="height:1px;background:rgba(255,255,255,0.1);margin:8px 4px;"></div>
 
-    <!-- ── 2. Ana Başlık: Fonlar Para Akışı ── -->
-    <div class="nav-section">
-      <a href="#" class="nav-item nav-section-title" data-page="tefas" style="text-transform:uppercase;font-size:10px;letter-spacing:0.08em;font-weight:700;">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/><circle cx="19" cy="9" r="2"/></svg>
-        Fonlar Para Akışı
-      </a>
-    </div>
-
-    <!-- ── Ayırıcı ── -->
-    <div style="height:1px;background:rgba(255,255,255,0.1);margin:8px 4px;"></div>
-
-    <!-- ── 3. Ana Başlık: Kripto ETF ── -->
-    <div class="nav-section">
-      <a href="#" class="nav-item nav-section-title" data-page="kripto" style="text-transform:uppercase;font-size:10px;letter-spacing:0.08em;font-weight:700;">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.5 9.5c.5-1.5 3.5-1.5 3.5 0 0 2-3 1.5-3 3.5"/><path d="M12 17h.01"/></svg>
-        Kripto ETF
-      </a>
-    </div>
-
-    <!-- ── Ayırıcı ── -->
-    <div style="height:1px;background:rgba(255,255,255,0.1);margin:8px 4px;"></div>
-
     <!-- ── 4. BIST Portföy ── -->
     <div class="nav-section">
       <a href="#" class="nav-item nav-section-title" data-page="bist" style="text-transform:uppercase;font-size:10px;letter-spacing:0.08em;font-weight:700;">
@@ -107,33 +128,15 @@
       </a>
     </div>
 
-    <!-- ── Global Piyasa Takip ── -->
-    <div class="nav-section">
-      <a href="#" class="nav-item nav-section-title" data-page="global" style="text-transform:uppercase;font-size:10px;letter-spacing:0.08em;font-weight:700;">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-        Global Piyasa Takip
-      </a>
-    </div>
-
     <!-- ── Ayırıcı ── -->
     <div style="height:1px;background:rgba(255,255,255,0.1);margin:8px 4px;"></div>
 
-    <!-- ── 5. BİST Endeksleri ── -->
+    <!-- ── 5. Kripto ETF ── -->
     <div class="nav-section">
-      <div class="nav-section-title" id="section-title-bist-endeks" style="text-transform:uppercase;font-size:10px;letter-spacing:0.08em;font-weight:700;cursor:pointer;">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/><circle cx="19" cy="9" r="2"/></svg>
-        BİST Endeksleri
-      </div>
-      <div class="nav-section-items" id="section-items-bist-endeks">
-        <a href="#" class="nav-item" data-page="bist-endeks-getiri">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
-          Endeks Getiri Takibi
-        </a>
-        <a href="#" class="nav-item" data-page="bist-endeks-karisim">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
-          Dönem Karşılaştırması
-        </a>
-      </div>
+      <a href="#" class="nav-item nav-section-title" data-page="kripto" style="text-transform:uppercase;font-size:10px;letter-spacing:0.08em;font-weight:700;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.5 9.5c.5-1.5 3.5-1.5 3.5 0 0 2-3 1.5-3 3.5"/><path d="M12 17h.01"/></svg>
+        Kripto ETF
+      </a>
     </div>
 
   </nav>
