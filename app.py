@@ -503,8 +503,6 @@ def index():
 
 @app.route('/dashboard')
 def dashboard():
-    if not session.get('logged_in'):
-        return redirect(url_for('login'))
     return render_template('index.html',
                            username=session.get('username', ''),
                            user_name=session.get('user_name', ''),
