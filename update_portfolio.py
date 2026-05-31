@@ -30,12 +30,32 @@ BENCHMARK_TV = {
 }
 
 
-# ── TradingView fetch (global_market.py'den) ─────────────────────────────────
+# ── TradingView fetch (collect_bist.py'den — timeout'lu, güvenilir) ──────────
 def _fetch_tv(tv_symbol: str, n_bars: int = 60) -> dict[str, float]:
-    """TradingView WebSocket'ten günlük kapanış çek. {date_str: close}"""
-    from tefas_backend.global_market import fetch_tv_daily
-    bars = fetch_tv_daily(tv_symbol, n_bars=n_bars)
-    return {d: c for d, c in bars}
+    """TradingView WebSocket'ten günlük kapanış çek. {date_str: close}
+    collect_bist.py'daki fetch_tv_ws'i kullanır (max 40 deneme, hızlı çıkış).
+    """
+    # Exchange ve symbol'ü ayır: "BIST:AKBNK" → exchange=BIST, symbol=AKBNK
+    if ':' in tv_symbol:
+        exchange, symbol = tv_symbol.split(':', 1)
+    else:
+        exchange, symbol = 'BIST', tv_symbol
+
+    # collect_bist.py'deki fonksiyonu doğrudan çağır
+    import sys
+    if str(BASE_DIR) not in sys.path:
+        sys.path.insert(0, str(BASE_DIR))
+
+    # collect_bist modülündeki fetch_tv_ws'i import et
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("collect_bist", BASE_DIR / "collect_bist.py")
+    cb   = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(cb)
+
+    dates, closes = cb.fetch_tv_ws(symbol, exchange, n_bars)
+    if not dates:
+        return {}
+    return dict(zip(dates, closes))
 
 
 # ── NSP fiyatı — TEFAS ───────────────────────────────────────────────────────
