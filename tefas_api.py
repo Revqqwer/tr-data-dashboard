@@ -573,6 +573,33 @@ def category_top_funds():
 # ---------------------------------------------------------------------------
 # Global Piyasa Takip
 # ---------------------------------------------------------------------------
+# ── Market Agent ─────────────────────────────────────────────────────────────
+@tefas_bp.route("/api/market-briefs")
+def market_briefs():
+    err = _auth()
+    if err: return err
+    report_type = request.args.get("type", "daily")
+    limit = int(request.args.get("limit", 10))
+    try:
+        from tefas_backend.market_agent.reports import get_reports
+        return jsonify({"ok": True, "reports": get_reports(report_type, limit)})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@tefas_bp.route("/api/market-briefs/latest")
+def market_briefs_latest():
+    err = _auth()
+    if err: return err
+    report_type = request.args.get("type", "daily")
+    try:
+        from tefas_backend.market_agent.reports import get_latest
+        return jsonify({"ok": True, "report": get_latest(report_type)})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
 @tefas_bp.route("/api/global-market")
 def global_market_data():
     err = _auth()
