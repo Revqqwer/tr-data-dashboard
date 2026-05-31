@@ -492,6 +492,19 @@ def _update_last_seen():
 
 @app.route('/')
 def index():
+    # Giriş yapmamış kullanıcılara landing page göster
+    if not session.get('logged_in'):
+        return render_template('landing.html')
+    return render_template('index.html',
+                           username=session.get('username', ''),
+                           user_name=session.get('user_name', ''),
+                           logged_in=session.get('logged_in', False))
+
+
+@app.route('/dashboard')
+def dashboard():
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
     return render_template('index.html',
                            username=session.get('username', ''),
                            user_name=session.get('user_name', ''),
