@@ -26,7 +26,7 @@ PORTFOLIO_FILE = BASE_DIR / 'data' / 'portfolio.json'
 # TradingView sembolleri — benchmark
 BENCHMARK_TV = {
     'xu100': 'BIST:XU100',
-    'altin': 'BIST:ALTIN',   # Gram Altın TL
+    'altin': 'FX_IDC:XAUTRYG',   # Gram Altın TL (TradingView FX_IDC:XAUTRYG)
 }
 
 
