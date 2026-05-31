@@ -142,7 +142,7 @@ function switchPage(page) {
   document.querySelectorAll('.page-content').forEach(el => el.classList.add('hidden'));
 
   // GridStack — iframe sayfalarını atla, henüz yoksa init et
-  const _iframePages = ['tefas','kripto','bist','bist-endeks-getiri','bist-endeks-karisim','global'];
+  const _iframePages = ['tefas','kripto','bist','bist-endeks-getiri','bist-endeks-karisim','global','market-briefs'];
   if (!grids[page] && !_iframePages.includes(page)) {
     grids[page] = GridStack.init({
       column: 12,
@@ -211,6 +211,9 @@ function switchPage(page) {
     document.getElementById('page-bist-endeks-karisim').classList.remove('hidden');
   } else if (page === 'global') {
     document.getElementById('page-global').classList.remove('hidden');
+  } else if (page === 'market-briefs') {
+    document.getElementById('page-market-briefs').classList.remove('hidden');
+    mbLoad();
   }
 }
 
@@ -3029,6 +3032,87 @@ function renderAbSurplusTable() {
 document.getElementById('tcmbAbCustomStart').addEventListener('change', () => { if (tcmbAbMode === 'custom') renderAbSurplus(); });
 document.getElementById('tcmbAbCustomEnd').addEventListener('change',   () => { if (tcmbAbMode === 'custom') renderAbSurplus(); });
 document.getElementById('refreshBtnTcmbAb').addEventListener('click', () => { allAbSurplus = []; loadAbSurplus(); });
+
+/* ════════════════════════════════════════
+   PİYASA ÖZETİ
+   ════════════════════════════════════════ */
+let _mbFilter = 'all';
+let _mbLoaded = false;
+
+function mbFilter(f) {
+  _mbFilter = f;
+  ['All','Daily','Weekly'].forEach(x => {
+    const btn = document.getElementById('mbBtn' + x);
+    if (btn) btn.classList.toggle('active', f === x.toLowerCase() || (x === 'All' && f === 'all'));
+  });
+  _mbRender(window._mbReports || []);
+}
+
+async function mbLoad() {
+  if (_mbLoaded) return;
+  try {
+    const r = await fetch('/api/market-briefs?limit=60');
+    const d = await r.json();
+    window._mbReports = d.reports || [];
+    _mbLoaded = true;
+    document.getElementById('mb-loading').style.display = 'none';
+    _mbRender(window._mbReports);
+  } catch(e) {
+    document.getElementById('mb-loading').innerHTML =
+      '<p style="color:var(--red)">Raporlar yüklenemedi: ' + e + '</p>';
+  }
+}
+
+function _mbRender(reports) {
+  const list = document.getElementById('mb-list');
+  if (!list) return;
+  const filtered = _mbFilter === 'all' ? reports : reports.filter(r => r.type === _mbFilter);
+
+  if (!filtered.length) {
+    list.innerHTML = '<div style="text-align:center;padding:60px 0;color:var(--text-muted);">Henüz rapor yok.</div>';
+    return;
+  }
+
+  list.innerHTML = filtered.map((r, i) => {
+    const isWeekly = r.type === 'weekly';
+    const badge = isWeekly
+      ? '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:rgba(139,92,246,.15);color:#a78bfa;letter-spacing:.05em;">HAFTALIK</span>'
+      : '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:rgba(59,130,246,.15);color:#93c5fd;letter-spacing:.05em;">GÜNLÜK</span>';
+
+    const title = r.title || r.date_label || r.date;
+    const expanded = i === 0;
+
+    return `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
+      <div style="padding:18px 24px;display:flex;align-items:center;gap:12px;cursor:pointer;"
+           onclick="mbToggle(this)">
+        ${badge}
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${title}</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${r.created_at ? r.created_at.replace('T',' ').slice(0,16) : ''}</div>
+        </div>
+        <svg class="mb-chevron" style="width:16px;height:16px;flex-shrink:0;color:var(--text-muted);transition:transform .2s;${expanded?'transform:rotate(180deg)':''}"
+             viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="mb-body" style="display:${expanded?'block':'none'};padding:0 24px 24px;">
+        <div style="height:1px;background:var(--border);margin-bottom:20px;"></div>
+        <div style="font-size:13.5px;line-height:1.8;color:var(--text-secondary);white-space:pre-wrap;font-family:'Inter',monospace;">${_mbEscape(r.content || '')}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function mbToggle(header) {
+  const body = header.nextElementSibling;
+  const chevron = header.querySelector('.mb-chevron');
+  const open = body.style.display === 'block';
+  body.style.display = open ? 'none' : 'block';
+  chevron.style.transform = open ? '' : 'rotate(180deg)';
+}
+
+function _mbEscape(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
 
 /* ── Bootstrap ── */
 switchPage('dth');

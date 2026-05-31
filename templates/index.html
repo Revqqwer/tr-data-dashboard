@@ -53,6 +53,17 @@
     <!-- ── Ayırıcı ── -->
     <div style="height:1px;background:rgba(255,255,255,0.1);margin:8px 4px;"></div>
 
+    <!-- ── Piyasa Özeti ── -->
+    <div class="nav-section">
+      <a href="#" class="nav-item nav-section-title" data-page="market-briefs" style="text-transform:uppercase;font-size:10px;letter-spacing:0.08em;font-weight:700;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        Piyasa Özeti
+      </a>
+    </div>
+
+    <!-- ── Ayırıcı ── -->
+    <div style="height:1px;background:rgba(255,255,255,0.1);margin:8px 4px;"></div>
+
     <!-- ── 2. Fonlar Para Akışı ── -->
     <div class="nav-section">
       <a href="#" class="nav-item nav-section-title" data-page="tefas" style="text-transform:uppercase;font-size:10px;letter-spacing:0.08em;font-weight:700;">
@@ -1303,6 +1314,32 @@
       style="width:100%;height:calc(100vh - 56px);border:none;display:block;"
       loading="lazy"
     ></iframe>
+  </div>
+
+  <!-- ── PİYASA ÖZETİ TOPBAR ── -->
+  <header class="topbar hidden" id="topbar-market-briefs">
+    <div class="topbar-title">
+      <h1>📰 Piyasa Özeti</h1>
+      <span class="topbar-sub">Günlük &amp; Haftalık Global Piyasa Raporları · Bloomberg · Reuters · WSJ</span>
+    </div>
+    <div class="topbar-actions">
+      <div style="display:flex;gap:6px;align-items:center;">
+        <button class="toggle-btn active" id="mbBtnAll"    onclick="mbFilter('all')">Tümü</button>
+        <button class="toggle-btn"        id="mbBtnDaily"  onclick="mbFilter('daily')">Günlük</button>
+        <button class="toggle-btn"        id="mbBtnWeekly" onclick="mbFilter('weekly')">Haftalık</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── PİYASA ÖZETİ İÇERİK ── -->
+  <div class="page-content hidden" id="page-market-briefs">
+    <div style="padding:28px 32px;max-width:960px;margin:0 auto;">
+      <div id="mb-loading" style="text-align:center;padding:60px 0;color:var(--text-muted);">
+        <div class="spinner" style="margin:0 auto 16px;"></div>
+        <div>Raporlar yükleniyor…</div>
+      </div>
+      <div id="mb-list" style="display:flex;flex-direction:column;gap:16px;"></div>
+    </div>
   </div>
 
   <!-- ── GLOBAL PİYASA TAKİP TOPBAR ── -->
