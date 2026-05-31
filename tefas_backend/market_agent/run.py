@@ -72,13 +72,23 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Market Intelligence Agent")
     parser.add_argument("--daily",  action="store_true", help="Günlük rapor oluştur")
     parser.add_argument("--weekly", action="store_true", help="Haftalık rapor oluştur")
+    parser.add_argument("--auto",   action="store_true",
+                        help="Pazar → haftalık, diğer günler → günlük (scheduled task için)")
     args = parser.parse_args()
 
-    if not args.daily and not args.weekly:
-        print("Kullanım: python run.py --daily  veya  python run.py --weekly")
-        sys.exit(1)
-
-    if args.daily:
+    if args.auto:
+        from datetime import datetime
+        # Pazar = 6 (weekday), Pazartesi = 0
+        if datetime.now().weekday() == 6:
+            print("📅 Pazar günü — haftalık rapor çalıştırılıyor")
+            run_weekly()
+        else:
+            print(f"📅 Günlük rapor çalıştırılıyor")
+            run_daily()
+    elif args.daily:
         run_daily()
-    if args.weekly:
+    elif args.weekly:
         run_weekly()
+    else:
+        print("Kullanım: python run.py --daily | --weekly | --auto")
+        sys.exit(1)
