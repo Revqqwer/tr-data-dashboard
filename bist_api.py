@@ -385,20 +385,26 @@ def api_indices():
 def api_history():
     period = request.args.get('period', '1y').lower()
 
-    # 1h: 1y verisinden son 7 işlem gününü dilimliyoruz
+    # 1h: 1y verisinden son 7 işlem gününü alıp yeniden normalize et (base=100)
     if period == '1h':
         data, ts = db_get_history('1y')
         if data:
             sliced = {}
             for name, d in data.items():
                 dates  = d.get('dates', [])
-                values = d.get('values', [])
+                values = d.get('values', [])  # base=100 normalize
                 n = min(7, len(dates))
+                if n < 2:
+                    sliced[name] = d
+                    continue
+                w_vals = values[-n:]
+                base = w_vals[0]
+                renorm = [round(v / base * 100, 2) for v in w_vals] if base else w_vals
                 sliced[name] = {
                     'dates':     dates[-n:],
-                    'values':    values[-n:],
+                    'values':    renorm,
                     'lastPrice': d.get('lastPrice'),
-                    'pct':       round((values[-1] / values[-n] - 1) * 100, 2) if n > 1 and values[-n] else d.get('pct'),
+                    'pct':       round((renorm[-1] / 100 - 1) * 100, 2),
                 }
             return jsonify(sliced)
         return jsonify({'_loading': True})
