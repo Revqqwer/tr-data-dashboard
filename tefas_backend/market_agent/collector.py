@@ -8,6 +8,33 @@ from typing import Optional
 
 log = logging.getLogger(__name__)
 
+# ── Tarih ayrıştırma yardımcısı ───────────────────────────────────────────────
+def _parse_pub_dt(date_str: str):
+    """Çeşitli tarih formatlarını datetime'a çevirir. UTC timezone-aware döner."""
+    from datetime import timezone
+    if not date_str:
+        return None
+    try:
+        from email.utils import parsedate_to_datetime
+        dt = parsedate_to_datetime(date_str)
+        return dt.astimezone(timezone.utc)
+    except Exception:
+        pass
+    try:
+        from datetime import datetime
+        for fmt in ("%Y-%m-%dT%H:%M:%SZ", "%Y-%m-%dT%H:%M:%S%z",
+                    "%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
+            try:
+                dt = datetime.strptime(date_str[:25], fmt)
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                return dt.astimezone(timezone.utc)
+            except Exception:
+                pass
+    except Exception:
+        pass
+    return None
+
 # ── RSS Feed'leri ─────────────────────────────────────────────────────────────
 RSS_FEEDS = {
     "reuters_biz":      "https://feeds.reuters.com/reuters/businessNews",
@@ -199,6 +226,7 @@ def collect_all(daily: bool = True) -> dict:
         earnings = fetch_upcoming_earnings(finnhub_key, days=7)
 
     all_news = rss + finnhub + newsapi
+
     # Deduplicate by title
     seen, unique = set(), []
     for item in all_news:
@@ -207,9 +235,27 @@ def collect_all(daily: bool = True) -> dict:
             seen.add(key)
             unique.append(item)
 
-    print(f"✓ Toplam {len(unique)} benzersiz haber, {len(earnings)} earnings")
+    # Tarih filtresi: günlük=28 saat, haftalık=8 gün
+    from datetime import timezone as _tz
+    cutoff_hours = 28 if daily else 8 * 24
+    cutoff_dt = datetime.now(_tz.utc) - timedelta(hours=cutoff_hours)
+
+    dated, undated = [], []
+    for item in unique:
+        dt = _parse_pub_dt(item.get("published", ""))
+        if dt is None:
+            undated.append(item)   # tarih yoksa dahil et
+        elif dt >= cutoff_dt:
+            dated.append(item)
+        # else: eski haber, atla
+
+    # Tarihli haberleri önce sırala (en yeni önce), ardından tarihi bilinmeyenleri ekle
+    dated.sort(key=lambda x: _parse_pub_dt(x.get("published","")) or datetime.min.replace(tzinfo=_tz.utc), reverse=True)
+    fresh = dated + undated[:max(0, 20 - len(dated))]  # en fazla 20 tarihi bilinmeyen
+
+    print(f"✓ {len(unique)} benzersiz → {len(dated)} güncel ({cutoff_hours}h) + {len(undated[:max(0,20-len(dated))])} tarihi bilinmeyen, {len(earnings)} earnings")
     return {
-        "news":         unique,
+        "news":         fresh,
         "earnings":     earnings,
         "collected_at": datetime.now().isoformat(),
     }
