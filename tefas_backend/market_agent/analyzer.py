@@ -64,8 +64,19 @@ FORMAT (kesinlikle bu yapıyı kullan, başka bir şey ekleme):
 [5-7 haber]
 
 ━━━ 🎯 TEMATİK FIRSATLAR ━━━
-[En değerli bölüm. Hangi sektörler/temalar öne çıkıyor, katalitör nedir, hangi şirketler etkilenebilir?
-Birden fazla tema varsa her birini ayrı paragrafta yaz. Spesifik olun.]
+[En değerli bölüm. Birden fazla tema varsa her birini ayrı blok yaz.
+Her tema için ŞU FORMAT'ı kullan:
+
+**🏷️ TEMA ADI — Kısa başlık**
+[2-3 cümle analiz: katalitör nedir, neden önemli, zaman ufku]
+
+┌─ POZİSYON FIRSATLARI ─────────────────────────────────
+│ Ticker1, Ticker2, Ticker3
+│ Sektör/ETF: SEKTÖR_ADI
+└───────────────────────────────────────────────────────
+
+[Risk faktörleri varsa 1 satırda belirt]
+]
 
 ━━━ FOREX RADAR ━━━
 [DXY ve önemli pariteler — 1-2 cümle]
