@@ -214,7 +214,7 @@ def generate_daily_report(filtered_news: list[dict], earnings: list[dict]) -> st
     try:
         resp = _get_client().messages.create(
             model="claude-sonnet-4-5",
-            max_tokens=1800,
+            max_tokens=3000,
             messages=[{"role": "user", "content": content}]
         )
         return resp.content[0].text
