@@ -69,6 +69,7 @@ ENDEKSLER = {
 
 # period → (n_bars, TV_resolution)
 PERIOD_TV = {
+    '1h': (10,   '1D'),   # 1 Hafta — son 10 iş günü
     '1a': (31,   '1D'),
     '3a': (93,   '1D'),
     '6a': (186,  '1D'),
@@ -383,6 +384,25 @@ def api_indices():
 @bist_bp.route('/api/history')
 def api_history():
     period = request.args.get('period', '1y').lower()
+
+    # 1h: 1y verisinden son 7 işlem gününü dilimliyoruz
+    if period == '1h':
+        data, ts = db_get_history('1y')
+        if data:
+            sliced = {}
+            for name, d in data.items():
+                dates  = d.get('dates', [])
+                values = d.get('values', [])
+                n = min(7, len(dates))
+                sliced[name] = {
+                    'dates':     dates[-n:],
+                    'values':    values[-n:],
+                    'lastPrice': d.get('lastPrice'),
+                    'pct':       round((values[-1] / values[-n] - 1) * 100, 2) if n > 1 and values[-n] else d.get('pct'),
+                }
+            return jsonify(sliced)
+        return jsonify({'_loading': True})
+
     data, _ = db_get_history(period)
     if data:
         return jsonify(data)
