@@ -60,6 +60,7 @@ def get_reports(report_type: str = None, limit: int = 10) -> list[dict]:
             data = json.loads(f.read_text(encoding="utf-8"))
             if report_type and data.get("type") != report_type:
                 continue
+            data["id"] = f.stem   # dosya adı = silme için ID
             results.append(data)
             if len(results) >= limit:
                 break
@@ -72,3 +73,13 @@ def get_latest(report_type: str) -> dict | None:
     """Belirtilen türün en son raporunu döner"""
     reports = get_reports(report_type, limit=1)
     return reports[0] if reports else None
+
+
+def delete_by_id(report_id: str) -> bool:
+    """Dosya adı (stem) ile raporu sil. Başarılı ise True döner."""
+    REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+    for f in REPORTS_DIR.glob("*.json"):
+        if f.stem == report_id:
+            f.unlink()
+            return True
+    return False
