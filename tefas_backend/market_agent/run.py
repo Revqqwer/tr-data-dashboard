@@ -34,8 +34,16 @@ def run_daily() -> str:
     print("=" * 60)
 
     data     = collect_all(daily=True)
+
+    # Bir önceki günlük raporu bağlam olarak al
+    from tefas_backend.market_agent.reports import get_latest
+    prev = get_latest("daily")
+    prev_content = prev.get("content", "") if prev else ""
+    if prev_content:
+        print("📋 Önceki rapor bağlam olarak yüklendi (tekrar önleme aktif)")
+
     print("\n🤖 Haberler filtreleniyor (Claude Haiku)...")
-    filtered = filter_news(data["news"])
+    filtered = filter_news(data["news"], prev_report_content=prev_content)
     print(f"✓ {len(filtered)} haber seçildi\n")
 
     print("📝 Günlük rapor yazılıyor (Claude Sonnet)...")
