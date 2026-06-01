@@ -419,7 +419,26 @@ def admin(secret):
             'SELECT id, username, name, active, created_at, last_login FROM users ORDER BY created_at DESC'
         ).fetchall()
     data_status = _data_status()
-    return render_template('admin.html', codes=codes, users=users, secret=secret, data_status=data_status)
+    # Market brief raporları
+    try:
+        from tefas_backend.market_agent.reports import get_reports
+        market_reports = get_reports(limit=50)
+    except Exception:
+        market_reports = []
+    return render_template('admin.html', codes=codes, users=users, secret=secret,
+                           data_status=data_status, market_reports=market_reports)
+
+
+@app.route('/admin/<secret>/market-brief/<report_id>/delete', methods=['POST'])
+def admin_delete_market_brief(secret, report_id):
+    if secret != ADMIN_SECRET:
+        return jsonify({'error': 'unauthorized'}), 403
+    try:
+        from tefas_backend.market_agent.reports import delete_by_id
+        delete_by_id(report_id)
+        return jsonify({'ok': True})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
 
 
 @app.route('/admin/<secret>/add', methods=['POST'])

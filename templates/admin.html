@@ -943,5 +943,62 @@ async function loadCatStats() {
 }
 </script>
 
+<!-- ══ Market Brief Raporları ══ -->
+<div style="margin-top:40px;">
+  <h2 style="font-size:16px;font-weight:700;color:#f0b429;margin-bottom:16px;letter-spacing:-.3px;">
+    📰 Global Piyasalarda Neler Oldu — Raporlar
+  </h2>
+  {% if market_reports %}
+  <div style="display:flex;flex-direction:column;gap:8px;">
+    {% for r in market_reports %}
+    <div style="background:#161b22;border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:16px;">
+      <div style="min-width:0;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+          <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;letter-spacing:.05em;
+            background:{% if r.type=='weekly' %}rgba(139,92,246,.15){% else %}rgba(59,130,246,.15){% endif %};
+            color:{% if r.type=='weekly' %}#a78bfa{% else %}#93c5fd{% endif %};">
+            {{ 'HAFTALIK' if r.type=='weekly' else 'GÜNLÜK' }}
+          </span>
+          <span style="font-size:11px;color:#64748b;">{{ r.created_at[:16].replace('T',' ') if r.created_at else '' }}</span>
+        </div>
+        <div style="font-size:13px;font-weight:600;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:600px;">
+          {{ r.title or r.date_label or r.date }}
+        </div>
+      </div>
+      <button onclick="deleteReport('{{ r.id }}', this)"
+              style="flex-shrink:0;padding:6px 14px;border-radius:6px;border:1px solid rgba(239,68,68,.3);
+                background:rgba(239,68,68,.08);color:#f87171;font-size:12px;font-weight:600;
+                cursor:pointer;transition:all .2s;"
+              onmouseover="this.style.background='rgba(239,68,68,.2)'"
+              onmouseout="this.style.background='rgba(239,68,68,.08)'">
+        🗑 Sil
+      </button>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p style="color:#64748b;font-size:13px;">Henüz rapor yok.</p>
+  {% endif %}
+</div>
+
+<script>
+async function deleteReport(reportId, btn) {
+  if (!confirm('Bu raporu silmek istediğinize emin misiniz?')) return;
+  btn.textContent = '...'; btn.disabled = true;
+  try {
+    const r = await fetch(`/admin/{{ secret }}/market-brief/${reportId}/delete`, {method:'POST'});
+    const d = await r.json();
+    if (d.ok) {
+      btn.closest('div[style*="background:#161b22"]').remove();
+    } else {
+      alert('Hata: ' + d.error);
+      btn.textContent = '🗑 Sil'; btn.disabled = false;
+    }
+  } catch(e) {
+    alert('Hata: ' + e);
+    btn.textContent = '🗑 Sil'; btn.disabled = false;
+  }
+}
+</script>
 </body>
 </html>
