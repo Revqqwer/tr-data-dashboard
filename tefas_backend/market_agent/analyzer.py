@@ -31,8 +31,10 @@ Seçim kriterleri:
 - Forex hareketleri (DXY, EUR/USD — kısa tutulabilir)
 - Sektör/şirket birleşme-satın alma haberleri
 
+{prev_context}
+
 Seçilen her haber için JSON objesi:
-{"title":"...", "source":"...", "summary":"...", "theme":"macro|earnings|sector|forex|thematic|ma", "importance":1-5}
+{{"title":"...", "source":"...", "summary":"...", "theme":"macro|earnings|sector|forex|thematic|ma", "importance":1-5}}
 
 Sadece JSON array döndür, açıklama ekleme."""
 
@@ -105,21 +107,40 @@ Katalizörler, riskler, zaman ufku.]
 
 # ── Ana Fonksiyonlar ──────────────────────────────────────────────────────────
 
-def filter_news(raw_news: list[dict]) -> list[dict]:
-    """Claude Haiku ile önemli haberleri filtrele"""
+def filter_news(raw_news: list[dict], prev_report_content: str = "") -> list[dict]:
+    """Claude Haiku ile önemli haberleri filtrele. Bir önceki rapor varsa tekrarları atlar."""
     if not raw_news:
         return []
+
+    # Önceki rapor bağlamı
+    if prev_report_content:
+        # Önceki rapordan başlıkları çıkar (━━━ satırlarını ve bold başlıkları)
+        import re
+        prev_lines = [l.strip() for l in prev_report_content.split('\n')
+                      if l.strip() and not l.startswith('━') and not l.startswith('📊')]
+        prev_sample = '\n'.join(prev_lines[:30])
+        prev_context = (
+            "⚠️ ÖNEMLİ: Aşağıdaki haberler dün zaten rapor edildi. "
+            "Bunları veya bunlara çok benzer haberleri SEÇME. "
+            "Sadece YENİ gelişmeleri seç. "
+            "Bir önceki haberin güncellemesi varsa 'GÜNCELLEME:' prefix'i ile dahil et.\n\n"
+            f"DÜN RAPOR EDİLENLER (tekrarlama):\n{prev_sample}"
+        )
+    else:
+        prev_context = ""
 
     headlines = "\n".join([
         f"[{i+1}] {item['title']} ({item['source']}) — {item.get('summary','')[:120]}"
         for i, item in enumerate(raw_news[:80])
     ])
 
+    prompt = _FILTER_PROMPT.format(prev_context=prev_context)
+
     try:
         resp = _get_client().messages.create(
             model="claude-haiku-4-5",
             max_tokens=2500,
-            messages=[{"role": "user", "content": _FILTER_PROMPT + "\n\nHABERLER:\n" + headlines}]
+            messages=[{"role": "user", "content": prompt + "\n\nHABERLER:\n" + headlines}]
         )
         text = resp.content[0].text.strip()
         start = text.find('[')
