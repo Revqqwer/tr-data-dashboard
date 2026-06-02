@@ -281,9 +281,18 @@
   <div class="discord-error">{{ discord_error }}</div>
   {% endif %}
 
-  <div style="text-align:center; margin-top:20px;">
-    <a href="/register" style="color:#64748b; font-size:12px; text-decoration:none; letter-spacing:0.5px;">
-      Davet kodunuz var mi? <span style="color:#f0b429;">Kayit ol</span>
+  {% if request.args.get('reset') %}
+  <div style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:8px;
+              padding:10px 14px;color:#10b981;font-size:13px;text-align:center;margin-bottom:12px">
+    Şifreniz başarıyla sıfırlandı. Giriş yapabilirsiniz.
+  </div>
+  {% endif %}
+  <div style="text-align:center;margin-top:20px;display:flex;flex-direction:column;gap:8px">
+    <a href="/register" style="color:#f0b429;font-size:13px;text-decoration:none;font-weight:600;">
+      Hesabın yok mu? Ücretsiz Üye Ol →
+    </a>
+    <a href="/forgot-password" style="color:#475569;font-size:12px;text-decoration:none;">
+      Şifremi unuttum
     </a>
   </div>
 </div>
