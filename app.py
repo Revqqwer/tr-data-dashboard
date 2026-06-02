@@ -1,8 +1,30 @@
 ﻿from flask import Flask, jsonify, render_template, session, redirect, url_for, request, send_from_directory
-import sqlite3, os, secrets, string
-from datetime import datetime
+import sqlite3, os, secrets, string, smtplib, random
+from datetime import datetime, timedelta
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from werkzeug.security import generate_password_hash, check_password_hash
 import requests as _http
+
+# ── Mail ayarları ─────────────────────────────────────────────
+MAIL_USERNAME = os.environ.get('MAIL_USERNAME', '')
+MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD', '')
+
+def send_email(to_addr: str, subject: str, body: str) -> bool:
+    """Gmail SMTP ile email gönder."""
+    try:
+        msg = MIMEMultipart()
+        msg['From']    = MAIL_USERNAME
+        msg['To']      = to_addr
+        msg['Subject'] = subject
+        msg.attach(MIMEText(body, 'html', 'utf-8'))
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465, timeout=15) as s:
+            s.login(MAIL_USERNAME, MAIL_PASSWORD)
+            s.sendmail(MAIL_USERNAME, to_addr, msg.as_string())
+        return True
+    except Exception as e:
+        print(f'Email gönderilemedi: {e}')
+        return False
 
 # ── Discord OAuth2 ───────────────────────────────────────────
 DISCORD_CLIENT_ID     = os.environ.get('DISCORD_CLIENT_ID',     '1505961330732044308')
@@ -67,12 +89,19 @@ def init_tables():
             created_at    TEXT,
             last_login    TEXT
         )''')
-        # last_seen ve discord_id kolonları yoksa ekle
-        for col in ('last_seen TEXT', 'discord_id TEXT'):
+        # Ek kolonlar yoksa ekle
+        for col in ('last_seen TEXT', 'discord_id TEXT', 'email TEXT'):
             try:
                 conn.execute(f'ALTER TABLE users ADD COLUMN {col}')
             except Exception:
                 pass
+        # Şifre sıfırlama tokenları
+        conn.execute('''CREATE TABLE IF NOT EXISTS password_reset (
+            token      TEXT PRIMARY KEY,
+            email      TEXT NOT NULL,
+            expires_at TEXT NOT NULL,
+            used       INTEGER DEFAULT 0
+        )''')
         conn.execute('''CREATE TABLE IF NOT EXISTS messages (
             id         INTEGER PRIMARY KEY AUTOINCREMENT,
             from_user  TEXT NOT NULL,
@@ -140,41 +169,95 @@ def login():
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        code      = request.form.get('code', '').strip().upper()
+        email     = request.form.get('email', '').strip().lower()
         username  = request.form.get('username', '').strip()
         password  = request.form.get('password', '')
         password2 = request.form.get('password2', '')
         error = None
-        if not username:
-            error = 'Kullanici adi gerekli.'
+        if not email or '@' not in email:
+            error = 'Geçerli bir email adresi girin.'
+        elif not username or len(username) < 3:
+            error = 'Kullanıcı adı en az 3 karakter olmalı.'
         elif len(password) < 6:
-            error = 'Sifre en az 6 karakter olmali.'
+            error = 'Şifre en az 6 karakter olmalı.'
         elif password != password2:
-            error = 'Sifreler uyusmuyor.'
+            error = 'Şifreler uyuşmuyor.'
         else:
             with sqlite3.connect(DB_PATH) as conn:
                 conn.row_factory = sqlite3.Row
-                invite = conn.execute(
-                    'SELECT * FROM invite_codes WHERE code=? AND active=1 AND used_by IS NULL',
-                    (code,)
-                ).fetchone()
-                if not invite:
-                    error = 'Gecersiz veya kullanilmis davet kodu.'
-                elif conn.execute('SELECT id FROM users WHERE username=?', (username,)).fetchone():
-                    error = 'Bu kullanici adi zaten alinmis, baska bir isim dene.'
+                if conn.execute('SELECT id FROM users WHERE username=?', (username,)).fetchone():
+                    error = 'Bu kullanıcı adı alınmış, başka bir isim dene.'
+                elif conn.execute('SELECT id FROM users WHERE email=?', (email,)).fetchone():
+                    error = 'Bu email adresi zaten kayıtlı.'
                 else:
                     now = datetime.now().strftime('%Y-%m-%d %H:%M')
                     conn.execute(
-                        'INSERT INTO users (username,password_hash,name,invite_code,created_at) VALUES (?,?,?,?,?)',
-                        (username, generate_password_hash(password), invite['name'], code, now)
+                        'INSERT INTO users (username,password_hash,name,email,created_at) VALUES (?,?,?,?,?)',
+                        (username, generate_password_hash(password), username, email, now)
                     )
-                    conn.execute('UPDATE invite_codes SET used_by=? WHERE code=?', (username, code))
                     session['logged_in'] = True
                     session['username']  = username
-                    session['user_name'] = invite['name'] or username
-                    return redirect(url_for('index'))
-        return render_template('register.html', error=error, prefill=code)
-    return render_template('register.html', error=None, prefill=request.args.get('code',''))
+                    session['user_name'] = username
+                    return redirect(url_for('dashboard'))
+        return render_template('register.html', error=error)
+    return render_template('register.html', error=None)
+
+
+@app.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    msg = None
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip().lower()
+        with sqlite3.connect(DB_PATH) as conn:
+            user = conn.execute('SELECT * FROM users WHERE email=?', (email,)).fetchone()
+        if user:
+            code = str(random.randint(100000, 999999))
+            expires = (datetime.now() + timedelta(minutes=30)).strftime('%Y-%m-%d %H:%M')
+            with sqlite3.connect(DB_PATH) as conn:
+                conn.execute('DELETE FROM password_reset WHERE email=?', (email,))
+                conn.execute('INSERT INTO password_reset (token,email,expires_at) VALUES (?,?,?)',
+                             (code, email, expires))
+            body = f'''
+            <div style="font-family:sans-serif;max-width:400px;margin:0 auto;padding:24px">
+              <h2 style="color:#f0b429">3N Finans — Şifre Sıfırlama</h2>
+              <p>Şifre sıfırlama kodunuz:</p>
+              <div style="font-size:36px;font-weight:bold;letter-spacing:8px;text-align:center;
+                          padding:20px;background:#f5f5f5;border-radius:8px;margin:16px 0">{code}</div>
+              <p style="color:#666;font-size:13px">Bu kod 30 dakika geçerlidir.</p>
+            </div>'''
+            ok = send_email(email, '3N Finans — Şifre Sıfırlama Kodu', body)
+        # Güvenlik: kullanıcı var olsa da olmasa da aynı mesajı göster
+        msg = 'Email adresiniz kayıtlıysa sıfırlama kodu gönderildi. Gelen kutunuzu kontrol edin.'
+    return render_template('forgot_password.html', msg=msg)
+
+
+@app.route('/reset-password', methods=['GET', 'POST'])
+def reset_password():
+    error = None
+    if request.method == 'POST':
+        email     = request.form.get('email', '').strip().lower()
+        code      = request.form.get('code', '').strip()
+        password  = request.form.get('password', '')
+        password2 = request.form.get('password2', '')
+        if len(password) < 6:
+            error = 'Şifre en az 6 karakter olmalı.'
+        elif password != password2:
+            error = 'Şifreler uyuşmuyor.'
+        else:
+            now = datetime.now().strftime('%Y-%m-%d %H:%M')
+            with sqlite3.connect(DB_PATH) as conn:
+                row = conn.execute(
+                    'SELECT * FROM password_reset WHERE token=? AND email=? AND used=0 AND expires_at>=?',
+                    (code, email, now)
+                ).fetchone()
+                if not row:
+                    error = 'Kod geçersiz veya süresi dolmuş.'
+                else:
+                    conn.execute('UPDATE users SET password_hash=? WHERE email=?',
+                                 (generate_password_hash(password), email))
+                    conn.execute('UPDATE password_reset SET used=1 WHERE token=?', (code,))
+                    return redirect(url_for('login') + '?reset=1')
+    return render_template('reset_password.html', error=error)
 
 
 @app.route('/logout')
