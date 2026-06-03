@@ -3118,7 +3118,7 @@ function _mbRender(reports) {
       </div>
       <div class="mb-body" style="display:${expanded?'block':'none'};padding:0 24px 24px;">
         <div style="height:1px;background:var(--border);margin-bottom:20px;"></div>
-        <div style="font-size:13.5px;line-height:1.8;color:var(--text-secondary);white-space:pre-wrap;font-family:'Inter',monospace;">${_mbEscape(r.content || '')}</div>
+        <div style="font-size:13.5px;line-height:1.85;color:var(--text);">${_mbFormat(r.content || '')}</div>
       </div>
     </div>`;
   }).join('');
@@ -3132,8 +3132,120 @@ function mbToggle(header) {
   chevron.style.transform = open ? '' : 'rotate(180deg)';
 }
 
-function _mbEscape(str) {
-  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+/* ── Rapor içeriğini HTML'e çevir ── */
+function _mbFormat(raw) {
+  const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+  const lines = raw.split('\n');
+  let html = '';
+  let inBox = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const t = line.trim();
+
+    if (!t) {
+      if (inBox) continue;
+      html += '<div style="height:8px"></div>';
+      continue;
+    }
+
+    // Ana başlık: 📊 GÜNLÜK / 📋 HAFTALIK
+    if (/^(📊|📋)\s/.test(t)) {
+      html += `<div style="font-size:16px;font-weight:800;color:var(--text);margin:0 0 16px;letter-spacing:-.3px;">${esc(t)}</div>`;
+      continue;
+    }
+
+    // Bölüm başlığı: ━━━ ... ━━━
+    if (/^━+/.test(t)) {
+      const label = t.replace(/━+/g,'').trim();
+      if (label) {
+        html += `<div style="display:flex;align-items:center;gap:10px;margin:20px 0 10px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--blue);">
+          <span style="flex:0 0 24px;height:2px;background:var(--blue);opacity:.4;border-radius:1px;display:block"></span>
+          ${esc(label)}
+          <span style="flex:1;height:1px;background:var(--border);display:block"></span>
+        </div>`;
+      } else {
+        html += `<div style="height:1px;background:var(--border);margin:16px 0"></div>`;
+      }
+      continue;
+    }
+
+    // Kutu başlığı: ┌─ POZİSYON FIRSATLARI ─...
+    if (/^┌/.test(t)) {
+      inBox = true;
+      const label = t.replace(/[┌─└┘│]+/g,'').trim();
+      html += `<div style="margin:12px 0 0;border:1px solid rgba(59,130,246,.3);border-radius:8px;overflow:hidden;">
+        <div style="background:rgba(59,130,246,.08);padding:7px 14px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--blue);">${esc(label) || 'POZİSYON FIRSATLARI'}</div>
+        <div style="padding:10px 14px;">`;
+      continue;
+    }
+    // Kutu alt çizgisi: └───
+    if (/^└/.test(t)) {
+      inBox = false;
+      html += `</div></div>`;
+      continue;
+    }
+    // Kutu içi satır: │ ...
+    if (/^│/.test(t)) {
+      const content = t.replace(/^│\s*/,'');
+      if (content) html += `<div style="font-size:13px;font-weight:600;color:var(--text);padding:2px 0;">${_mbInline(esc(content))}</div>`;
+      continue;
+    }
+
+    // Numaralı liste: 1. 2. ...
+    if (/^\d+\./.test(t)) {
+      const num = t.match(/^(\d+)\./)[1];
+      const rest = t.replace(/^\d+\.\s*/,'');
+      html += `<div style="display:flex;gap:10px;margin:6px 0;padding:8px 12px;background:var(--surface2);border-radius:7px;border-left:3px solid var(--blue);">
+        <span style="font-size:12px;font-weight:700;color:var(--blue);min-width:18px;padding-top:1px;">${num}.</span>
+        <span style="font-size:13px;color:var(--text);">${_mbInline(esc(rest))}</span>
+      </div>`;
+      continue;
+    }
+
+    // Bullet: • veya -
+    if (/^[•\-]\s/.test(t)) {
+      const rest = t.replace(/^[•\-]\s*/,'');
+      html += `<div style="display:flex;gap:8px;margin:4px 0;color:var(--text-secondary);font-size:13px;">
+        <span style="color:var(--blue);font-size:10px;margin-top:5px;">●</span>
+        <span>${_mbInline(esc(rest))}</span>
+      </div>`;
+      continue;
+    }
+
+    // Earnings satırı: 🟢/🔴 **SİRKET**: ...
+    if (/^(🟢|🔴|⏳)/.test(t)) {
+      const isUp = t.startsWith('🟢');
+      const isDown = t.startsWith('🔴');
+      const color = isUp ? '#10b981' : isDown ? '#ef4444' : '#f59e0b';
+      html += `<div style="display:flex;align-items:flex-start;gap:8px;margin:5px 0;padding:8px 12px;background:${isUp?'rgba(16,185,129,.05)':isDown?'rgba(239,68,68,.05)':'rgba(245,158,11,.05)'};border-radius:7px;font-size:13px;">
+        <span style="margin-top:1px;">${t[0]}</span>
+        <span style="color:var(--text);">${_mbInline(esc(t.slice(1).trim()))}</span>
+      </div>`;
+      continue;
+    }
+
+    // --- ayırıcı
+    if (/^-{3,}$/.test(t)) {
+      html += `<div style="height:1px;background:var(--border);margin:14px 0"></div>`;
+      continue;
+    }
+
+    // Normal paragraf
+    html += `<p style="margin:4px 0;color:var(--text-secondary);font-size:13.5px;">${_mbInline(esc(t))}</p>`;
+  }
+
+  if (inBox) html += '</div></div>';
+  return html;
+}
+
+/* Inline formatting: **bold**, *italic* */
+function _mbInline(s) {
+  return s
+    .replace(/\*\*([^*]+)\*\*/g, '<strong style="color:var(--text);font-weight:700;">$1</strong>')
+    .replace(/\*([^*]+)\*/g,     '<em style="color:var(--text-secondary);">$1</em>')
+    .replace(/`([^`]+)`/g,       '<code style="background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px;color:var(--blue);">$1</code>');
 }
 
 /* ── Bootstrap ── */
