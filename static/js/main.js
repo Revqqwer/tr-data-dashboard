@@ -3079,9 +3079,56 @@ async function mbLoad() {
     _mbLoaded = true;
     document.getElementById('mb-loading').style.display = 'none';
     _mbRender(window._mbReports);
+    _mbRenderSubscribeBox();
   } catch(e) {
     document.getElementById('mb-loading').innerHTML =
       '<p style="color:var(--red)">Raporlar yüklenemedi: ' + e + '</p>';
+  }
+}
+
+function _mbRenderSubscribeBox() {
+  const list = document.getElementById('mb-list');
+  if (!list) return;
+  const box = document.createElement('div');
+  box.style.cssText = 'margin-top:24px;background:linear-gradient(135deg,rgba(240,180,41,.06),rgba(240,180,41,.02));border:1px solid rgba(240,180,41,.2);border-radius:12px;padding:20px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;';
+  box.innerHTML = `
+    <div style="flex:1;min-width:200px;">
+      <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px;">📬 Her sabah emailine gelsin</div>
+      <div style="font-size:12px;color:var(--text-muted);">Günlük piyasa özeti sabah 09:30'da emailine gönderilir. Ücretsiz.</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <input id="mb-sub-email" type="email" placeholder="email@adresin.com"
+             style="padding:9px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:13px;outline:none;width:220px;">
+      <button onclick="mbSubscribe()" id="mb-sub-btn"
+              style="padding:9px 18px;border-radius:8px;background:#f0b429;border:none;color:#050a14;font-size:13px;font-weight:700;cursor:pointer;">
+        Abone Ol
+      </button>
+    </div>
+    <div id="mb-sub-msg" style="width:100%;font-size:12px;display:none;"></div>`;
+  list.parentNode.insertBefore(box, list.nextSibling);
+}
+
+async function mbSubscribe() {
+  const email = document.getElementById('mb-sub-email').value.trim();
+  const btn   = document.getElementById('mb-sub-btn');
+  const msg   = document.getElementById('mb-sub-msg');
+  if (!email) return;
+  btn.disabled = true; btn.textContent = '...';
+  try {
+    const r = await fetch('/api/subscribe', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({email})
+    });
+    const d = await r.json();
+    msg.style.display = 'block';
+    msg.style.color = d.ok ? '#10b981' : '#ef4444';
+    msg.textContent = d.ok ? '✓ ' + d.msg : '✗ ' + d.error;
+    if (d.ok) { btn.textContent = '✓ Gönderildi'; }
+    else { btn.disabled = false; btn.textContent = 'Abone Ol'; }
+  } catch(e) {
+    btn.disabled = false; btn.textContent = 'Abone Ol';
+    msg.style.display = 'block'; msg.style.color = '#ef4444';
+    msg.textContent = 'Hata oluştu.';
   }
 }
 
