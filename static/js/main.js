@@ -1,4 +1,4 @@
-/* ════════════════════════════════════════
+﻿/* ════════════════════════════════════════
    TR DATA DASHBOARD – main.js
    ════════════════════════════════════════ */
 
@@ -114,13 +114,29 @@ const baseTip = {
 };
 
 function makeChart(id, type, data, options, plugins) {
-  if (charts[id]) charts[id].destroy();
   const canvas = document.getElementById(id);
   if (!canvas) return null;
+
+  // Var olan chart'ı update et — destroy/recreate yerine (flicker yok)
+  if (charts[id]) {
+    try {
+      charts[id].data = data;
+      if (options) charts[id].options = options;
+      charts[id].update('none');   // animasyon yok, anında güncelleme
+      return charts[id];
+    } catch(e) {
+      charts[id].destroy();
+      charts[id] = null;
+    }
+  }
+
   charts[id] = new Chart(canvas, { type, data, options, plugins: plugins || [] });
   requestAnimationFrame(() => { if (charts[id]) charts[id].resize(); });
   return charts[id];
 }
+
+// Hangi sayfaların daha önce render edildiğini takip et
+const _pageRendered = {};
 
 /* ════════════════════════════════════════
    PAGE NAVIGATION
@@ -162,43 +178,48 @@ function switchPage(page) {
     });
   }
 
-  // Veri yoksa yükle (load fonksiyonu sayfayı açar), varsa direkt göster
+  // Veri yoksa yükle; varsa önce render edilmişse sadece göster, değilse render et
+  function _show(pageId, renderFn) {
+    document.getElementById('page-' + pageId).classList.remove('hidden');
+    if (!_pageRendered[pageId]) { renderFn(); _pageRendered[pageId] = true; }
+  }
+
   if (page === 'dth') {
     if (!allDth.length) { loadDth(); }
-    else { document.getElementById('page-dth').classList.remove('hidden'); renderDth(); }
+    else { _show('dth', renderDth); }
   } else if (page === 'menkul') {
     if (!allMenkul.length) { loadMenkul(); }
-    else { document.getElementById('page-menkul').classList.remove('hidden'); renderMenkul(); }
+    else { _show('menkul', renderMenkul); }
   } else if (page === 'kredi') {
     if (!allKredi.length) { loadKredi(); }
-    else { document.getElementById('page-kredi').classList.remove('hidden'); renderKredi(); }
+    else { _show('kredi', renderKredi); }
   } else if (page === 'kredi-detay') {
     if (!allKrediDetay.length) { loadKrediDetay(); }
-    else { document.getElementById('page-kredi-detay').classList.remove('hidden'); renderKrediDetay(); }
+    else { _show('kredi-detay', renderKrediDetay); }
   } else if (page === 'butce') {
     if (!allButce.length) { loadButce(); }
-    else { document.getElementById('page-butce').classList.remove('hidden'); renderButce(); }
+    else { _show('butce', renderButce); }
   } else if (page === 'dis-ticaret') {
     if (!allDT.length) { loadDT(); }
-    else { document.getElementById('page-dis-ticaret').classList.remove('hidden'); renderDT(); }
+    else { _show('dis-ticaret', renderDT); }
   } else if (page === 'turizm') {
     if (!allTurizm.length) { loadTurizm(); }
-    else { document.getElementById('page-turizm').classList.remove('hidden'); renderTurizm(); }
+    else { _show('turizm', renderTurizm); }
   } else if (page === 'odeme-dengesi') {
     if (!allBoP.length) { loadBoP(); }
-    else { document.getElementById('page-odeme-dengesi').classList.remove('hidden'); renderBoP(); }
+    else { _show('odeme-dengesi', renderBoP); }
   } else if (page === 'konut') {
     if (!allKonut.length) { loadKonut(); }
-    else { document.getElementById('page-konut').classList.remove('hidden'); renderKonut(); }
+    else { _show('konut', renderKonut); }
   } else if (page === 'enflasyon') {
     if (!allEnflasyon.length) { loadEnflasyon(); }
-    else { document.getElementById('page-enflasyon').classList.remove('hidden'); renderEnflasyon(); }
+    else { _show('enflasyon', renderEnflasyon); }
   } else if (page === 'tcmb-ab') {
     if (!allAbSurplus.length) { loadAbSurplus(); }
-    else { document.getElementById('page-tcmb-ab').classList.remove('hidden'); renderAbSurplus(); }
+    else { _show('tcmb-ab', renderAbSurplus); }
   } else if (page === 'makro') {
     if (!allMakro.length) { loadMakro(); }
-    else { document.getElementById('page-makro').classList.remove('hidden'); renderMakro(); }
+    else { _show('makro', renderMakro); }
   } else if (page === 'tefas') {
     document.getElementById('page-tefas').classList.remove('hidden');
   } else if (page === 'kripto') {
@@ -361,8 +382,9 @@ document.getElementById('btnAylik').addEventListener('click', () => {
   document.getElementById('btnHaftalik').classList.remove('active');
   renderChangeChart(getFilteredDth());
 });
-document.getElementById('rangeSelect').addEventListener('change', renderDth);
-document.getElementById('refreshBtn').addEventListener('click', () => { allDth = []; loadDth(); });
+document.getElementById('rangeSelect').addEventListener('change', renderDth)
+document.getElementById('rangeSelect').addEventListener('change', () => { _pageRendered['dth'] = false; });;
+document.getElementById('refreshBtn').addEventListener('click', () => { allDth = []; _pageRendered['dth'] = false; loadDth(); });
 
 /* ════════════════════════════════════════
    MENKUL KIYMET PAGE
@@ -531,7 +553,7 @@ function renderCumStartChart() {
 
 document.getElementById('cumStartDate').addEventListener('change', renderCumStartChart);
 
-document.getElementById('refreshBtnMenkul').addEventListener('click', () => { allMenkul = []; loadMenkul(); });
+document.getElementById('refreshBtnMenkul').addEventListener('click', () => { allMenkul = []; _pageRendered['menkul'] = false; loadMenkul(); });
 
 /* ════════════════════════════════════════
    SHARED UTILITIES
@@ -777,7 +799,7 @@ function renderKrediUsd(data) {
 
 /* Kredi kontrolleri */
 document.getElementById('rangeSelectKredi').addEventListener('change', renderKredi);
-document.getElementById('refreshBtnKredi').addEventListener('click', () => { allKredi = []; loadKredi(); });
+document.getElementById('refreshBtnKredi').addEventListener('click', () => { allKredi = []; _pageRendered['kredi'] = false; loadKredi(); });
 
 /* ════════════════════════════════════════
    KREDİ DETAY SAYFASI
@@ -972,7 +994,7 @@ function renderKd13w(data) {
 
 /* Kredi Detay kontrolleri */
 document.getElementById('rangeSelectKrediDetay').addEventListener('change', renderKrediDetay);
-document.getElementById('refreshBtnKrediDetay').addEventListener('click', () => { allKrediDetay = []; loadKrediDetay(); });
+document.getElementById('refreshBtnKrediDetay').addEventListener('click', () => { allKrediDetay = []; _pageRendered['kredi-detay'] = false; loadKrediDetay(); });
 
 /* ════════════════════════════════════════
    BÜTÇE DENGESİ SAYFASI
@@ -1310,7 +1332,7 @@ function renderButceTable() {
 
 /* Bütçe kontrolleri */
 document.getElementById('rangeSelectButce').addEventListener('change', renderButce);
-document.getElementById('refreshBtnButce').addEventListener('click', () => { allButce = []; loadButce(); });
+document.getElementById('refreshBtnButce').addEventListener('click', () => { allButce = []; _pageRendered['butce'] = false; loadButce(); });
 document.getElementById('butceTableField').addEventListener('change', renderButceTable);
 
 /* ════════════════════════════════════════
@@ -1544,7 +1566,7 @@ function renderDTTable() {
 
 /* Dış Ticaret kontrolleri */
 document.getElementById('rangeSelectDT').addEventListener('change', renderDT);
-document.getElementById('refreshBtnDT').addEventListener('click', () => { allDT = []; loadDT(); });
+document.getElementById('refreshBtnDT').addEventListener('click', () => { allDT = []; _pageRendered['dis-ticaret'] = false; loadDT(); });
 
 /* ════════════════════════════════════════
    ÖDEMELER DENGESİ
@@ -1917,7 +1939,7 @@ document.getElementById('rangeSelectBoP').addEventListener('change', () => {
   if (!allBoP.length) return;
   renderBoPTable(getFilteredBoP());
 });
-document.getElementById('refreshBtnBoP').addEventListener('click', () => { allBoP = []; loadBoP(); });
+document.getElementById('refreshBtnBoP').addEventListener('click', () => { allBoP = []; _pageRendered['odeme-dengesi'] = false; loadBoP(); });
 
 /* ════════════════════════════════════════
    TURİZM
@@ -2081,7 +2103,7 @@ document.getElementById('rangeSelectTurizm').addEventListener('change', () => {
   renderTurizmKisiBasi(data);
   renderTurizmZiyaretci(data);
 });
-document.getElementById('refreshBtnTurizm').addEventListener('click', () => { allTurizm = []; loadTurizm(); });
+document.getElementById('refreshBtnTurizm').addEventListener('click', () => { allTurizm = []; _pageRendered['turizm'] = false; loadTurizm(); });
 
 /* ════════════════════════════════════════
    KONUT
@@ -2325,7 +2347,7 @@ function renderKonutSatisRasyo(data) {
   }, [forceLastTickPlugin]);
 }
 
-document.getElementById('refreshBtnKonut').addEventListener('click', () => { allKonut = []; loadKonut(); });
+document.getElementById('refreshBtnKonut').addEventListener('click', () => { allKonut = []; _pageRendered['konut'] = false; loadKonut(); });
 
 /* ════════════════════════════════════════
    ENFLASYON
@@ -2560,7 +2582,7 @@ function renderEnflasyonHistTable() {
 }
 
 document.getElementById('enflasyonAySelect').addEventListener('change', renderEnflasyonTable);
-document.getElementById('refreshBtnEnflasyon').addEventListener('click', () => { allEnflasyon = []; loadEnflasyon(); });
+document.getElementById('refreshBtnEnflasyon').addEventListener('click', () => { allEnflasyon = []; _pageRendered['enflasyon'] = false; loadEnflasyon(); });
 
 /* ════════════════════════════════════════
    MAKRO TAHMİN
@@ -2860,7 +2882,7 @@ document.getElementById('addFcRowBtn').addEventListener('click', () => {
   if (allMakro.length) renderMakro();
 });
 
-document.getElementById('refreshBtnMakro').addEventListener('click', () => { allMakro = []; loadMakro(); });
+document.getElementById('refreshBtnMakro').addEventListener('click', () => { allMakro = []; _pageRendered['makro'] = false; loadMakro(); });
 
 /* ════════════════════════════════════════
    TCMB REZERVLERİ
@@ -3031,7 +3053,7 @@ function renderAbSurplusTable() {
 /* Özel tarih inputları değişince yeniden render et */
 document.getElementById('tcmbAbCustomStart').addEventListener('change', () => { if (tcmbAbMode === 'custom') renderAbSurplus(); });
 document.getElementById('tcmbAbCustomEnd').addEventListener('change',   () => { if (tcmbAbMode === 'custom') renderAbSurplus(); });
-document.getElementById('refreshBtnTcmbAb').addEventListener('click', () => { allAbSurplus = []; loadAbSurplus(); });
+document.getElementById('refreshBtnTcmbAb').addEventListener('click', () => { allAbSurplus = []; _pageRendered['tcmb-ab'] = false; loadAbSurplus(); });
 
 /* ════════════════════════════════════════
    PİYASA ÖZETİ
@@ -3116,3 +3138,4 @@ function _mbEscape(str) {
 
 /* ── Bootstrap ── */
 switchPage('dth');
+
