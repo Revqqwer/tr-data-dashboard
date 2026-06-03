@@ -36,6 +36,12 @@ DISCORD_ROLE_ID       = os.environ.get('DISCORD_ROLE_ID',       '119602278511437
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'tr-3nfinans-gizli-anahtar-2024')
 
+# Analytics IDs (isteğe bağlı — .env'e ekle)
+if os.environ.get('GA4_ID'):
+    app.config['GA4_ID'] = os.environ['GA4_ID']
+if os.environ.get('CLARITY_ID'):
+    app.config['CLARITY_ID'] = os.environ['CLARITY_ID']
+
 # ── TEFAS Blueprint ─────────────────────────────────────────
 from tefas_api import tefas_bp
 app.register_blueprint(tefas_bp)
@@ -679,6 +685,37 @@ def index():
                            username=session.get('username', ''),
                            user_name=session.get('user_name', ''),
                            logged_in=session.get('logged_in', False))
+
+
+@app.route('/sitemap.xml')
+def sitemap():
+    from flask import Response
+    from datetime import date
+    today = date.today().isoformat()
+    pages = [
+        ('/', '1.0', 'daily'),
+        ('/dashboard', '0.9', 'daily'),
+        ('/register', '0.7', 'monthly'),
+        ('/login', '0.6', 'monthly'),
+    ]
+    xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
+    xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+    for loc, pri, freq in pages:
+        xml += f'  <url>\n'
+        xml += f'    <loc>https://www.3nfinans.com{loc}</loc>\n'
+        xml += f'    <lastmod>{today}</lastmod>\n'
+        xml += f'    <changefreq>{freq}</changefreq>\n'
+        xml += f'    <priority>{pri}</priority>\n'
+        xml += f'  </url>\n'
+    xml += '</urlset>'
+    return Response(xml, mimetype='application/xml')
+
+
+@app.route('/robots.txt')
+def robots():
+    from flask import Response
+    txt = "User-agent: *\nAllow: /\nDisallow: /admin/\nDisallow: /api/\nSitemap: https://www.3nfinans.com/sitemap.xml\n"
+    return Response(txt, mimetype='text/plain')
 
 
 @app.route('/dashboard')
