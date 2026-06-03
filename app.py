@@ -102,6 +102,13 @@ def init_tables():
             expires_at TEXT NOT NULL,
             used       INTEGER DEFAULT 0
         )''')
+        # Rapor e-posta aboneleri
+        conn.execute('''CREATE TABLE IF NOT EXISTS report_subscribers (
+            email      TEXT PRIMARY KEY,
+            token      TEXT NOT NULL,
+            confirmed  INTEGER DEFAULT 0,
+            created_at TEXT NOT NULL
+        )''')
         conn.execute('''CREATE TABLE IF NOT EXISTS messages (
             id         INTEGER PRIMARY KEY AUTOINCREMENT,
             from_user  TEXT NOT NULL,
@@ -201,6 +208,77 @@ def register():
                     return redirect(url_for('dashboard'))
         return render_template('register.html', error=error)
     return render_template('register.html', error=None)
+
+
+# ── Rapor E-posta Aboneliği ───────────────────────────────────────────────────
+
+@app.route('/api/subscribe', methods=['POST'])
+def api_subscribe():
+    email = (request.json or {}).get('email', '').strip().lower()
+    if not email or '@' not in email:
+        return jsonify({'ok': False, 'error': 'Geçerli bir email adresi girin.'})
+    token = secrets.token_urlsafe(24)
+    now   = datetime.now().strftime('%Y-%m-%d %H:%M')
+    with sqlite3.connect(DB_PATH) as conn:
+        existing = conn.execute('SELECT confirmed FROM report_subscribers WHERE email=?', (email,)).fetchone()
+        if existing and existing[0]:
+            return jsonify({'ok': False, 'error': 'Bu email zaten abone.'})
+        conn.execute(
+            'INSERT OR REPLACE INTO report_subscribers (email, token, confirmed, created_at) VALUES (?,?,0,?)',
+            (email, token, now)
+        )
+    confirm_url = f'https://www.3nfinans.com/confirm-subscription/{token}'
+    body = f'''
+    <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
+      <h2 style="color:#f0b429">3N Finans — Sabah Raporu Aboneliği</h2>
+      <p>Her sabah günlük piyasa özetini emailinize almak için aşağıdaki butona tıklayın.</p>
+      <div style="margin:24px 0">
+        <a href="{confirm_url}" style="display:inline-block;padding:14px 28px;
+           background:#f0b429;color:#050a14;font-weight:700;border-radius:8px;text-decoration:none;">
+          Aboneliği Onayla
+        </a>
+      </div>
+      <p style="color:#666;font-size:12px">Bu emaili siz istemediyseniz görmezden gelebilirsiniz.</p>
+    </div>'''
+    ok = send_email(email, '3N Finans — Sabah Raporu Aboneliğini Onayla', body)
+    if ok:
+        return jsonify({'ok': True, 'msg': 'Onay emaili gönderildi. Gelen kutunuzu kontrol edin.'})
+    return jsonify({'ok': False, 'error': 'Email gönderilemedi. Lütfen tekrar deneyin.'})
+
+
+@app.route('/confirm-subscription/<token>')
+def confirm_subscription(token):
+    with sqlite3.connect(DB_PATH) as conn:
+        row = conn.execute('SELECT email FROM report_subscribers WHERE token=?', (token,)).fetchone()
+        if not row:
+            return '<h2>Geçersiz veya süresi dolmuş bağlantı.</h2>', 400
+        conn.execute('UPDATE report_subscribers SET confirmed=1 WHERE token=?', (token,))
+        email = row[0]
+    body = f'''
+    <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
+      <h2 style="color:#f0b429">3N Finans</h2>
+      <h3>✅ Aboneliğiniz onaylandı!</h3>
+      <p>Her sabah günlük piyasa raporunu <strong>{email}</strong> adresinize göndereceğiz.</p>
+      <div style="margin:20px 0">
+        <a href="https://www.3nfinans.com/dashboard" style="color:#f0b429">Panele Git →</a>
+      </div>
+    </div>'''
+    send_email(email, '3N Finans — Aboneliğiniz Onaylandı', body)
+    return render_template('subscription_confirmed.html')
+
+
+@app.route('/unsubscribe/<token>')
+def unsubscribe(token):
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute('DELETE FROM report_subscribers WHERE token=?', (token,))
+    return '<div style="font-family:sans-serif;max-width:400px;margin:60px auto;text-align:center"><h2>Aboneliğiniz iptal edildi.</h2><p><a href="/">Ana Sayfaya Dön</a></p></div>'
+
+
+@app.route('/api/subscribers/count')
+def api_subscribers_count():
+    with sqlite3.connect(DB_PATH) as conn:
+        n = conn.execute('SELECT COUNT(*) FROM report_subscribers WHERE confirmed=1').fetchone()[0]
+    return jsonify({'count': n})
 
 
 @app.route('/forgot-password', methods=['GET', 'POST'])

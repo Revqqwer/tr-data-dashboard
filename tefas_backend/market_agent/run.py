@@ -26,6 +26,70 @@ logging.basicConfig(
 from tefas_backend.market_agent.collector import collect_all
 from tefas_backend.market_agent.analyzer  import filter_news, generate_daily_report, generate_weekly_report
 from tefas_backend.market_agent.reports   import save_report
+import sqlite3 as _sqlite3, smtplib as _smtp, os as _os
+from email.mime.text import MIMEText as _MIMEText
+from email.mime.multipart import MIMEMultipart as _MIMEMultipart
+
+
+def _send_to_subscribers(report_text: str, report_type: str):
+    """Tüm onaylı abonelere raporu emaile gönder."""
+    mail_user = _os.environ.get('MAIL_USERNAME', '')
+    mail_pass = _os.environ.get('MAIL_PASSWORD', '')
+    if not mail_user or not mail_pass:
+        print("⚠️  MAIL_USERNAME/MAIL_PASSWORD ayarlanmamış, email gönderilmiyor.")
+        return
+
+    db_path = _ROOT / 'data' / 'cache.db'
+    try:
+        with _sqlite3.connect(str(db_path)) as conn:
+            rows = conn.execute(
+                'SELECT email, token FROM report_subscribers WHERE confirmed=1'
+            ).fetchall()
+    except Exception as e:
+        print(f"⚠️  Abone listesi alınamadı: {e}")
+        return
+
+    if not rows:
+        print("ℹ️  Onaylı abone yok.")
+        return
+
+    label = "Haftalık" if report_type == "weekly" else "Günlük"
+    subject = f"3N Finans — {label} Piyasa Raporu"
+
+    # Plain-text → basit HTML dönüşümü
+    html_body = '<pre style="font-family:monospace;white-space:pre-wrap;font-size:13px;line-height:1.7">' + \
+                report_text.replace('<','&lt;').replace('>','&gt;') + '</pre>'
+
+    sent = 0
+    for email, token in rows:
+        unsub = f"https://www.3nfinans.com/unsubscribe/{token}"
+        body = f"""
+        <div style="font-family:'Segoe UI',sans-serif;max-width:600px;margin:0 auto;background:#060b16;color:#e2e8f0;border-radius:12px;overflow:hidden;">
+          <div style="background:#f0b429;padding:4px 0"></div>
+          <div style="padding:28px 32px">
+            <h2 style="color:#f0b429;margin:0 0 20px;font-size:18px;">3N Finans — {label} Piyasa Raporu</h2>
+            {html_body}
+            <div style="margin-top:28px;padding-top:16px;border-top:1px solid #1e2d45;font-size:11px;color:#334155">
+              <a href="https://www.3nfinans.com/dashboard" style="color:#f0b429;text-decoration:none;">Panele Git</a>
+              &nbsp;·&nbsp;
+              <a href="{unsub}" style="color:#475569;text-decoration:none;">Abonelikten Çık</a>
+            </div>
+          </div>
+        </div>"""
+        try:
+            msg = _MIMEMultipart()
+            msg['From']    = mail_user
+            msg['To']      = email
+            msg['Subject'] = subject
+            msg.attach(_MIMEText(body, 'html', 'utf-8'))
+            with _smtp.SMTP_SSL('smtp.gmail.com', 465, timeout=15) as s:
+                s.login(mail_user, mail_pass)
+                s.sendmail(mail_user, email, msg.as_string())
+            sent += 1
+        except Exception as e:
+            print(f"  ✗ {email}: {e}")
+
+    print(f"✉️  {sent}/{len(rows)} aboneye rapor gönderildi.")
 
 
 def run_daily() -> str:
@@ -53,6 +117,10 @@ def run_daily() -> str:
     print("\n" + "=" * 60)
     print(report)
     print("=" * 60)
+
+    # Abonelere gönder
+    _send_to_subscribers(report, "daily")
+
     return report
 
 
@@ -73,6 +141,8 @@ def run_weekly() -> str:
     print("\n" + "=" * 60)
     print(report)
     print("=" * 60)
+
+    _send_to_subscribers(report, "weekly")
     return report
 
 
