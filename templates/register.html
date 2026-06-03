@@ -41,7 +41,15 @@
     .footer a{color:#f0b429;text-decoration:none}
     .footer a:hover{text-decoration:underline}
   </style>
-</head>
+  <!-- Google Analytics 4 -->
+  {% if config.get('GA4_ID') %}
+  <script async src="https://www.googletagmanager.com/gtag/js?id={{ config['GA4_ID'] }}"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','{{ config["GA4_ID"] }}');</script>
+  {% endif %}
+  <!-- Microsoft Clarity -->
+  {% if config.get('CLARITY_ID') %}
+  <script>(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y)})(window,document,"clarity","script","{{ config['CLARITY_ID'] }}");</script>
+  {% endif %}</head>
 <body>
 <div class="card">
   <div class="logo">
@@ -80,5 +88,6 @@
 </div>
 </body>
 </html>
+
 
 
