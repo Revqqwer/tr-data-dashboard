@@ -539,6 +539,8 @@ function renderPf() {
   for (const t of allTickers) {
     const b      = base[t] || null;
     const ov     = ovs[t]  || null;
+    // qty=0 override → hisse satılmış, listede gösterme
+    if (ov && ov.qty === 0) continue;
     const isOv   = !!ov;
     const isNew  = ov && !b;
     const curQty = ov ? ov.qty      : (b?.qty      ?? 0);
@@ -710,7 +712,7 @@ async function saveRow(ticker) {
       body: JSON.stringify({ticker, qty, avg_cost: avg, ...funding}),
     });
     const j = await r.json();
-    if (j.ok) { toast(`${ticker} kaydedildi ✓`); loadPf(); }
+    if (j.ok) { toast(`${ticker} kaydedildi ✓`); fetch(`/admin/${SECRET}/portfolio-clear-price-cache`,{method:'POST'}); loadPf(); }
     else toast(j.error || 'Hata', false);
   } catch(e) { toast(e.message, false); }
 }
