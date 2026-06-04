@@ -8,3 +8,14 @@ server_err.log
 *.zip
 *.bat
 .claude/
+.env
+*.log
+backfill.log
+data/bist_cache.db
+data/bist_cache_building.db
+data/btcethflow.xlsx
+data/global_market.db
+data/makro_forecast.json
+data/portfolio_overrides.json
+data/market_reports/
+logs/

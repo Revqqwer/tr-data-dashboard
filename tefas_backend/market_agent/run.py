@@ -6,7 +6,7 @@ Kullanım (PythonAnywhere bash):
     python tefas_backend/market_agent/run.py --daily
     python tefas_backend/market_agent/run.py --weekly
 """
-import argparse, logging, os, sys
+import argparse, logging, os, sys, time, tempfile
 from pathlib import Path
 
 # Proje kökünü path'e ekle
@@ -92,6 +92,89 @@ def _send_to_subscribers(report_text: str, report_type: str):
     print(f"✉️  {sent}/{len(rows)} aboneye rapor gönderildi.")
 
 
+
+def _report_to_telegram(report_text: str):
+    """Raporu Türkçe sese çevirip Telegram kanalına gönder."""
+    import anthropic, openai, requests
+
+    bot_token = _os.environ.get('MARKET_TELEGRAM_BOT_TOKEN', '')
+    chat_id   = _os.environ.get('MARKET_TELEGRAM_CHAT_ID', '')
+    openai_key = _os.environ.get('OPENAI_API_KEY', '')
+
+    if not bot_token or not chat_id or not openai_key:
+        print("⚠️  MARKET_TELEGRAM_BOT_TOKEN / MARKET_TELEGRAM_CHAT_ID / OPENAI_API_KEY eksik, Telegram atlanıyor.")
+        return
+
+    print("\n🎙️  Rapor konuşma diline çevriliyor (Claude)...")
+    try:
+        claude = anthropic.Anthropic(api_key=_os.environ.get("ANTHROPIC_API_KEY", ""))
+        msg = claude.messages.create(
+            model="claude-haiku-4-5",
+            max_tokens=2000,
+            messages=[{"role": "user", "content": f"""Aşağıdaki finans raporunu kısa ve öz bir sesli özete dönüştür.
+Kurallar:
+- SADECE konuşma dili kullan, sıcak ve akıcı Türkçe
+- Semboller (━, │, ┌, └, ●, ▸), markdown (**bold**), emojiler KULLANMA
+- Madde numaraları yerine geçiş cümleleri kullan
+- Başlangıçta "3N Finans günlük piyasa özetine hoş geldiniz." de
+- Sonunda kısa bir kapanış cümlesi ekle
+- Maksimum 2 dakikalık konuşma (yaklaşık 1800 karakter)
+- Sadece en önemli 3-4 gelişmeyi vurgula, detaylara girme
+
+RAPOR:
+{report_text}"""}]
+        )
+        speech_text = msg.content[0].text
+        print(f"✓ Konuşma metni hazır ({len(speech_text)} karakter)")
+    except Exception as e:
+        print(f"⚠️  Claude dönüşümü başarısız: {e}")
+        return
+
+    print("🔊 OpenAI TTS ile ses üretiliyor...")
+    try:
+        oai = openai.OpenAI(api_key=openai_key)
+        # OpenAI TTS max 4096 karakter
+        if len(speech_text) > 4000:
+            speech_text = speech_text[:4000].rsplit(' ', 1)[0] + '...'
+        response = oai.audio.speech.create(
+            model="tts-1",
+            voice="nova",
+            input=speech_text,
+            speed=1.0,
+        )
+        tmp = tempfile.NamedTemporaryFile(suffix=".mp3", delete=False)
+        tmp_path = tmp.name
+        tmp.close()
+        response.stream_to_file(tmp_path)
+        print(f"✓ Ses dosyası oluşturuldu: {tmp_path}")
+    except Exception as e:
+        print(f"⚠️  TTS başarısız: {e}")
+        return
+
+    print("📤 Telegram kanalına gönderiliyor...")
+    try:
+        import datetime as _dt2
+        bugun = _dt2.date.today().strftime("%d.%m.%Y")
+        caption = f"📊 3N Finans — Günlük Piyasa Özeti\n{bugun}"
+        with open(tmp_path, "rb") as f:
+            r = requests.post(
+                f"https://api.telegram.org/bot{bot_token}/sendAudio",
+                data={"chat_id": chat_id, "caption": caption, "title": f"Günlük Özet {bugun}"},
+                files={"audio": ("gunluk_ozet.mp3", f, "audio/mpeg")},
+                timeout=120,
+            )
+        if r.ok:
+            print("✅ Telegram'a başarıyla gönderildi!")
+        else:
+            print(f"⚠️  Telegram hatası: {r.text}")
+    except Exception as e:
+        print(f"⚠️  Telegram gönderimi başarısız: {e}")
+    finally:
+        try:
+            _os.unlink(tmp_path)
+        except:
+            pass
+
 def run_daily() -> str:
     print("=" * 60)
     print("🗞️  GÜNLÜK RAPOR OLUŞTURULUYOR")
@@ -120,6 +203,9 @@ def run_daily() -> str:
 
     # Abonelere gönder
     _send_to_subscribers(report, "daily")
+
+    # Telegram sesli özet
+    _report_to_telegram(report)
 
     return report
 

@@ -875,6 +875,14 @@ def api_live_prices():
     return jsonify(prices)
 
 
+
+@app.route('/admin/<secret>/portfolio-clear-price-cache', methods=['POST'])
+def admin_clear_price_cache(secret):
+    if secret != ADMIN_SECRET:
+        return jsonify({'error': 'forbidden'}), 403
+    _LIVE_PRICE_CACHE.clear()
+    return jsonify({'ok': True})
+
 # ── Portföy Override Admin Endpoint'leri ────────────────────────────────────
 
 @app.route('/admin/<secret>/portfolio-overrides')
@@ -929,7 +937,7 @@ def admin_portfolio_override_set(secret):
 
     # ── Pozisyon override ──
     if qty <= 0:
-        ov['open_positions'].pop(ticker, None)
+        ov['open_positions'][ticker] = {'qty': 0, 'avg_cost': 0}
     else:
         ov['open_positions'][ticker] = {'qty': qty, 'avg_cost': round(avg, 4)}
 
