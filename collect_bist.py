@@ -72,8 +72,8 @@ ENDEKSLER = {
 }
 
 # 1 TV isteğiyle tüm günlük dönemleri karşıla: 365 günlük bar çek, slice et
-DAILY_N      = 365
-DAILY_SLICES = {'1a': 31, '3a': 93, '6a': 186, '1y': 365}
+DAILY_N      = 252
+DAILY_SLICES = {'1a': 22, '3a': 65, '6a': 130, '1y': 252}
 
 # 1 TV isteğiyle tüm haftalık dönemleri karşıla: 260 haftalık bar çek, slice et
 # 1 yıl ≈ 52 haftalık bar → 3y=156, 5y=260
