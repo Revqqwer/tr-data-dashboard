@@ -1,10 +1,10 @@
 {
-  "period": "2025-11-13 / 2026-05-23",
+  "period": "2025-11-13 / 2026-06-08",
   "account_name": "AHMET EMİN TAHTACI",
   "account_no": "73285",
   "broker": "PUSULA Yatırım",
   "summary": {
-    "total_realized_pnl": 24243.59,
+    "total_realized_pnl": 24397.54,
     "total_dividends": 215.86,
     "total_commission": 1557.6
   },
@@ -808,6 +808,66 @@
       "type": "alis",
       "amount": 4693.5,
       "is_rights": false
+    },
+    {
+      "date": "2026-05-22",
+      "settle_date": "2026-06-01",
+      "ticker": "DMLKTG",
+      "qty": 1672,
+      "price": 5.98,
+      "type": "alis",
+      "amount": 9998.56,
+      "is_rights": false
+    },
+    {
+      "date": "2026-05-22",
+      "settle_date": "2026-06-01",
+      "ticker": "YKBNK",
+      "qty": 76,
+      "price": 32.88,
+      "type": "alis",
+      "amount": 2498.88,
+      "is_rights": false
+    },
+    {
+      "date": "2026-06-02",
+      "settle_date": "2026-06-04",
+      "ticker": "EKDMR",
+      "qty": 27,
+      "price": 62.85,
+      "type": "satis",
+      "amount": 1696.95,
+      "is_rights": false
+    },
+    {
+      "date": "2026-06-03",
+      "settle_date": "2026-06-05",
+      "ticker": "SISE",
+      "qty": 96,
+      "price": 46.98,
+      "type": "alis",
+      "amount": 4510.08,
+      "is_rights": false
+    },
+    {
+      "date": "2026-06-03",
+      "settle_date": "2026-06-05",
+      "ticker": "BIGCH",
+      "qty": 400,
+      "price": 6.66,
+      "type": "satis",
+      "amount": 2664.0,
+      "is_rights": false
+    },
+    {
+      "date": "2026-06-04",
+      "settle_date": "2026-06-08",
+      "ticker": "DMLKTG",
+      "qty": 490,
+      "price": 6.12,
+      "type": "alis",
+      "amount": 2998.8,
+      "is_rights": false
     }
   ],
   "nsp_trades": [
@@ -935,6 +995,12 @@
       "date": "2026-05-22",
       "units": 7000.0,
       "price": 1.67411,
+      "type": "satis"
+    },
+    {
+      "date": "2026-06-04",
+      "units": 3000.0,
+      "price": 1.697567,
       "type": "satis"
     }
   ],
@@ -1064,6 +1130,12 @@
       "units": 51805.0,
       "price": 1.67411,
       "value": 86727.27
+    },
+    {
+      "date": "2026-06-04",
+      "units": 48805.0,
+      "price": 1.697567,
+      "value": 82849.76
     }
   ],
   "nsp_daily_value": [
@@ -1498,10 +1570,16 @@
       "units": 51805.0,
       "price": 1.67411,
       "value": 86727.27
+    },
+    {
+      "date": "2026-06-04",
+      "units": 48805.0,
+      "price": 1.697567,
+      "value": 82849.76
     }
   ],
-  "nsp_current_units": 51805.0,
-  "nsp_current_value": 86727.27,
+  "nsp_current_units": 48805.0,
+  "nsp_current_value": 82849.76,
   "portfolio_daily_value": [
     {
       "date": "2025-11-14",
@@ -2608,6 +2686,18 @@
       "ticker": "SELEC",
       "pnl": 398.75,
       "cumulative_pnl": 24243.59
+    },
+    {
+      "date": "2026-06-04",
+      "ticker": "EKDMR",
+      "pnl": 481.95,
+      "cumulative_pnl": 24725.54
+    },
+    {
+      "date": "2026-06-05",
+      "ticker": "BIGCH",
+      "pnl": -328.0,
+      "cumulative_pnl": 24397.54
     }
   ],
   "balance_history": [
@@ -2958,6 +3048,26 @@
     {
       "date": "2026-05-22",
       "balance": 0.54
+    },
+    {
+      "date": "2026-05-25",
+      "balance": 0.29
+    },
+    {
+      "date": "2026-06-01",
+      "balance": 156.57
+    },
+    {
+      "date": "2026-06-04",
+      "balance": 0.96
+    },
+    {
+      "date": "2026-06-05",
+      "balance": 0.87
+    },
+    {
+      "date": "2026-06-08",
+      "balance": 0.75
     }
   ],
   "dividends": [
@@ -3054,12 +3164,12 @@
     "BIGCH": {
       "buy_qty": 400,
       "buy_amount": 2992.0,
-      "sell_qty": 0,
-      "sell_amount": 0.0,
-      "realized_pnl": 0.0,
+      "sell_qty": 400,
+      "sell_amount": 2664.0,
+      "realized_pnl": -328.0,
       "avg_buy": 7.48,
-      "avg_sell": 0,
-      "pnl_pct": 0.0
+      "avg_sell": 6.66,
+      "pnl_pct": -10.96
     },
     "BRSAN": {
       "buy_qty": 9,
@@ -3092,24 +3202,24 @@
       "pnl_pct": 9.68
     },
     "DMLKTG": {
-      "buy_qty": 801,
-      "buy_amount": 4922.28,
+      "buy_qty": 2963,
+      "buy_amount": 17919.64,
       "sell_qty": 0,
       "sell_amount": 0.0,
       "realized_pnl": 0.0,
-      "avg_buy": 6.1452,
+      "avg_buy": 6.0479,
       "avg_sell": 0,
       "pnl_pct": 0.0
     },
     "EKDMR": {
       "buy_qty": 27,
       "buy_amount": 1215.0,
-      "sell_qty": 0,
-      "sell_amount": 0.0,
-      "realized_pnl": 0.0,
+      "sell_qty": 27,
+      "sell_amount": 1696.95,
+      "realized_pnl": 481.95,
       "avg_buy": 45.0,
-      "avg_sell": 0,
-      "pnl_pct": 0.0
+      "avg_sell": 62.85,
+      "pnl_pct": 39.67
     },
     "EKGYO": {
       "buy_qty": 324,
@@ -3311,15 +3421,25 @@
       "avg_sell": 51.35,
       "pnl_pct": 19.76
     },
+    "SISE": {
+      "buy_qty": 96,
+      "buy_amount": 4510.08,
+      "sell_qty": 0,
+      "sell_amount": 0.0,
+      "realized_pnl": 0.0,
+      "avg_buy": 46.98,
+      "avg_sell": 0,
+      "pnl_pct": 0.0
+    },
     "YKBNK": {
-      "buy_qty": 511,
-      "buy_amount": 19190.98,
+      "buy_qty": 587,
+      "buy_amount": 21689.86,
       "sell_qty": 287,
       "sell_amount": 11636.7,
       "realized_pnl": 872.78,
-      "avg_buy": 37.5557,
+      "avg_buy": 36.9504,
       "avg_sell": 40.546,
-      "pnl_pct": 4.55
+      "pnl_pct": 4.02
     }
   },
   "open_positions": {
@@ -3329,9 +3449,9 @@
       "cost_basis": 2933.6
     },
     "YKBNK": {
-      "qty": 224,
-      "avg_cost": 37.6208,
-      "cost_basis": 8427.06
+      "qty": 300,
+      "avg_cost": 36.4198,
+      "cost_basis": 10925.94
     },
     "EKGYO": {
       "qty": 324,
@@ -3349,24 +3469,19 @@
       "cost_basis": 3059.5
     },
     "DMLKTG": {
-      "qty": 801,
-      "avg_cost": 6.1452,
-      "cost_basis": 4922.28
-    },
-    "BIGCH": {
-      "qty": 400,
-      "avg_cost": 7.48,
-      "cost_basis": 2992.0
+      "qty": 2963,
+      "avg_cost": 6.0479,
+      "cost_basis": 17919.64
     },
     "BRSAN": {
       "qty": 9,
       "avg_cost": 521.5,
       "cost_basis": 4693.5
     },
-    "EKDMR": {
-      "qty": 27,
-      "avg_cost": 45.0,
-      "cost_basis": 1215.0
+    "SISE": {
+      "qty": 96,
+      "avg_cost": 46.98,
+      "cost_basis": 4510.08
     }
   },
   "last_prices": {
@@ -3402,7 +3517,8 @@
     "YEOTK": 112.4,
     "YKBNK": 32.86,
     "ALTINS": 79.27,
-    "DMLKTG": 6.01
+    "DMLKTG": 6.01,
+    "SISE": 46.98
   },
   "benchmark_prices": {
     "xu100": {
