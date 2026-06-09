@@ -2500,41 +2500,62 @@
     },
     {
       "date": "2026-05-25",
-      "stock_value": 31157.58,
-      "nsp_value": 86727.27,
-      "cash_value": 13175.34,
-      "total_value": 131060.19
+      "stock_value": 48677.8,
+      "nsp_value": 87007.7,
+      "cash_value": 677.9,
+      "total_value": 136363.4
     },
     {
       "date": "2026-05-26",
-      "stock_value": 30888.79,
-      "nsp_value": 86727.27,
-      "cash_value": 13175.34,
-      "total_value": 130791.4
+      "stock_value": 48543.71,
+      "nsp_value": 87101.17,
+      "cash_value": 677.9,
+      "total_value": 136322.78
     },
     {
       "date": "2026-06-01",
-      "stock_value": 31917.02,
-      "nsp_value": 86727.27,
-      "cash_value": 13175.34,
-      "total_value": 131819.63
+      "stock_value": 49690.62,
+      "nsp_value": 87662.03,
+      "cash_value": 677.9,
+      "total_value": 138030.55
     },
     {
       "date": "2026-06-02",
-      "stock_value": 32950.6,
-      "nsp_value": 86727.27,
-      "cash_value": 13175.34,
-      "total_value": 132853.21
+      "stock_value": 49209.2,
+      "nsp_value": 87755.51,
+      "cash_value": 2374.85,
+      "total_value": 139339.56
     },
     {
       "date": "2026-06-03",
-      "stock_value": 32682.02,
-      "nsp_value": 86727.27,
-      "cash_value": 13175.34,
-      "total_value": 132584.63
+      "stock_value": 50522.99,
+      "nsp_value": 87848.98,
+      "cash_value": 528.77,
+      "total_value": 138900.74
+    },
+    {
+      "date": "2026-06-04",
+      "stock_value": 53875.32,
+      "nsp_value": 82849.76,
+      "cash_value": 2622.67,
+      "total_value": 139347.75
+    },
+    {
+      "date": "2026-06-05",
+      "stock_value": 53159.62,
+      "nsp_value": 82976.94,
+      "cash_value": 2622.67,
+      "total_value": 138759.23
+    },
+    {
+      "date": "2026-06-08",
+      "stock_value": 53847.44,
+      "nsp_value": 83104.13,
+      "cash_value": 2622.67,
+      "total_value": 139574.24
     }
   ],
-  "portfolio_current_value": 132584.63,
+  "portfolio_current_value": 139574.24,
   "pnl_timeline": [
     {
       "date": "2025-11-13",
@@ -3520,17 +3541,17 @@
     }
   },
   "last_prices": {
-    "AAGYO": 17.4,
-    "AKBNK": 63.6,
+    "AAGYO": 17.12,
+    "AKBNK": 66.9,
     "AKSA": 10.56,
     "ALBRK": 7.95,
-    "ALVES": 2.69,
+    "ALVES": 2.72,
     "BIGCH": 6.31,
-    "BRSAN": 467.75,
+    "BRSAN": 644.5,
     "BULGS": 40.0,
     "CIMSA": 51.55,
     "EKDMR": 49.5,
-    "EKGYO": 19.29,
+    "EKGYO": 19.43,
     "ENJSA": 117.2,
     "EREGL": 38.68,
     "GARAN": 122.3,
@@ -3550,10 +3571,10 @@
     "TSKB": 11.17,
     "VAKBN": 30.0,
     "YEOTK": 112.4,
-    "YKBNK": 32.86,
+    "YKBNK": 34.94,
     "ALTINS": 79.27,
-    "DMLKTG": 6.01,
-    "SISE": 46.98
+    "DMLKTG": 6.1,
+    "SISE": 45.02
   },
   "benchmark_prices": {
     "xu100": {
@@ -3691,7 +3712,10 @@
       "2026-05-26": 13662.75,
       "2026-06-01": 13703.96,
       "2026-06-02": 14200.2,
-      "2026-06-03": 13965.65
+      "2026-06-03": 13965.65,
+      "2026-06-04": 13872.3,
+      "2026-06-05": 13694.2,
+      "2026-06-08": 13860.6
     },
     "altin": {
       "2025-11-16": 5500.26,
@@ -3839,7 +3863,10 @@
       "2026-05-28": 6673.73,
       "2026-05-31": 6616.45,
       "2026-06-01": 6626.65,
-      "2026-06-02": 6562.56
+      "2026-06-02": 6562.56,
+      "2026-06-04": 6615.1,
+      "2026-06-05": 6422.65,
+      "2026-06-08": 6458.7
     }
   }
 }
