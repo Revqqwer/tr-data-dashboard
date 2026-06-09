@@ -130,6 +130,10 @@
       border-radius:6px; background:rgba(239,68,68,0.08); color:#ef4444;
       font-size:12px; font-weight:600; cursor:pointer; transition:all .15s; }
     .pf-btn-reset:hover { background:rgba(239,68,68,0.18); }
+    .pf-btn-close { padding:6px 12px; border:1px solid rgba(249,115,22,0.4);
+      border-radius:6px; background:rgba(249,115,22,0.1); color:#f97316;
+      font-size:12px; font-weight:600; cursor:pointer; transition:all .15s; }
+    .pf-btn-close:hover { background:rgba(249,115,22,0.22); }
 
     .pf-add-row { display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;
       padding:18px 20px; background:rgba(255,255,255,0.02);
@@ -574,9 +578,10 @@ function renderPf() {
         </select>
       </td>
       <td>
-        <div style="display:flex;gap:8px;align-items:center;">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
           <button class="pf-btn-save" onclick="saveRow('${t}')">Kaydet</button>
           ${isOv ? `<button class="pf-btn-reset" onclick="resetRow('${t}')">Sıfırla</button>` : ''}
+          <button class="pf-btn-close" onclick="closePos('${t}')">✕ Kapat</button>
         </div>
       </td>
     </tr>`;
@@ -659,6 +664,48 @@ function renderPf() {
       <button class="pf-btn-save" onclick="addNew()" style="height:36px;align-self:flex-end;">
         + Ekle
       </button>
+    </div>
+
+    <!-- Kapatılan pozisyonlar geçmişi -->
+    ${renderClosedHistory(pfData.closed_positions || [])}
+  `;
+}
+
+function renderClosedHistory(closed) {
+  if (!closed || closed.length === 0) return '';
+  const rows = [...closed].reverse().map(cp => {
+    const pnl   = cp.realized_pnl;
+    const pnlFmt = (pnl >= 0 ? '+' : '') + fmtF(pnl, 2);
+    const pnlColor = pnl >= 0 ? '#22c55e' : '#ef4444';
+    const pct   = cp.avg_cost > 0
+      ? ((cp.price - cp.avg_cost) / cp.avg_cost * 100).toFixed(1) + '%'
+      : '—';
+    return `<tr>
+      <td style="font-family:monospace;font-weight:700;color:#f0b429;">${cp.ticker}</td>
+      <td style="color:#94a3b8;">${cp.date || '—'}</td>
+      <td style="color:#e2e8f0;">${fmtF(cp.qty, 0)}</td>
+      <td style="color:#e2e8f0;">${fmtF(cp.avg_cost, 4)} ₺</td>
+      <td style="color:#e2e8f0;">${fmtF(cp.price, 4)} ₺</td>
+      <td style="color:#e2e8f0;">${fmtF(cp.proceeds, 2)} ₺</td>
+      <td style="color:${pnlColor};font-weight:700;">${pnlFmt} ₺</td>
+      <td style="color:${pnlColor};">${pct}</td>
+    </tr>`;
+  }).join('');
+  return `
+    <div style="margin-top:24px;border-top:1px solid rgba(255,255,255,0.08);padding-top:18px;">
+      <h3 style="color:#94a3b8;font-size:13px;font-weight:600;margin:0 0 12px;letter-spacing:0.5px;">
+        KAPATILAN POZİSYONLAR (${closed.length} adet)
+      </h3>
+      <div style="overflow-x:auto;">
+        <table class="pf-table" style="font-size:12px;">
+          <thead><tr>
+            <th>Hisse</th><th>Tarih</th><th>Adet</th>
+            <th>Ort. Alış</th><th>Kapanış Fiyatı</th>
+            <th>Tahsilat</th><th>Gerç. K/Z</th><th>K/Z %</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
     </div>`;
 }
 
@@ -1002,7 +1049,95 @@ async function deleteReport(reportId, btn) {
     btn.textContent = '🗑 Sil'; btn.disabled = false;
   }
 }
+
+// ── Pozisyonu Kapat ─────────────────────────────────────────────────────────
+let _closeTicker = null;
+
+function closePos(ticker) {
+  _closeTicker = ticker;
+  document.getElementById('closePosTitle').textContent = ticker + ' — Pozisyonu Kapat';
+  document.getElementById('closePriceInput').value = '';
+  document.getElementById('closeResultMsg').textContent = '';
+  document.getElementById('closeModal').style.display = 'flex';
+}
+
+function closeModalDismiss() {
+  document.getElementById('closeModal').style.display = 'none';
+  _closeTicker = null;
+}
+
+async function confirmClose() {
+  if (!_closeTicker) return;
+  const priceVal = document.getElementById('closePriceInput').value.trim();
+  const body = { ticker: _closeTicker };
+  if (priceVal) body.price = parseFloat(priceVal);
+
+  const btn = document.getElementById('closePosConfirmBtn');
+  btn.disabled = true; btn.textContent = '...';
+  const msgEl = document.getElementById('closeResultMsg');
+  msgEl.textContent = '';
+
+  try {
+    const r = await fetch(`/admin/{{ secret }}/portfolio-close-position`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(body)
+    });
+    const d = await r.json();
+    if (d.ok) {
+      const pnl    = d.realized_pnl >= 0 ? `+${fmtF(d.realized_pnl,2)}` : fmtF(d.realized_pnl,2);
+      const color  = d.realized_pnl >= 0 ? '#22c55e' : '#ef4444';
+      msgEl.innerHTML = `<span style="color:${color};">✓ ${d.ticker} kapatıldı · ${fmtF(d.qty,0)} lot × ${fmtF(d.price,4)} ₺ = ${fmtF(d.proceeds,2)} ₺ · K/Z: ${pnl} ₺</span>`;
+      setTimeout(() => {
+        closeModalDismiss();
+        loadPf();
+      }, 1800);
+    } else {
+      msgEl.innerHTML = `<span style="color:#ef4444;">Hata: ${d.error}</span>`;
+      btn.disabled = false; btn.textContent = 'Pozisyonu Kapat';
+    }
+  } catch(e) {
+    msgEl.innerHTML = `<span style="color:#ef4444;">Hata: ${e}</span>`;
+    btn.disabled = false; btn.textContent = 'Pozisyonu Kapat';
+  }
+}
 </script>
+
+<!-- ── Pozisyon Kapatma Modalı ──────────────────────────────────────────── -->
+<div id="closeModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);
+     z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#161b22;border:1px solid rgba(255,255,255,0.1);border-radius:12px;
+              padding:28px;min-width:340px;max-width:420px;width:90%;">
+    <h3 id="closePosTitle" style="margin:0 0 18px;color:#f0b429;font-size:16px;"></h3>
+    <p style="color:#94a3b8;font-size:13px;margin:0 0 16px;">
+      Pozisyon <b>güncel fiyattan</b> kapatılacak ve tahsil edilen tutar nakite eklenecek.
+      Fiyatı boş bırakırsanız son bilinen fiyat kullanılır.
+    </p>
+    <label style="color:#cbd5e1;font-size:12px;display:block;margin-bottom:6px;">
+      Kapatma Fiyatı (₺) — <em>opsiyonel</em>
+    </label>
+    <input id="closePriceInput" type="number" min="0" step="0.0001"
+           placeholder="Boş bırakırsanız otomatik"
+           style="width:100%;box-sizing:border-box;padding:8px 10px;border-radius:6px;
+                  border:1px solid rgba(255,255,255,0.15);background:#0d1117;
+                  color:#e2e8f0;font-size:13px;margin-bottom:14px;">
+    <div id="closeResultMsg" style="min-height:20px;font-size:13px;margin-bottom:14px;"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button onclick="closeModalDismiss()"
+              style="padding:8px 16px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);
+                     background:transparent;color:#94a3b8;font-size:13px;cursor:pointer;">
+        İptal
+      </button>
+      <button id="closePosConfirmBtn" onclick="confirmClose()"
+              style="padding:8px 18px;border-radius:6px;border:none;
+                     background:#f97316;color:#0d1117;font-size:13px;
+                     font-weight:700;cursor:pointer;">
+        Pozisyonu Kapat
+      </button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
 

@@ -796,6 +796,28 @@ def _portfolio_with_overrides() -> dict | None:
         if pdv:
             pdv[-1]['cash_value'] = round(float(cash_ov), 2)
 
+    # ── Manuel kapatılan pozisyonları pnl_by_ticker'a yansıt ───────────────
+    for cp in ov.get('closed_positions', []):
+        t         = cp['ticker']
+        qty_sold  = float(cp['qty'])
+        proceeds  = float(cp['proceeds'])
+        avg_cost  = float(cp.get('avg_cost', 0))
+        pnl_map   = pf.setdefault('pnl_by_ticker', {})
+        if t not in pnl_map:
+            pnl_map[t] = {
+                'buy_qty': qty_sold, 'buy_amount': round(qty_sold * avg_cost, 2),
+                'sell_qty': 0.0, 'sell_amount': 0.0,
+                'realized_pnl': 0.0, 'avg_buy': avg_cost,
+                'avg_sell': 0.0, 'pnl_pct': 0.0,
+            }
+        e = pnl_map[t]
+        e['sell_qty']    = round(e.get('sell_qty', 0) + qty_sold, 4)
+        e['sell_amount'] = round(e.get('sell_amount', 0) + proceeds, 2)
+        e['avg_sell']    = round(e['sell_amount'] / e['sell_qty'], 4) if e['sell_qty'] else 0.0
+        cost_base        = e['sell_qty'] * e.get('avg_buy', 0)
+        e['realized_pnl'] = round(e['sell_amount'] - cost_base, 2)
+        e['pnl_pct']      = round(e['realized_pnl'] / cost_base * 100, 2) if cost_base else 0.0
+
     return pf
 
 @app.route('/api/portfolio')
@@ -914,6 +936,7 @@ def admin_portfolio_overrides_get(secret):
         'nsp_last_price':    round(nsp_last_price, 6),
         'cash_value':        round(cash_value, 2),
         'overrides':         ov,
+        'closed_positions':  ov.get('closed_positions', []),
     })
 
 
@@ -1009,6 +1032,75 @@ def admin_portfolio_set_cash(secret):
         ov['cash_value_override'] = val
     _save_overrides(ov)
     return jsonify({'ok': True})
+
+
+@app.route('/admin/<secret>/portfolio-close-position', methods=['POST'])
+def admin_portfolio_close_position(secret):
+    """Bir hisse pozisyonunu güncel fiyattan kapat, nakite ekle, geçmişe yaz."""
+    if secret != ADMIN_SECRET:
+        return jsonify({'error': 'forbidden'}), 403
+    import datetime as _dt
+    data = request.get_json(silent=True) or {}
+    ticker   = data.get('ticker', '').strip().upper()
+    price_in = data.get('price')           # opsiyonel; yoksa cache / last_prices
+    if not ticker:
+        return jsonify({'error': 'ticker required'}), 400
+
+    pf = _portfolio_with_overrides()
+    if pf is None:
+        return jsonify({'error': 'portfolio data not found'}), 404
+
+    pos = pf.get('open_positions', {}).get(ticker)
+    if not pos or float(pos.get('qty', 0)) <= 0:
+        return jsonify({'error': f'{ticker} pozisyonu bulunamadi'}), 400
+
+    qty      = float(pos['qty'])
+    avg_cost = float(pos.get('avg_cost', 0))
+
+    # ── Fiyat bul ───────────────────────────────────────────────────────────
+    if price_in is not None:
+        price = round(float(price_in), 4)
+    else:
+        today = _dt.date.today().isoformat()
+        live  = _LIVE_PRICE_CACHE.get(today, {})
+        price = live.get(ticker) or pf.get('last_prices', {}).get(ticker)
+    if price is None:
+        return jsonify({'error': f'{ticker} icin fiyat bulunamadi, fiyati manuel girin'}), 400
+    price    = round(float(price), 4)
+    proceeds = round(qty * price, 2)
+    realized = round(proceeds - qty * avg_cost, 2)
+
+    # ── Override dosyasını güncelle ─────────────────────────────────────────
+    ov = _load_overrides()
+    # 1) Pozisyonu sıfırla (qty=0 → open_positions'dan kaldırılacak)
+    ov.setdefault('open_positions', {})[ticker] = {'qty': 0, 'avg_cost': 0}
+    # 2) Nakiti artır
+    pdv      = pf.get('portfolio_daily_value', [])
+    base_cash = pdv[-1]['cash_value'] if pdv else 0.0
+    cur_cash  = ov.get('cash_value_override', base_cash)
+    ov['cash_value_override'] = round(float(cur_cash) + proceeds, 2)
+    # 3) Kapatılan pozisyonu kaydet
+    ov.setdefault('closed_positions', []).append({
+        'ticker':       ticker,
+        'qty':          qty,
+        'price':        price,
+        'proceeds':     proceeds,
+        'avg_cost':     avg_cost,
+        'realized_pnl': realized,
+        'date':         _dt.date.today().isoformat(),
+    })
+    _save_overrides(ov)
+    _LIVE_PRICE_CACHE.clear()
+
+    return jsonify({
+        'ok':          True,
+        'ticker':      ticker,
+        'qty':         qty,
+        'price':       price,
+        'proceeds':    proceeds,
+        'realized_pnl': realized,
+        'new_cash':    ov['cash_value_override'],
+    })
 
 
 @app.route('/api/dth')
