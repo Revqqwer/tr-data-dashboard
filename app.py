@@ -6,7 +6,7 @@ from email.mime.multipart import MIMEMultipart
 from werkzeug.security import generate_password_hash, check_password_hash
 import requests as _http
 from dotenv import load_dotenv
-load_dotenv(override=True)
+load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env'), override=True)
 
 # ── Mail ayarları ─────────────────────────────────────────────
 MAIL_USERNAME = os.environ.get('MAIL_USERNAME', '')
