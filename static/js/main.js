@@ -144,7 +144,7 @@ const _pageRendered = {};
 function switchPage(page) {
   currentPage = page;
 
-  // URL hash güncelle
+  // URL hash güncelle (paylaşım linkleri için)
   history.replaceState(null, '', '/dashboard#' + page);
 
   // Nav active state

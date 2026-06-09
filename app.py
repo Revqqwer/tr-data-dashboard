@@ -936,6 +936,8 @@ def admin_portfolio_override_set(secret):
     ov = _load_overrides()
 
     # ── Pozisyon override ──
+    # qty=0 → override'ı silme, qty:0 olarak sakla; _portfolio_with_overrides()
+    # bunu görünce base'den de siler. Gerçek reset için /delete endpoint'i var.
     if qty <= 0:
         ov['open_positions'][ticker] = {'qty': 0, 'avg_cost': 0}
     else:
