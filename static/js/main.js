@@ -3148,19 +3148,23 @@ function _mbRender(reports) {
   list.innerHTML = filtered.map((r, i) => {
     const isWeekly = r.type === 'weekly';
     const badge = isWeekly
-      ? '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:rgba(139,92,246,.15);color:#a78bfa;letter-spacing:.05em;">HAFTALIK</span>'
-      : '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:rgba(59,130,246,.15);color:#93c5fd;letter-spacing:.05em;">GÜNLÜK</span>';
+      ? '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:rgba(139,92,246,.2);color:#c4b5fd;letter-spacing:.05em;">📋 HAFTALIK</span>'
+      : '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:rgba(59,130,246,.15);color:#93c5fd;letter-spacing:.05em;">📊 GÜNLÜK</span>';
 
     const title = r.title || r.date_label || r.date;
     const expanded = i === 0;
+    const cardBorder = isWeekly ? 'border:1px solid rgba(139,92,246,.35)' : 'border:1px solid var(--border)';
+    const headerBg  = isWeekly ? 'background:linear-gradient(135deg,rgba(139,92,246,.1),rgba(109,40,217,.05))' : 'background:var(--surface)';
+    const weeklyStripe = isWeekly ? `<div style="height:3px;background:linear-gradient(90deg,#7c3aed,#a78bfa,#7c3aed);"></div>` : '';
 
     return `
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
-      <div style="padding:18px 24px;display:flex;align-items:center;gap:12px;cursor:pointer;"
+    <div style="background:var(--surface);${cardBorder};border-radius:12px;overflow:hidden;">
+      ${weeklyStripe}
+      <div style="${headerBg};padding:18px 24px;display:flex;align-items:center;gap:12px;cursor:pointer;"
            onclick="mbToggle(this)">
         ${badge}
         <div style="flex:1;min-width:0;">
-          <div style="font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${title}</div>
+          <div style="font-size:14px;font-weight:${isWeekly?'700':'600'};color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${title}</div>
           <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${r.created_at ? r.created_at.replace('T',' ').slice(0,16) : ''}</div>
         </div>
         <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;" onclick="event.stopPropagation()">

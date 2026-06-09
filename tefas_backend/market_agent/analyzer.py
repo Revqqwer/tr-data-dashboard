@@ -90,30 +90,46 @@ _WEEKLY_PROMPT = """\
 Sen deneyimli bir finansal analistsin. Türkçe haftalık piyasa bülteni yaz.
 
 Ton: Profesyonel, analitik, tematik yatırımcıya yönelik.
+Uzunluk: Her bölüm kısa-orta (3-5 cümle). Tematik deep-dive gerekirse uzun olabilir.
 
-FORMAT:
+FORMAT (kesinlikle bu yapıyı kullan):
 
 📋 HAFTALIK PİYASA BÜLTENİ — {date_range}
 
 ━━━ HAFTANIN ÖZETİ ━━━
-[Haftanın 3-4 öne çıkan gelişmesi, genel piyasa seyri]
+[Haftanın 3-4 öne çıkan gelişmesi, genel piyasa seyri — 3-4 cümle]
 
 ━━━ ÖNEMLİ EARNINGS SONUÇLARI ━━━
-[Geçen haftanın dikkat çekici sonuçları]
+[Her şirket için: 🟢/🔴 ŞİRKET: beat/miss + kısa yorum. Yoksa "Öne çıkan earnings yok."]
 
 ━━━ ÖNÜMÜZDEKİ HAFTA EARNINGS ━━━
-[Hangi büyük şirketler raporluyor? Beklentiler ne?]
+[Hangi büyük şirketler raporluyor? Her biri için: • TARIH — SİRKET (EPS tahmin: X)]
 
 ━━━ MAKRO TAKVİM ━━━
-[Fed toplantıları, CPI, istihdam, diğer önemli veriler]
+[Fed, CPI, istihdam, diğer önemli veriler — bullet liste]
+• Tarih — Veri/Etkinlik
 
 ━━━ 🏗️ TEMATİK DEEP-DIVE ━━━
-[Haftanın öne çıkan yatırım teması — 3-5 paragraf detaylı analiz.
-Sektör neden öne çıktı? Hangi şirketler etkilendi/etkilenecek?
-Katalizörler, riskler, zaman ufku.]
+[Haftanın öne çıkan yatırım teması/temaları. Her tema için ŞU FORMAT:
+
+**🏷️ TEMA ADI — Kısa başlık**
+[2-3 cümle analiz: katalitör nedir, neden önemli, zaman ufku]
+
+┌─ POZİSYON FIRSATLARI ─────────────────────────────────
+│ Ticker1, Ticker2, Ticker3
+│ Sektör/ETF: SEKTÖR_ADI
+└───────────────────────────────────────────────────────
+
+[Risk faktörleri varsa 1 satırda]
+]
+
+━━━ ⚠️ RİSK RADARI ━━━
+• Risk 1
+• Risk 2
+• Risk 3
 
 ━━━ ÖNÜMÜZDEKI HAFTA GÖRÜNÜMÜ ━━━
-[Kısa değerlendirme — dikkat edilmesi gerekenler]"""
+[Kısa değerlendirme — dikkat edilmesi gerekenler, kritik seviyeler]"""
 
 
 # ── Ana Fonksiyonlar ──────────────────────────────────────────────────────────
