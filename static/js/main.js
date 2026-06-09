@@ -144,6 +144,9 @@ const _pageRendered = {};
 function switchPage(page) {
   currentPage = page;
 
+  // URL hash güncelle
+  history.replaceState(null, '', '/dashboard#' + page);
+
   // Nav active state
   document.querySelectorAll('.nav-item[data-page]').forEach(el => {
     el.classList.toggle('active', el.dataset.page === page);
@@ -3105,7 +3108,7 @@ function _mbRenderSubscribeBox() {
       </button>
     </div>
     <div id="mb-sub-msg" style="width:100%;font-size:12px;display:none;"></div>`;
-  list.parentNode.insertBefore(box, list.nextSibling);
+  list.parentNode.insertBefore(box, list);
 }
 
 async function mbSubscribe() {
@@ -3161,14 +3164,14 @@ function _mbRender(reports) {
           <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${r.created_at ? r.created_at.replace('T',' ').slice(0,16) : ''}</div>
         </div>
         <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;" onclick="event.stopPropagation()">
-          <a href="https://twitter.com/intent/tweet?text=${encodeURIComponent(title + ' — 3N Finans')}&url=https%3A%2F%2Fwww.3nfinans.com%2Fdashboard"
+          <a href="https://twitter.com/intent/tweet?text=${encodeURIComponent(title + ' — 3N Finans')}&url=https%3A%2F%2Fwww.3nfinans.com%2Fdashboard%23market-briefs"
              target="_blank" title="Twitter'da paylaş"
              style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text-muted);text-decoration:none;transition:.15s;"
              onmouseover="this.style.borderColor='#1da1f2';this.style.color='#1da1f2'"
              onmouseout="this.style.borderColor='';this.style.color=''">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
           </a>
-          <a href="https://wa.me/?text=${encodeURIComponent(title + '\n\nhttps://www.3nfinans.com/dashboard')}"
+          <a href="https://wa.me/?text=${encodeURIComponent(title + '\n\nhttps://www.3nfinans.com/dashboard#market-briefs')}"
              target="_blank" title="WhatsApp'ta paylaş"
              style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text-muted);text-decoration:none;transition:.15s;"
              onmouseover="this.style.borderColor='#25d366';this.style.color='#25d366'"
@@ -3312,5 +3315,6 @@ function _mbInline(s) {
 }
 
 /* ── Bootstrap ── */
-switchPage('dth');
+const _initPage = window.location.hash.slice(1) || 'dth';
+switchPage(_initPage);
 
