@@ -578,7 +578,7 @@ def category_top_funds():
 def market_briefs():
     err = _auth()
     if err: return err
-    report_type = request.args.get("type", "daily")
+    report_type = request.args.get("type") or None  # None = tüm tipler
     limit = int(request.args.get("limit", 10))
     try:
         from tefas_backend.market_agent.reports import get_reports
