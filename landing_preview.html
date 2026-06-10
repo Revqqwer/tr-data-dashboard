@@ -1,597 +1,120 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>3N Finans</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Boyut Karşılaştırma</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --white:#ffffff;--off:#e8e0d4;--muted:#9a9488;
-  --gold:#c9a96e;--dark:#080808;
-}
-html{scroll-behavior:smooth}
-body{font-family:'Inter',sans-serif;background:var(--dark);color:var(--white);overflow-x:hidden}
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0d1117; color: #e2e8f0; font-family: 'Inter', sans-serif; padding: 40px 32px; }
 
-/* ══════════════════════════════════════
-   HERO
-══════════════════════════════════════ */
-.hero{
-  position:relative;width:100%;height:100vh;
-  overflow:hidden;
-}
+  h2 { font-size: 10px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase;
+       color: rgba(255,255,255,.3); margin-bottom: 18px; margin-top: 44px; }
+  h2:first-of-type { margin-top: 0; }
 
-/* Cinematic video slideshow */
-.scene-wrap{position:absolute;inset:0;z-index:0}
-.scene{position:absolute;inset:0;opacity:0;transition:opacity 2s ease-in-out}
-.scene.active{opacity:1}
-.scene video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .row { display: flex; gap: 0; align-items: center; }
+  .col { flex: 1; padding: 24px 28px; }
+  .label { font-size: 10px; letter-spacing: .1em; text-transform: uppercase;
+           color: rgba(255,255,255,.25); margin-bottom: 14px; }
+  .divider { width: 1px; background: rgba(255,255,255,.07); align-self: stretch; }
 
-/* Globe canvas — right half */
-#globe-canvas{
-  position:absolute;top:0;right:-5%;width:65%;height:100%;
-  z-index:1;opacity:.45;pointer-events:none;
-}
+  /* LOGO ÖNCE */
+  .logo-b { display:flex;align-items:center;gap:10px; }
+  .mark-b { width:36px;height:36px;border-radius:50%;border:1.5px solid rgba(255,255,255,.5);
+            display:flex;align-items:center;justify-content:center;
+            font-size:13px;font-weight:700;color:#fff; }
+  .name-b { font-size:14px;font-weight:600;color:#fff; }
+  .name-b span { color:#f0b429; }
 
-/* Bottom gradient — Citrini'nin koyu geçişi */
-.hero-overlay{
-  position:absolute;inset:0;z-index:2;pointer-events:none;
-  background:
-    linear-gradient(to top, rgba(0,0,0,.95) 0%, rgba(0,0,0,.6) 35%, rgba(0,0,0,.1) 65%, transparent 100%),
-    linear-gradient(to right, rgba(0,0,0,.5) 0%, transparent 50%);
-}
+  /* LOGO SONRA */
+  .logo-a { display:flex;align-items:center;gap:10px; }
+  .mark-a { width:44px;height:44px;border-radius:50%;border:1.5px solid rgba(255,255,255,.5);
+            display:flex;align-items:center;justify-content:center;
+            font-size:16px;font-weight:700;color:#fff; }
+  .name-a { font-size:17px;font-weight:600;color:#fff; }
+  .name-a span { color:#f0b429; }
 
-/* ── NAV ── */
-nav{
-  position:fixed;top:0;left:0;right:0;z-index:200;
-  display:flex;align-items:center;justify-content:space-between;
-  padding:0 48px;height:64px;
-}
-.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
-.logo-mark{
-  width:36px;height:36px;border-radius:50%;
-  border:1.5px solid rgba(255,255,255,.5);
-  display:flex;align-items:center;justify-content:center;
-  font-family:'Playfair Display',serif;font-size:13px;font-weight:700;
-  color:var(--white);letter-spacing:-.5px;
-}
-.logo-name{font-size:14px;font-weight:600;color:var(--white);letter-spacing:.02em}
-.logo-name span{color:var(--gold)}
-.nav-right{display:flex;align-items:center;gap:20px}
-.nav-link{font-size:12px;font-weight:500;color:rgba(255,255,255,.75);text-decoration:none;letter-spacing:.06em;text-transform:uppercase;transition:.15s}
-.nav-link:hover{color:var(--white)}
-.nav-social-icon{
-  width:28px;height:28px;display:flex;align-items:center;justify-content:center;
-  color:rgba(255,255,255,.7);text-decoration:none;transition:.15s;
-}
-.nav-social-icon:hover{color:var(--white)}
-.nav-pill{
-  padding:8px 20px;border-radius:999px;font-size:12px;font-weight:600;
-  border:1px solid rgba(255,255,255,.4);color:var(--white);text-decoration:none;
-  letter-spacing:.04em;text-transform:uppercase;transition:.2s;
-}
-.nav-pill:hover{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.7)}
+  /* NAV BUTON */
+  .btn-b { padding:8px 20px;border-radius:999px;font-size:12px;font-weight:600;
+           border:1px solid rgba(255,255,255,.4);color:#fff;
+           letter-spacing:.04em;text-transform:uppercase;display:inline-block; }
+  .btn-a { padding:10px 28px;border-radius:999px;font-size:14px;font-weight:600;
+           border:1px solid rgba(255,255,255,.4);color:#fff;
+           letter-spacing:.04em;text-transform:uppercase;display:inline-block; }
 
-/* ── HERO BOTTOM TEXT — Citrini düzeni ── */
-.hero-bottom{
-  position:absolute;bottom:0;left:0;right:0;z-index:3;
-  padding:0 48px 48px;
-  display:flex;align-items:flex-end;justify-content:space-between;gap:48px;
-}
-.hero-headline{
-  font-family:'Playfair Display',serif;
-  font-size:clamp(38px,4.5vw,64px);
-  font-weight:600;line-height:1.12;letter-spacing:-.02em;
-  color:var(--white);max-width:700px;
-}
-.hero-headline em{font-style:italic;color:var(--off)}
-.hero-note{
-  flex-shrink:0;max-width:280px;text-align:right;padding-bottom:6px;
-}
-.hero-note-text{
-  font-family:'Playfair Display',serif;
-  font-size:17px;line-height:1.6;color:rgba(255,255,255,.7);
-  font-style:italic;margin-bottom:12px;
-}
-.hero-note-link{
-  display:inline-flex;align-items:center;gap:6px;
-  font-size:13px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
-  color:rgba(255,255,255,.5);text-decoration:none;transition:.15s;
-}
-.hero-note-link:hover{color:var(--white)}
-.hero-note-link svg{transition:.15s}
-.hero-note-link:hover svg{transform:translate(2px,-2px)}
+  /* SOSYAL */
+  .sw { display:flex;gap:7px;flex-wrap:wrap; }
+  .sb-b { display:inline-flex;align-items:center;gap:7px;padding:8px 18px;border-radius:7px;
+          border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.4);
+          color:rgba(255,255,255,.75);font-size:13px;font-weight:600; }
+  .sb-a { display:inline-flex;align-items:center;gap:8px;padding:10px 22px;border-radius:8px;
+          border:1px solid rgba(255,255,255,.22);background:rgba(0,0,0,.4);
+          color:rgba(255,255,255,.75);font-size:15px;font-weight:600; }
 
-/* ══════════════════════════════════════
-   BELOW HERO
-══════════════════════════════════════ */
-
-/* ── TICKER ── */
-.ticker-wrap{
-  background:#0f0f0f;border-bottom:1px solid #1f1f1f;
-  overflow:hidden;height:38px;display:flex;align-items:center;
-}
-.ticker-track{display:flex;white-space:nowrap;animation:ticker 45s linear infinite}
-.ticker-track:hover{animation-play-state:paused}
-@keyframes ticker{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-.tick{display:inline-flex;align-items:center;gap:6px;padding:0 22px;font-size:11.5px;font-weight:500;border-right:1px solid #1f1f1f;letter-spacing:.02em}
-.tick-sym{color:#555;font-weight:600}
-.tick-val{color:#aaa}
-.up{color:#4ade80}.dn{color:#f87171}
-
-/* ── SECTIONS ── */
-section.page-section{padding:100px 48px;max-width:1200px;margin:0 auto}
-
-/* ── ABOUT ── */
-.about-inner{
-  display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:center;
-  border-top:1px solid #1e1e1e;padding-top:80px;
-}
-.about-label{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#555;margin-bottom:16px}
-.about-title{font-family:'Playfair Display',serif;font-size:clamp(28px,3vw,42px);font-weight:600;line-height:1.15;letter-spacing:-.02em;color:var(--white);margin-bottom:24px}
-.about-body{font-size:15px;line-height:1.8;color:#888;max-width:440px}
-.about-stats{display:grid;grid-template-columns:1fr 1fr;gap:32px}
-.about-stat-num{font-family:'Playfair Display',serif;font-size:42px;font-weight:700;letter-spacing:-1.5px;color:var(--white);line-height:1}
-.about-stat-num .unit{font-size:24px;color:var(--gold)}
-.about-stat-lbl{font-size:11px;color:#555;font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin-top:6px}
-
-/* ── FEATURES ── */
-.features-header{border-top:1px solid #1e1e1e;padding-top:80px;margin-bottom:56px}
-.feat-label{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#555;margin-bottom:14px}
-.feat-title{font-family:'Playfair Display',serif;font-size:clamp(26px,3vw,38px);font-weight:600;letter-spacing:-.02em;color:var(--white)}
-.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:#1a1a1a;border:1px solid #1a1a1a;border-radius:2px}
-.feat-card{
-  background:#0d0d0d;padding:32px 28px;
-  transition:background .2s;cursor:default;
-}
-.feat-card:hover{background:#111}
-.feat-num{font-family:'Playfair Display',serif;font-size:11px;font-weight:600;color:#333;letter-spacing:.1em;margin-bottom:20px}
-.feat-card-title{font-size:15px;font-weight:600;color:var(--white);margin-bottom:10px;letter-spacing:-.01em}
-.feat-card-body{font-size:13px;color:#555;line-height:1.7}
-.feat-tag{display:inline-block;margin-top:16px;font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#333}
-
-/* ── SOCIAL ── */
-.social-section{
-  border-top:1px solid #1e1e1e;padding-top:60px;
-}
-.social-header{margin-bottom:36px}
-.social-label{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:10px}
-.social-title{font-family:'Playfair Display',serif;font-size:clamp(26px,3vw,36px);font-weight:600;letter-spacing:-.02em;color:var(--white);line-height:1.2}
-.social-sub{font-size:14px;color:#555;margin-top:8px;line-height:1.6}
-.social-links{display:flex;gap:14px;flex-wrap:wrap}
-.social-link{
-  display:flex;align-items:center;gap:14px;
-  padding:20px 28px;border:1px solid #1a1a1a;border-radius:14px;
-  background:#0a0a0a;color:#888;text-decoration:none;
-  font-size:13px;font-weight:500;flex:1;min-width:240px;
-  transition:all .25s;position:relative;overflow:hidden;
-}
-.social-link::before{
-  content:'';position:absolute;inset:0;opacity:0;transition:opacity .3s;
-}
-.social-link:hover{border-color:#333;color:var(--white);transform:translateY(-2px);box-shadow:0 12px 32px rgba(0,0,0,.4)}
-.social-link.yt:hover{border-color:#ff2020}
-.social-link.yt:hover::before{background:linear-gradient(135deg,rgba(255,0,0,.06),transparent);opacity:1}
-.social-link.tw:hover{border-color:#888}
-.social-link.tw:hover::before{background:linear-gradient(135deg,rgba(255,255,255,.03),transparent);opacity:1}
-.social-link.li:hover{border-color:#0a66c2}
-.social-link.li:hover::before{background:linear-gradient(135deg,rgba(10,102,194,.06),transparent);opacity:1}
-.social-icon{
-  width:42px;height:42px;border-radius:10px;
-  display:flex;align-items:center;justify-content:center;flex-shrink:0;
-}
-.social-link.yt .social-icon{background:rgba(255,0,0,.1);color:#ff4444}
-.social-link.tw .social-icon{background:rgba(255,255,255,.06);color:#ccc}
-.social-link.li .social-icon{background:rgba(10,102,194,.1);color:#4d9de0}
-.social-icon svg{width:18px;height:18px}
-.social-info{display:flex;flex-direction:column;gap:2px;position:relative}
-.sl-name{font-weight:700;font-size:14px;color:var(--white)}
-.sl-handle{font-size:12px;color:#444;font-weight:400}
-.social-arrow{
-  margin-left:auto;color:#333;transition:.2s;position:relative;
-}
-.social-link:hover .social-arrow{color:#888;transform:translate(3px,-3px)}
-
-/* ── CTA ── */
-.cta-section{
-  border-top:1px solid #1e1e1e;padding-top:80px;
-  display:flex;align-items:flex-end;justify-content:space-between;gap:48px;
-}
-.cta-title{font-family:'Playfair Display',serif;font-size:clamp(28px,4vw,52px);font-weight:600;line-height:1.1;letter-spacing:-.02em;color:var(--white);max-width:500px}
-.cta-title em{font-style:italic;color:var(--off)}
-.cta-right{flex-shrink:0;padding-bottom:8px}
-.cta-right p{font-size:14px;color:#555;margin-bottom:24px;max-width:280px;line-height:1.7}
-.cta-btn{
-  display:inline-flex;align-items:center;gap:10px;
-  padding:16px 36px;font-size:13px;font-weight:600;
-  background:var(--white);color:var(--dark);text-decoration:none;
-  letter-spacing:.04em;text-transform:uppercase;
-  transition:all .2s;
-}
-.cta-btn:hover{opacity:.85;transform:translateY(-1px);box-shadow:0 6px 20px rgba(255,255,255,.08)}
-
-/* ── FOOTER ── */
-footer{
-  border-top:1px solid #1a1a1a;padding:32px 48px;
-  display:flex;align-items:center;justify-content:space-between;
-  font-size:11px;color:#444;letter-spacing:.04em;
-}
-footer a{color:#444;text-decoration:none;transition:.15s}
-footer a:hover{color:#999}
-.footer-links{display:flex;gap:24px;align-items:center}
-.footer-brand{color:#777;font-weight:600}
-.footer-brand span{color:var(--gold)}
-
-@media(max-width:768px){
-  nav{padding:0 16px;height:54px;}
-  .nav-right .nav-link,.nav-social-icon{display:none;}
-  .nav-pill{padding:6px 14px;font-size:11px;}
-  .sstrip{padding:10px 16px;}
-  .sstrip-desc{display:none;}
-  .sstrip-btn{padding:5px 10px;font-size:11px;}
-  .hero{min-height:calc(100vh - 54px);}
-  .hero-bottom{padding:0 16px 32px;flex-direction:column;gap:16px;align-items:flex-start;}
-  .hero-headline{font-size:clamp(28px,7vw,44px);max-width:100%;}
-  .hero-note{max-width:100%;text-align:left;}
-  .hero-note-text{font-size:14px;}
-  .ticker-wrap{height:32px;}
-  .tick{padding:0 12px;font-size:11px;}
-  section.page-section{padding:48px 16px;}
-  .about-inner{grid-template-columns:1fr;gap:40px;}
-  .about-stats{grid-template-columns:1fr 1fr;}
-  .feat-grid{grid-template-columns:1fr;}
-  .social-section{flex-direction:column;gap:24px;}
-  .social-links{flex-direction:column;}
-  .social-link{min-width:auto;}
-  .cta-section{flex-direction:column;gap:32px;align-items:flex-start;}
-  .cta-inner{padding:40px 24px;}
-  .cta-title{font-size:clamp(24px,7vw,36px);}
-  footer{flex-direction:column;gap:16px;text-align:center;padding:20px 16px;}
-  .footer-links{flex-wrap:wrap;justify-content:center;gap:14px;}
-}
-@media(max-width:480px){
-  .hero-headline{font-size:clamp(24px,8vw,36px);}
-  nav{padding:0 12px;}
-  .hero-bottom{padding:0 12px 24px;}
-}
+  /* ÜYE OL */
+  .uo-b { display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;
+          letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.5); }
+  .uo-a { display:inline-flex;align-items:center;gap:8px;font-size:15px;font-weight:600;
+          letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.65); }
+</style>
 </head>
 <body>
 
-<!-- ══ NAV ══ -->
-<nav>
-  <a class="nav-logo" href="#">
-    <div class="logo-mark">3N</div>
-    <span class="logo-name">3N<span>Finans</span></span>
-  </a>
-  <div class="nav-right">
-    <a href="https://www.youtube.com/@3nfinans/featured" target="_blank" class="nav-social-icon" title="YouTube">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1C4.5 20.4 12 20.4 12 20.4s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8zM9.75 15.5v-7l6.5 3.5-6.5 3.5z"/></svg>
-    </a>
-    <a href="https://x.com/Hakan_3N" target="_blank" class="nav-social-icon" title="X">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-    </a>
-    <a href="#" class="nav-link">Giriş Yap</a>
-    <a href="#" class="nav-pill">Panele Git</a>
+<h2>Logo</h2>
+<div class="row">
+  <div class="col">
+    <div class="label">Önce</div>
+    <div class="logo-b"><div class="mark-b">3N</div><span class="name-b">3N<span>Finans</span></span></div>
   </div>
-</nav>
-
-<!-- ══ HERO ══ -->
-<section class="hero">
-  <div class="scene-wrap">
-    <div class="scene active" id="s1">
-      <video src="https://videos.pexels.com/video-files/2252797/2252797-uhd_2560_1440_30fps.mp4" autoplay muted loop playsinline></video>
-    </div>
-    <div class="scene" id="s2">
-      <video src="https://videos.pexels.com/video-files/10386895/10386895-hd_2560_1440_30fps.mp4" autoplay muted loop playsinline></video>
-    </div>
-    <div class="scene" id="s3">
-      <video src="https://videos.pexels.com/video-files/5727833/5727833-uhd_2560_1440_30fps.mp4" autoplay muted loop playsinline></video>
-    </div>
-    <div class="scene" id="s4">
-      <video src="https://videos.pexels.com/video-files/7579577/7579577-uhd_2732_1440_25fps.mp4" autoplay muted loop playsinline></video>
-    </div>
+  <div class="divider"></div>
+  <div class="col">
+    <div class="label">Sonra</div>
+    <div class="logo-a"><div class="mark-a">3N</div><span class="name-a">3N<span>Finans</span></span></div>
   </div>
-  <canvas id="globe-canvas"></canvas>
-  <div class="hero-overlay"></div>
-
-  <!-- Sosyal linkler — hero ortası, video üzerinde -->
-  <div style="position:absolute;bottom:140px;left:50%;transform:translateX(-50%);z-index:10;display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;">
-    <span style="font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.45);margin-right:4px;">Bizi takip edin</span>
-    <a href="https://www.youtube.com/@3nfinans/featured" target="_blank" style="display:inline-flex;align-items:center;gap:7px;padding:8px 18px;border-radius:7px;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.4);backdrop-filter:blur(8px);color:rgba(255,255,255,.75);text-decoration:none;font-size:13px;font-weight:600;">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1C4.5 20.4 12 20.4 12 20.4s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8zM9.75 15.5v-7l6.5 3.5-6.5 3.5z"/></svg>@3nfinans
-    </a>
-    <a href="https://x.com/Hakan_3N" target="_blank" style="display:inline-flex;align-items:center;gap:7px;padding:8px 18px;border-radius:7px;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.4);backdrop-filter:blur(8px);color:rgba(255,255,255,.75);text-decoration:none;font-size:13px;font-weight:600;">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>@Hakan_3N
-    </a>
-    <a href="https://www.linkedin.com/in/hasan-kilicarslan-312hk/" target="_blank" style="display:inline-flex;align-items:center;gap:7px;padding:8px 18px;border-radius:7px;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.4);backdrop-filter:blur(8px);color:rgba(255,255,255,.75);text-decoration:none;font-size:13px;font-weight:600;">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>LinkedIn
-    </a>
-    <a href="https://t.me/+RYoLVmS3Y5gxYTI0" target="_blank" style="display:inline-flex;align-items:center;gap:7px;padding:8px 18px;border-radius:7px;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.4);backdrop-filter:blur(8px);color:rgba(255,255,255,.75);text-decoration:none;font-size:13px;font-weight:600;">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>Telegram
-    </a>
-  </div>
-
-  <div class="hero-bottom">
-    <h1 class="hero-headline">
-      Türkiye'nin finansal<br>
-      verisini <em>tek ekranda</em> görün.
-    </h1>
-    <div class="hero-note">
-      <p class="hero-note-text">"Piyasada ne oluyor?" sorusunu bir daha sormak zorunda kalmayacaksınız.</p>
-      <a href="#" class="hero-note-link">
-        Panoya Git
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg>
-      </a>
-    </div>
-  </div>
-</section>
-
-<!-- ══ TICKER ══ -->
-<div class="ticker-wrap">
-  <div class="ticker-track" id="tickerTrack"></div>
 </div>
 
-
-<!-- ══ ABOUT ══ -->
-<section class="page-section">
-  <div class="about-inner">
-    <div>
-      <div class="about-label">Hakkımızda</div>
-      <h2 class="about-title">Bağımsız finansal analiz ve veri platformu.</h2>
-      <p class="about-body">TEFAS fon akışlarından TCMB rezervlerine, global faizlerden BIST endekslerine kadar Türkiye'nin finansal nabzını takip ediyoruz. Gerçek zamanlı verilerle bilinçli kararlar alın.</p>
-    </div>
-    <div class="about-stats">
-      <div>
-        <div class="about-stat-num"><span class="counter" data-to="800">0</span><span class="unit">+</span></div>
-        <div class="about-stat-lbl">Fon Takibi</div>
-      </div>
-      <div>
-        <div class="about-stat-num"><span class="counter" data-to="44">0</span></div>
-        <div class="about-stat-lbl">Global Enstrüman</div>
-      </div>
-      <div>
-        <div class="about-stat-num"><span class="counter" data-to="12">0</span></div>
-        <div class="about-stat-lbl">Makro Veri Seti</div>
-      </div>
-      <div>
-        <div class="about-stat-num"><span class="counter" data-to="365">0</span><span class="unit">g</span></div>
-        <div class="about-stat-lbl">Yıllık Güncelleme</div>
-      </div>
-    </div>
+<h2>Ücretsiz Üye Ol Butonu</h2>
+<div class="row">
+  <div class="col">
+    <div class="label">Önce</div>
+    <span class="btn-b">Ücretsiz Üye Ol</span>
   </div>
-</section>
-
-<!-- ══ FEATURES ══ -->
-<section class="page-section" style="padding-top:0">
-  <div class="features-header">
-    <div class="feat-label">Platform</div>
-    <h2 class="feat-title">Her şey tek yerde</h2>
+  <div class="divider"></div>
+  <div class="col">
+    <div class="label">Sonra</div>
+    <span class="btn-a">Ücretsiz Üye Ol</span>
   </div>
-  <div class="feat-grid">
-    <div class="feat-card">
-      <div class="feat-num">01</div>
-      <div class="feat-card-title">Global Piyasa Takip</div>
-      <div class="feat-card-body">44 enstrüman — faizler, FX, emtialar, endeksler. 4 saatlik ve günlük normalize getiri karşılaştırması.</div>
-      <div class="feat-tag">Günlük Güncelleme</div>
-    </div>
-    <div class="feat-card">
-      <div class="feat-num">02</div>
-      <div class="feat-card-title">TEFAS Fon Akışları</div>
-      <div class="feat-card-body">800'den fazla fon için günlük net akış hesabı. Kategori bazlı analiz ve liderboard.</div>
-      <div class="feat-tag">800+ Fon</div>
-    </div>
-    <div class="feat-card">
-      <div class="feat-num">03</div>
-      <div class="feat-card-title">BIST Portföy</div>
-      <div class="feat-card-body">Hisse pozisyonları, gerçekleşen K/Z ve canlı fiyatlar ile kişisel portföy takibi.</div>
-      <div class="feat-tag">Canlı Fiyat</div>
-    </div>
-    <div class="feat-card">
-      <div class="feat-num">04</div>
-      <div class="feat-card-title">Türkiye Makro</div>
-      <div class="feat-card-body">DTH, menkul kıymet akımları, bütçe, enflasyon, ödemeler dengesi. TCMB EVDS kaynaklı.</div>
-      <div class="feat-tag">TCMB Kaynaklı</div>
-    </div>
-    <div class="feat-card">
-      <div class="feat-num">05</div>
-      <div class="feat-card-title">Kripto ETF Akışları</div>
-      <div class="feat-card-body">ABD'de işlem gören Bitcoin ve Ethereum spot ETF'lerine günlük para girişlerini takip edin.</div>
-      <div class="feat-tag">BTC · ETH</div>
-    </div>
-    <div class="feat-card">
-      <div class="feat-num">06</div>
-      <div class="feat-card-title">BİST Endeks Analizi</div>
-      <div class="feat-card-body">Tüm BİST endekslerinin dönemsel getiri karşılaştırması ve hisse bazlı performans.</div>
-      <div class="feat-tag">Endeks Bazlı</div>
-    </div>
+</div>
+
+<h2>Sosyal Butonlar</h2>
+<div style="padding:0 28px 24px;">
+  <div class="label" style="padding-top:8px;">Önce</div>
+  <div class="sw" style="margin-bottom:20px;margin-top:14px;">
+    <span class="sb-b"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1C4.5 20.4 12 20.4 12 20.4s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8zM9.75 15.5v-7l6.5 3.5-6.5 3.5z"/></svg>@3nfinans</span>
+    <span class="sb-b"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>@Hakan_3N</span>
+    <span class="sb-b"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>LinkedIn — Hasan</span>
   </div>
-</section>
-
-
-<!-- ══ CTA ══ -->
-<section class="page-section" style="padding-top:0;padding-bottom:120px">
-  <div class="cta-section">
-    <h2 class="cta-title">
-      Piyasaları takip etmeye<br><em>hemen başlayın.</em>
-    </h2>
-    <div class="cta-right">
-      <p>Ücretsiz hesap oluşturun, tüm verilere anında erişin.</p>
-      <a href="#" class="cta-btn">
-        Panele Gir
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-      </a>
-    </div>
+  <div class="label">Sonra</div>
+  <div class="sw" style="margin-top:14px;">
+    <span class="sb-a"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1C4.5 20.4 12 20.4 12 20.4s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8zM9.75 15.5v-7l6.5 3.5-6.5 3.5z"/></svg>@3nfinans</span>
+    <span class="sb-a"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>@Hakan_3N</span>
+    <span class="sb-a"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>LinkedIn — Hasan</span>
   </div>
-</section>
+</div>
 
-<!-- ══ FOOTER ══ -->
-<footer>
-  <span>© 2026 <span class="footer-brand">3N<span>Finans</span></span> · Tüm hakları saklıdır.</span>
-  <div class="footer-links">
-    <a href="https://www.youtube.com/@3nfinans/featured" target="_blank" title="YouTube">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1C4.5 20.4 12 20.4 12 20.4s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8zM9.75 15.5v-7l6.5 3.5-6.5 3.5z"/></svg>
-    </a>
-    <a href="https://x.com/Hakan_3N" target="_blank" title="X">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-    </a>
-    <a href="https://www.linkedin.com/in/hasan-kilicarslan-312hk/" target="_blank" title="LinkedIn">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
-    </a>
-    <div style="width:1px;height:12px;background:#222;margin:0 4px"></div>
-    <a href="#">Gizlilik</a>
-    <a href="#">Şartlar</a>
-    <a href="#">İletişim</a>
+<h2>Üye Ol → Linki</h2>
+<div class="row">
+  <div class="col">
+    <div class="label">Önce</div>
+    <span class="uo-b">Üye Ol <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg></span>
   </div>
-</footer>
+  <div class="divider"></div>
+  <div class="col">
+    <div class="label">Sonra</div>
+    <span class="uo-a">Üye Ol <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg></span>
+  </div>
+</div>
 
-<script>
-/* ── TICKER ── */
-const TICKERS_DATA=[
-  {sym:'BIST100',val:'9,842',chg:'+1.23%',up:true},{sym:'USD/TRY',val:'38.42',chg:'+0.18%',up:true},
-  {sym:'XAU/USD',val:'3,240',chg:'+1.04%',up:true},{sym:'NASDAQ',val:'19,842',chg:'+2.14%',up:true},
-  {sym:'S&P500',val:'5,614',chg:'+1.87%',up:true},{sym:'BTC/USD',val:'107,340',chg:'+3.21%',up:true},
-  {sym:'BRENT',val:'74.12',chg:'-0.34%',up:false},{sym:'US10Y',val:'4.63%',chg:'-8 bps',up:false},
-  {sym:'DAX',val:'23,451',chg:'+0.94%',up:true},{sym:'DXY',val:'104.2',chg:'+0.31%',up:true},
-  {sym:'ETH/USD',val:'2,580',chg:'+2.87%',up:true},{sym:'EUR/TRY',val:'41.85',chg:'+0.22%',up:true},
-];
-(function(){
-  const track=document.getElementById('tickerTrack');
-  const doubled=[...TICKERS_DATA,...TICKERS_DATA];
-  track.innerHTML=doubled.map(t=>`<span class="tick"><span class="tick-sym">${t.sym}</span><span class="tick-val">${t.val}</span><span class="tick-chg ${t.up?'up':'dn'}">${t.up?'▲':'▼'} ${t.chg}</span></span>`).join('');
-})();
-
-/* ════════════════════════════════════════
-   VIDEO SCENE CYCLING
-════════════════════════════════════════ */
-(function(){
-  const scenes=['s1','s2','s3','s4'];let cur=0;
-  setInterval(()=>{
-    document.getElementById(scenes[cur]).classList.remove('active');
-    cur=(cur+1)%scenes.length;
-    document.getElementById(scenes[cur]).classList.add('active');
-  },6000);
-})();
-
-/* ── GLOBE CANVAS ── */
-(function(){
-  const canvas=document.getElementById('globe-canvas');
-  const ctx=canvas.getContext('2d');
-  let W,H;
-  function resize(){W=canvas.width=canvas.offsetWidth;H=canvas.height=canvas.offsetHeight;}
-  resize();window.addEventListener('resize',resize);
-
-  const CITIES=[
-    {lon:-74,lat:40.7},{lon:-.1,lat:51.5},{lon:8.7,lat:50.1},
-    {lon:139.7,lat:35.7},{lon:121.5,lat:31.2},{lon:114.2,lat:22.3},
-    {lon:103.8,lat:1.4},{lon:29.0,lat:41.0},{lon:55.3,lat:25.2},
-    {lon:-46.6,lat:-23.5},{lon:151.2,lat:-33.9},{lon:72.9,lat:19.1},
-    {lon:-79.4,lat:43.7},{lon:2.3,lat:48.9},
-  ];
-  const ARCS=[[0,1],[0,12],[1,3],[1,7],[1,13],[2,13],[3,4],[3,5],[4,5],[5,6],[6,11],[7,8],[0,9],[3,10],[8,11],[1,2]];
-  let rot=0;
-  const toRad=d=>d*Math.PI/180;
-  function project(lon,lat,r){
-    const λ=toRad(lon)+r,φ=toRad(lat);
-    return{x:Math.cos(φ)*Math.cos(λ),y:Math.sin(φ),z:Math.cos(φ)*Math.sin(λ)};
-  }
-  function to2D(v,cx,cy,R){return{x:cx+v.x*R,y:cy-v.y*R};}
-  function arcPts(v0,v1,s=50){
-    return Array.from({length:s+1},(_,i)=>{
-      const t=i/s,x=v0.x*(1-t)+v1.x*t,y=v0.y*(1-t)+v1.y*t,z=v0.z*(1-t)+v1.z*t;
-      const l=Math.sqrt(x*x+y*y+z*z);return{x:x/l,y:y/l,z:z/l};
-    });
-  }
-
-  function draw(){
-    ctx.clearRect(0,0,W,H);
-    rot+=0.0015;
-    const R=Math.min(W,H)*.44,cx=W*.48,cy=H*.5;
-
-    // Glow
-    const gl=ctx.createRadialGradient(cx,cy,R*.6,cx,cy,R*1.4);
-    gl.addColorStop(0,'rgba(60,100,180,.06)');gl.addColorStop(1,'transparent');
-    ctx.beginPath();ctx.arc(cx,cy,R*1.4,0,Math.PI*2);ctx.fillStyle=gl;ctx.fill();
-
-    ctx.save();ctx.beginPath();ctx.arc(cx,cy,R,0,Math.PI*2);ctx.clip();
-
-    // Sphere fill
-    const sg=ctx.createRadialGradient(cx-R*.3,cy-R*.25,R*.1,cx,cy,R);
-    sg.addColorStop(0,'rgba(30,50,90,.4)');sg.addColorStop(.7,'rgba(15,25,50,.25)');sg.addColorStop(1,'rgba(5,10,20,.1)');
-    ctx.fillStyle=sg;ctx.fill();
-
-    // Grid lines
-    for(let lat=-75;lat<=75;lat+=15){
-      const pts=[];
-      for(let lon=0;lon<=360;lon+=4){const v=project(lon,lat,rot);if(v.z>=0)pts.push(to2D(v,cx,cy,R));}
-      if(pts.length>1){ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);pts.forEach(p=>ctx.lineTo(p.x,p.y));ctx.strokeStyle='rgba(80,120,200,.12)';ctx.lineWidth=.6;ctx.stroke();}
-    }
-    for(let lon=0;lon<360;lon+=15){
-      const pts=[];
-      for(let lat=-90;lat<=90;lat+=4){const v=project(lon,lat,rot);if(v.z>=0)pts.push(to2D(v,cx,cy,R));}
-      if(pts.length>1){ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);pts.forEach(p=>ctx.lineTo(p.x,p.y));ctx.strokeStyle='rgba(80,120,200,.12)';ctx.lineWidth=.6;ctx.stroke();}
-    }
-    ctx.restore();
-
-    // Sphere ring
-    ctx.beginPath();ctx.arc(cx,cy,R,0,Math.PI*2);
-    ctx.strokeStyle='rgba(80,120,200,.2)';ctx.lineWidth=1;ctx.stroke();
-
-    const vecs=CITIES.map(c=>project(c.lon,c.lat,rot));
-
-    // Arcs
-    ARCS.forEach(([i,j])=>{
-      const v0=vecs[i],v1=vecs[j];if(v0.z<-.2&&v1.z<-.2)return;
-      const pts=arcPts(v0,v1,50);
-      ctx.beginPath();let started=false;
-      pts.forEach(p=>{const pt=to2D(p,cx,cy,R);if(p.z<0){started=false;return;}if(!started){ctx.moveTo(pt.x,pt.y);started=true;}else ctx.lineTo(pt.x,pt.y);});
-      const a=Math.min(v0.z,v1.z)*.25+.05;
-      ctx.strokeStyle=`rgba(100,150,255,${a.toFixed(2)})`;ctx.lineWidth=.8;ctx.stroke();
-
-      // Travelling dot
-      const prog=((rot*35+i*17+j*11)%(Math.PI*2))/(Math.PI*2);
-      const di=Math.floor(prog*50),dv=pts[Math.min(di,pts.length-1)];
-      if(dv.z>0){
-        const dp=to2D(dv,cx,cy,R),da=dv.z*.6;
-        const grd=ctx.createRadialGradient(dp.x,dp.y,0,dp.x,dp.y,5);
-        grd.addColorStop(0,`rgba(150,200,255,${da})`);grd.addColorStop(1,'transparent');
-        ctx.beginPath();ctx.arc(dp.x,dp.y,5,0,Math.PI*2);ctx.fillStyle=grd;ctx.fill();
-        ctx.beginPath();ctx.arc(dp.x,dp.y,1.5,0,Math.PI*2);ctx.fillStyle=`rgba(200,220,255,${da*1.2})`;ctx.fill();
-      }
-    });
-
-    // City dots
-    vecs.forEach((v,i)=>{
-      if(v.z<0)return;
-      const p=to2D(v,cx,cy,R),a=.3+v.z*.5;
-      const isIst=CITIES[i].lon===29.0;
-      const col=isIst?`rgba(220,150,80,${a})`:`rgba(100,160,255,${a*.7})`;
-      const grd=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,isIst?8:5);
-      grd.addColorStop(0,col);grd.addColorStop(1,'transparent');
-      ctx.beginPath();ctx.arc(p.x,p.y,isIst?8:5,0,Math.PI*2);ctx.fillStyle=grd;ctx.fill();
-      ctx.beginPath();ctx.arc(p.x,p.y,isIst?2.5:1.8,0,Math.PI*2);ctx.fillStyle=col;ctx.fill();
-    });
-
-    requestAnimationFrame(draw);
-  }
-  draw();
-})();
-
-/* ── COUNTERS ── */
-function runCounter(el){
-  const target=+el.dataset.to;let cur=0;
-  const step=Math.max(1,target/50);
-  const iv=setInterval(()=>{cur=Math.min(cur+step,target);el.textContent=Math.round(cur).toLocaleString();if(cur>=target)clearInterval(iv);},25);
-}
-let _cDone=false;
-function _runAll(){
-  if(_cDone)return;_cDone=true;
-  document.querySelectorAll('.counter').forEach(runCounter);
-}
-if(document.readyState==='complete'){setTimeout(_runAll,500);}
-else{window.addEventListener('load',()=>setTimeout(_runAll,500));}
-document.addEventListener('DOMContentLoaded',()=>setTimeout(_runAll,600));
-window.addEventListener('scroll',_runAll,{passive:true,once:true});
-</script>
 </body>
 </html>

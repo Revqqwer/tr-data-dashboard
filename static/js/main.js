@@ -3138,7 +3138,7 @@ async function mbSubscribe() {
 function _mbRender(reports) {
   const list = document.getElementById('mb-list');
   if (!list) return;
-  const filtered = _mbFilter === 'all' ? reports : reports.filter(r => r.type === _mbFilter);
+  const filtered = [...reports].sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
 
   if (!filtered.length) {
     list.innerHTML = '<div style="text-align:center;padding:60px 0;color:var(--text-muted);">Henüz rapor yok.</div>';

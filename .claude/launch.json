@@ -1,11 +1,1 @@
-﻿{
-  "version": "0.0.1",
-  "configurations": [
-    {
-      "name": "landing-preview",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": ["serve", "C:\\Users\\hakan\\OneDrive\\Masaüstü\\.claude\\tr-data-dashboard", "-p", "7788", "--no-clipboard"],
-      "port": 7788
-    }
-  ]
-}
+{"version":"0.0.1","configurations":[{"name":"preview","runtimeExecutable":"python","runtimeArgs":["-m","http.server","7788"],"port":7788}]}
