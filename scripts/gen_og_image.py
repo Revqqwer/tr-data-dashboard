@@ -2,24 +2,24 @@
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
 W, H = 1200, 630
-BG_TOP = (10, 14, 24)
-BG_BOTTOM = (16, 21, 36)
-GOLD = (240, 180, 41)
-GOLD_DIM = (165, 130, 50)
-WHITE = (235, 240, 248)
-MUTED = (120, 134, 160)
-GREEN = (52, 211, 153)
-GREEN_FILL = (34, 64, 60)
-CARD_BG = (21, 27, 43)
-CARD_BORDER = (45, 54, 78)
+BG_TOP = (244, 246, 250)
+BG_BOTTOM = (227, 232, 241)
+GOLD = (217, 142, 16)
+GOLD_DIM = (217, 142, 16)
+WHITE = (30, 38, 56)
+MUTED = (110, 122, 145)
+GREEN = (16, 160, 110)
+GREEN_FILL = (205, 235, 224)
+CARD_BG = (255, 255, 255)
+CARD_BORDER = (224, 229, 238)
 
 FONT_DIR = "C:/Windows/Fonts"
 
 def font(path, size):
     return ImageFont.truetype(f"{FONT_DIR}/{path}", size)
 
-f_logo = font("segoeuib.ttf", 92)
-f_sub  = font("segoeuisl.ttf", 36)
+f_logo = font("segoeuib.ttf", 80)
+f_sub  = font("segoeuib.ttf", 80)
 f_tag  = font("segoeui.ttf", 30)
 f_url  = font("segoeui.ttf", 24)
 f_pill = font("segoeuib.ttf", 22)
@@ -41,8 +41,8 @@ img = img.convert("RGBA")
 # Soft glow accents (blurred overlay, alpha-composited once)
 glow = Image.new("RGBA", (W, H), (0, 0, 0, 0))
 gdraw = ImageDraw.Draw(glow)
-gdraw.ellipse([W - 480, -240, W + 160, 280], fill=(240, 180, 41, 30))
-gdraw.ellipse([-220, H - 260, 340, H + 240], fill=(52, 211, 153, 16))
+gdraw.ellipse([W - 480, -240, W + 160, 280], fill=(240, 180, 41, 35))
+gdraw.ellipse([-220, H - 260, 340, H + 240], fill=(16, 160, 110, 25))
 glow = glow.filter(ImageFilter.GaussianBlur(100))
 img = Image.alpha_composite(img, glow)
 
@@ -53,14 +53,14 @@ draw = ImageDraw.Draw(img)
 draw.rectangle([0, 0, W, 5], fill=GOLD)
 
 # ── Left: wordmark ──
-logo_x, logo_y = 80, 140
+logo_x, logo_y = 80, 150
 draw.text((logo_x, logo_y), "3N", font=f_logo, fill=GOLD)
 bbox = draw.textbbox((logo_x, logo_y), "3N", font=f_logo)
-draw.text((bbox[2] + 18, logo_y + 22), "FINANS", font=f_sub, fill=WHITE)
+draw.text((bbox[2] + 22, logo_y), "FINANS", font=f_sub, fill=WHITE)
 
-draw.text((logo_x, logo_y + 130), "Türkiye'nin Finansal Veri Platformu", font=f_tag, fill=MUTED)
-draw.text((logo_x, logo_y + 180), "TEFAS · BIST · TCMB · Global Piyasalar — tek ekranda.",
-          font=f_small, fill=(150, 162, 188))
+draw.text((logo_x, logo_y + 120), "Türkiye'nin Finansal Veri Platformu", font=f_tag, fill=MUTED)
+draw.text((logo_x, logo_y + 170), "TEFAS · BIST · TCMB · Global Piyasalar — tek ekranda.",
+          font=f_small, fill=(140, 152, 175))
 
 # ── Right: chart card ──
 card_x0, card_y0, card_x1, card_y1 = 700, 130, 1120, 400
@@ -98,7 +98,7 @@ for label in pills:
     px += w + 16
 
 # ── Footer ──
-draw.line([(80, H - 70), (W - 80, H - 70)], fill=(50, 60, 84), width=1)
+draw.line([(80, H - 70), (W - 80, H - 70)], fill=(214, 220, 232), width=1)
 draw.text((80, H - 52), "www.3nfinans.com", font=f_url, fill=WHITE)
 footer_right = "Bağımsız Finansal Analiz"
 tw = draw.textlength(footer_right, font=f_url)
