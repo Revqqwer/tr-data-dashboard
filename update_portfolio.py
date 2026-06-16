@@ -21,7 +21,8 @@ load_dotenv(BASE_DIR / '.env', override=True)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%H:%M:%S')
 log = logging.getLogger(__name__)
 
-PORTFOLIO_FILE = BASE_DIR / 'data' / 'portfolio.json'
+PORTFOLIO_FILE           = BASE_DIR / 'data' / 'portfolio.json'
+PORTFOLIO_OVERRIDES_FILE = BASE_DIR / 'data' / 'portfolio_overrides.json'
 
 # TradingView sembolleri — benchmark
 BENCHMARK_TV = {
@@ -98,8 +99,20 @@ def run():
 
     pf = json.loads(PORTFOLIO_FILE.read_text(encoding='utf-8'))
 
-    # Açık pozisyonlar
-    open_pos = pf.get('open_positions', {})
+    # Açık pozisyonlar (portfolio.json + portfolio_overrides.json birleşimi)
+    open_pos = dict(pf.get('open_positions', {}))
+    try:
+        ov = json.loads(PORTFOLIO_OVERRIDES_FILE.read_text(encoding='utf-8'))
+        for ticker, pos_data in ov.get('open_positions', {}).items():
+            if float(pos_data.get('qty', 0)) <= 0:
+                open_pos.pop(ticker, None)
+            else:
+                open_pos[ticker] = pos_data
+        if ov.get('open_positions'):
+            log.info('Override pozisyonları uygulandı: %s', list(ov['open_positions'].keys()))
+    except FileNotFoundError:
+        pass
+
     if not open_pos:
         log.info('Açık pozisyon yok, çıkılıyor.')
         return
