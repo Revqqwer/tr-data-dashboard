@@ -3090,25 +3090,19 @@ async function mbLoad() {
 }
 
 function _mbRenderSubscribeBox() {
-  const list = document.getElementById('mb-list');
-  if (!list) return;
-  const box = document.createElement('div');
-  box.style.cssText = 'margin-top:24px;background:linear-gradient(135deg,rgba(240,180,41,.06),rgba(240,180,41,.02));border:1px solid rgba(240,180,41,.2);border-radius:12px;padding:20px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;';
-  box.innerHTML = `
-    <div style="flex:1;min-width:200px;">
-      <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px;">📬 Her sabah emailine gelsin</div>
-      <div style="font-size:12px;color:var(--text-muted);">Günlük piyasa özeti sabah 09:30'da emailine gönderilir. Ücretsiz.</div>
-    </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+  const panel = document.getElementById('mb-subscribe-panel');
+  if (!panel) return;
+  panel.innerHTML = `
+    <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">📬 Her sabah emailine gelsin</div>
+    <div style="display:flex;gap:6px;">
       <input id="mb-sub-email" type="email" placeholder="email@adresin.com"
-             style="padding:9px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:13px;outline:none;width:220px;">
+             style="flex:1;min-width:0;padding:7px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:12px;outline:none;">
       <button onclick="mbSubscribe()" id="mb-sub-btn"
-              style="padding:9px 18px;border-radius:8px;background:#f0b429;border:none;color:#050a14;font-size:13px;font-weight:700;cursor:pointer;">
+              style="padding:7px 12px;border-radius:6px;background:#f0b429;border:none;color:#050a14;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">
         Abone Ol
       </button>
     </div>
-    <div id="mb-sub-msg" style="width:100%;font-size:12px;display:none;"></div>`;
-  list.parentNode.insertBefore(box, list);
+    <div id="mb-sub-msg" style="font-size:11px;margin-top:6px;display:none;"></div>`;
 }
 
 async function mbSubscribe() {
@@ -3138,68 +3132,83 @@ async function mbSubscribe() {
 function _mbRender(reports) {
   const list = document.getElementById('mb-list');
   if (!list) return;
-  const filtered = [...reports].sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
+  window._mbFiltered = [...reports].sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
 
-  if (!filtered.length) {
-    list.innerHTML = '<div style="text-align:center;padding:60px 0;color:var(--text-muted);">Henüz rapor yok.</div>';
+  if (!window._mbFiltered.length) {
+    list.innerHTML = '<div style="padding:24px 12px;text-align:center;color:var(--text-muted);font-size:13px;">Henüz rapor yok.</div>';
     return;
   }
 
-  list.innerHTML = filtered.map((r, i) => {
+  list.innerHTML = window._mbFiltered.map((r, i) => {
     const isWeekly = r.type === 'weekly';
     const badge = isWeekly
-      ? '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:rgba(139,92,246,.2);color:#c4b5fd;letter-spacing:.05em;">📋 HAFTALIK</span>'
-      : '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:rgba(59,130,246,.15);color:#93c5fd;letter-spacing:.05em;">📊 GÜNLÜK</span>';
-
+      ? `<span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:8px;background:rgba(139,92,246,.2);color:#c4b5fd;">HAFTALIK</span>`
+      : `<span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:8px;background:rgba(59,130,246,.15);color:#93c5fd;">GÜNLÜK</span>`;
     const title = r.title || r.date_label || r.date;
-    const expanded = i === 0;
-    const cardBorder = isWeekly ? 'border:1px solid rgba(139,92,246,.35)' : 'border:1px solid var(--border)';
-    const headerBg  = isWeekly ? 'background:linear-gradient(135deg,rgba(139,92,246,.1),rgba(109,40,217,.05))' : 'background:var(--surface)';
-    const weeklyStripe = isWeekly ? `<div style="height:3px;background:linear-gradient(90deg,#7c3aed,#a78bfa,#7c3aed);"></div>` : '';
-
-    return `
-    <div style="background:var(--surface);${cardBorder};border-radius:12px;overflow:hidden;">
-      ${weeklyStripe}
-      <div style="${headerBg};padding:18px 24px;display:flex;align-items:center;gap:12px;cursor:pointer;"
-           onclick="mbToggle(this)">
-        ${badge}
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:14px;font-weight:${isWeekly?'700':'600'};color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${title}</div>
-          <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${r.created_at ? r.created_at.replace('T',' ').slice(0,16) : ''}</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;" onclick="event.stopPropagation()">
-          <a href="https://twitter.com/intent/tweet?text=${encodeURIComponent(title + ' — 3N Finans')}&url=https%3A%2F%2Fwww.3nfinans.com%2Fdashboard%23market-briefs"
-             target="_blank" title="Twitter'da paylaş"
-             style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text-muted);text-decoration:none;transition:.15s;"
-             onmouseover="this.style.borderColor='#1da1f2';this.style.color='#1da1f2'"
-             onmouseout="this.style.borderColor='';this.style.color=''">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-          </a>
-          <a href="https://wa.me/?text=${encodeURIComponent(title + '\n\nhttps://www.3nfinans.com/dashboard#market-briefs')}"
-             target="_blank" title="WhatsApp'ta paylaş"
-             style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text-muted);text-decoration:none;transition:.15s;"
-             onmouseover="this.style.borderColor='#25d366';this.style.color='#25d366'"
-             onmouseout="this.style.borderColor='';this.style.color=''">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
-          </a>
-        </div>
-        <svg class="mb-chevron" style="width:16px;height:16px;flex-shrink:0;color:var(--text-muted);transition:transform .2s;${expanded?'transform:rotate(180deg)':''}"
-             viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+    const date  = r.created_at ? r.created_at.replace('T',' ').slice(0,10) : '';
+    const activeStyle = i === 0
+      ? 'border-left-color:var(--blue);background:rgba(59,130,246,.08);'
+      : '';
+    return `<div class="mb-list-item" data-idx="${i}" onclick="_mbShowDetail(${i})"
+              style="padding:10px 12px;border-radius:8px;cursor:pointer;border-left:3px solid transparent;transition:.12s;${activeStyle}">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">${badge}
+        <span style="font-size:11px;color:var(--text-muted);margin-left:auto;">${date}</span>
       </div>
-      <div class="mb-body" style="display:${expanded?'block':'none'};padding:0 24px 24px;">
-        <div style="height:1px;background:var(--border);margin-bottom:20px;"></div>
-        <div style="font-size:13.5px;line-height:1.85;color:var(--text);">${_mbFormat(r.content || '')}</div>
-      </div>
+      <div style="font-size:13px;font-weight:600;color:var(--text);line-height:1.35;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${title}</div>
     </div>`;
   }).join('');
+
+  _mbShowDetail(0);
 }
 
-function mbToggle(header) {
-  const body = header.nextElementSibling;
-  const chevron = header.querySelector('.mb-chevron');
-  const open = body.style.display === 'block';
-  body.style.display = open ? 'none' : 'block';
-  chevron.style.transform = open ? '' : 'rotate(180deg)';
+function _mbShowDetail(idx) {
+  const filtered = window._mbFiltered;
+  if (!filtered || !filtered[idx]) return;
+  const r = filtered[idx];
+
+  document.querySelectorAll('.mb-list-item').forEach((el, i) => {
+    el.style.borderLeftColor = i === idx ? 'var(--blue)' : 'transparent';
+    el.style.background      = i === idx ? 'rgba(59,130,246,.08)' : '';
+  });
+
+  const panel = document.getElementById('mb-detail-panel');
+  if (panel) panel.scrollTop = 0;
+
+  const isWeekly = r.type === 'weekly';
+  const title = r.title || r.date_label || r.date;
+  const date  = r.created_at ? r.created_at.replace('T',' ').slice(0,16) : '';
+  const badge = isWeekly
+    ? `<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;background:rgba(139,92,246,.2);color:#c4b5fd;">📋 HAFTALIK</span>`
+    : `<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;background:rgba(59,130,246,.15);color:#93c5fd;">📊 GÜNLÜK</span>`;
+  const stripe = isWeekly ? `<div style="height:3px;background:linear-gradient(90deg,#7c3aed,#a78bfa,#7c3aed);border-radius:3px 3px 0 0;margin-bottom:20px;"></div>` : '';
+  const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(title + ' — 3N Finans')}&url=https%3A%2F%2Fwww.3nfinans.com%2Fdashboard%23market-briefs`;
+  const waUrl      = `https://wa.me/?text=${encodeURIComponent(title + '\n\nhttps://www.3nfinans.com/dashboard#market-briefs')}`;
+
+  const shareBtn = (href, title, color, hoverColor, svgPath) =>
+    `<a href="${href}" target="_blank" title="${title}"
+        style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:var(--text-muted);text-decoration:none;transition:.15s;"
+        onmouseover="this.style.borderColor='${hoverColor}';this.style.color='${hoverColor}'"
+        onmouseout="this.style.borderColor='';this.style.color=''">${svgPath}</a>`;
+
+  const twitterSvg = `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>`;
+  const waSvg     = `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>`;
+
+  document.getElementById('mb-content-area').innerHTML = `
+    ${stripe}
+    <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">${badge}
+          <span style="font-size:12px;color:var(--text-muted);">${date}</span>
+        </div>
+        <div style="font-size:20px;font-weight:700;color:var(--text);line-height:1.3;">${title}</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-shrink:0;padding-top:4px;">
+        ${shareBtn(twitterUrl, "Twitter'da paylaş", '', '#1da1f2', twitterSvg)}
+        ${shareBtn(waUrl, "WhatsApp'ta paylaş", '', '#25d366', waSvg)}
+      </div>
+    </div>
+    <div style="height:1px;background:var(--border);margin-bottom:24px;"></div>
+    <div style="font-size:13.5px;line-height:1.85;color:var(--text);">${_mbFormat(r.content || '')}</div>`;
 }
 
 /* ── Rapor içeriğini HTML'e çevir ── */
