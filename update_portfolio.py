@@ -29,6 +29,12 @@ BENCHMARK_TV = {
     'altin': 'FX_IDC:XAUTRYG',   # Gram Altın TL (TradingView FX_IDC:XAUTRYG)
 }
 
+# parse_portfolio.py ile aynı harita — Yahoo Finance'da olmayan ticker'lar için TV sembolü
+TV_FALLBACK = {
+    'DMLKTG': 'DMLKT',
+    'ALTINS': 'ALTIN',
+}
+
 
 # ── TradingView fetch (collect_bist.py'den — timeout'lu, güvenilir) ──────────
 def _fetch_tv(tv_symbol: str, n_bars: int = 60) -> dict[str, float]:
@@ -111,22 +117,29 @@ def run():
     last_entry    = pdv[-1]
     last_date_str = last_entry['date']
     last_date     = date.fromisoformat(last_date_str)
-    last_cash     = last_entry.get('cash_value', 0.0)
     today         = date.today()
 
     if last_date >= today:
         log.info('Portföy zaten güncel (%s)', last_date_str)
         return
 
-    n_bars = max(30, (today - last_date).days + 10)
-    log.info('Son tarih: %s → bugün: %s (%d bar istenecek)', last_date_str, today, n_bars)
+    # Son 10 işlem gününü her çalışmada yeniden hesapla — yanlış fiyatla
+    # yazılmış girişleri (ör. TV sembol hatası) otomatik düzeltir.
+    RECOMPUTE_DAYS = 10
+    recompute_from = last_date - timedelta(days=RECOMPUTE_DAYS)
+    recompute_from_str = recompute_from.isoformat()
+
+    n_bars = max(30, (today - recompute_from).days + 10)
+    log.info('Son tarih: %s → bugün: %s (%d bar istenecek, son %d gün yeniden hesaplanacak)',
+             last_date_str, today, n_bars, RECOMPUTE_DAYS)
 
     # 1. Hisse fiyatları (TradingView)
     stock_prices: dict[str, dict[str, float]] = {}
     for ticker in tickers:
-        log.info('Çekiliyor: %s', ticker)
+        tv_sym = f'BIST:{TV_FALLBACK.get(ticker, ticker)}'
+        log.info('Çekiliyor: %s (%s)', ticker, tv_sym)
         try:
-            stock_prices[ticker] = _fetch_tv(f'BIST:{ticker}', n_bars)
+            stock_prices[ticker] = _fetch_tv(tv_sym, n_bars)
         except Exception as e:
             log.warning('%s hatası: %s', ticker, e)
             stock_prices[ticker] = {}
@@ -144,20 +157,31 @@ def run():
         time.sleep(0.6)
 
     # 3. NSP fiyatları (TEFAS)
-    nsp_prices   = _fetch_nsp(last_date_str)
+    nsp_prices   = _fetch_nsp(recompute_from_str)
     nsp_units    = pf.get('nsp_current_units', 0.0)
-    last_nsp_val = last_entry.get('nsp_value', 0.0)
+    # Yeniden hesaplama başlangıç noktasındaki NSP değerini bul
+    pdv_kept_tmp = [e for e in pdv if e['date'] <= recompute_from_str]
+    recompute_anchor = pdv_kept_tmp[-1] if pdv_kept_tmp else last_entry
+    last_nsp_val = recompute_anchor.get('nsp_value', 0.0)
+    last_cash    = recompute_anchor.get('cash_value', 0.0)
 
     # 4. Trading günleri → XU100'ün döndürdüğü tarihleri kullan
+    # recompute_from_str'den itibaren yeniden hesapla (son RECOMPUTE_DAYS günü dahil)
     xu100_dates = sorted(
         d for d in bench_raw.get('xu100', {})
-        if d > last_date_str
+        if d > recompute_from_str
     )
-    log.info('Güncellenecek %d işlem günü', len(xu100_dates))
+    log.info('Güncellenecek/yeniden hesaplanacak %d işlem günü (%s sonrası)',
+             len(xu100_dates), recompute_from_str)
 
     # 5. Her yeni gün için portfolio_daily_value girdisi
     new_entries = []
-    last_stock_prices: dict[str, float] = {t: list(v.values())[-1] for t, v in stock_prices.items() if v}
+    # Mevcut last_prices'ı başlangıç noktası yap — TV fetch başarısız olan ticker'lar
+    # (örn. DMLKTG → TV'de DMLKT olarak var) için son bilinen fiyatı koru.
+    last_stock_prices: dict[str, float] = dict(pf.get('last_prices', {}))
+    for t, v in stock_prices.items():
+        if v:
+            last_stock_prices[t] = list(v.values())[-1]
 
     for d_str in xu100_dates:
         # Mevcut fiyatı al (yoksa son bilinen fiyatı kullan)
@@ -182,11 +206,16 @@ def run():
             'total_value':  total,
         })
 
-    # 6. Güncelle
+    # 6. Güncelle: recompute_from_str öncesini koru, sonrasını yenisiyle değiştir
     if new_entries:
-        pf['portfolio_daily_value']  = pdv + new_entries
+        pdv_kept = [e for e in pdv if e['date'] <= recompute_from_str]
+        pf['portfolio_daily_value']   = pdv_kept + new_entries
         pf['portfolio_current_value'] = new_entries[-1]['total_value']
-        log.info('%d yeni gün eklendi. Son değer: %.2f TL', len(new_entries), new_entries[-1]['total_value'])
+        log.info('%d gün yeniden hesaplandı (%d yeni, %d güncellendi). Son değer: %.2f TL',
+                 len(new_entries),
+                 sum(1 for e in new_entries if e['date'] > last_date_str),
+                 sum(1 for e in new_entries if e['date'] <= last_date_str),
+                 new_entries[-1]['total_value'])
 
     # 7. last_prices güncelle
     pf['last_prices'] = {t: v for t, v in last_stock_prices.items() if v}
