@@ -3188,7 +3188,7 @@ function _mbRender(reports) {
       </div>
       <div class="mb-body" style="display:${expanded?'block':'none'};padding:0 24px 24px;">
         <div style="height:1px;background:var(--border);margin-bottom:20px;"></div>
-        <div style="font-size:13.5px;line-height:1.85;color:var(--text);">${_mbFormat(r.content || '')}</div>
+        ${_mbTwoCol(r.content || '')}
       </div>
     </div>`;
   }).join('');
@@ -3200,6 +3200,39 @@ function mbToggle(header) {
   const open = body.style.display === 'block';
   body.style.display = open ? 'none' : 'block';
   chevron.style.transform = open ? '' : 'rotate(180deg)';
+}
+
+/* ── Rapor içeriğini 2 sütuna böl (bölüm başlıklarında kır) ── */
+function _mbTwoCol(raw) {
+  const lines = raw.split('\n');
+  const sections = [];
+  let buf = [];
+
+  for (const line of lines) {
+    const t = line.trim();
+    if (/^━+/.test(t) && t.replace(/━+/g, '').trim()) {
+      if (buf.length) sections.push(buf.join('\n'));
+      buf = [line];
+    } else {
+      buf.push(line);
+    }
+  }
+  if (buf.length) sections.push(buf.join('\n'));
+
+  const colStyle = 'font-size:13.5px;line-height:1.85;color:var(--text);min-width:0;';
+
+  if (sections.length < 3) {
+    return `<div style="${colStyle}">${_mbFormat(raw)}</div>`;
+  }
+
+  const mid = Math.ceil(sections.length / 2);
+  const leftRaw  = sections.slice(0, mid).join('\n');
+  const rightRaw = sections.slice(mid).join('\n');
+
+  return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start;">
+    <div style="${colStyle}">${_mbFormat(leftRaw)}</div>
+    <div style="${colStyle}">${_mbFormat(rightRaw)}</div>
+  </div>`;
 }
 
 /* ── Rapor içeriğini HTML'e çevir ── */
