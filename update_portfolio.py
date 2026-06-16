@@ -97,6 +97,7 @@ def _fetch_nsp(from_str: str) -> dict[str, float]:
 def run():
     log.info('=== Portföy güncelleme başlıyor ===')
 
+    today = date.today()
     pf = json.loads(PORTFOLIO_FILE.read_text(encoding='utf-8'))
 
     # Açık pozisyonlar (portfolio.json + portfolio_overrides.json birleşimi)
@@ -148,7 +149,6 @@ def run():
     last_entry    = pdv[-1]
     last_date_str = last_entry['date']
     last_date     = date.fromisoformat(last_date_str)
-    today         = date.today()
 
     if last_date >= today:
         log.info('Portföy zaten güncel (%s)', last_date_str)
