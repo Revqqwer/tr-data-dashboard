@@ -751,9 +751,11 @@ def _save_makro_forecast(rows: list):
 def _load_overrides() -> dict:
     try:
         with open(_PORTFOLIO_OVERRIDES, encoding='utf-8') as f:
-            return _json.load(f)
+            ov = _json.load(f)
     except FileNotFoundError:
-        return {'open_positions': {}}
+        ov = {}
+    ov.setdefault('open_positions', {})
+    return ov
 
 def _save_overrides(ov: dict):
     os.makedirs(os.path.dirname(_PORTFOLIO_OVERRIDES), exist_ok=True)
