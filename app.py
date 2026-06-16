@@ -968,7 +968,16 @@ def admin_portfolio_override_set(secret):
     if qty <= 0:
         ov['open_positions'][ticker] = {'qty': 0, 'avg_cost': 0}
     else:
-        ov['open_positions'][ticker] = {'qty': qty, 'avg_cost': round(avg, 4)}
+        existing = ov['open_positions'].get(ticker, {})
+        entry = {'qty': qty, 'avg_cost': round(avg, 4)}
+        # Yeni pozisyon ise bugünü alım tarihi olarak kaydet;
+        # mevcut pozisyon güncelleniyorsa tarihi koru.
+        if existing.get('purchased_date'):
+            entry['purchased_date'] = existing['purchased_date']
+        elif float(existing.get('qty', 0)) <= 0:
+            import datetime as _dt
+            entry['purchased_date'] = _dt.date.today().isoformat()
+        ov['open_positions'][ticker] = entry
 
     # ── NSP birim override (opsiyonel, frontend tarafından hesaplanır) ──
     nsp_ov = data.get('nsp_units_override')

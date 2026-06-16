@@ -100,7 +100,9 @@ def run():
     pf = json.loads(PORTFOLIO_FILE.read_text(encoding='utf-8'))
 
     # Açık pozisyonlar (portfolio.json + portfolio_overrides.json birleşimi)
-    open_pos = dict(pf.get('open_positions', {}))
+    base_open = dict(pf.get('open_positions', {}))
+    open_pos  = dict(base_open)
+    ov        = {}
     try:
         ov = json.loads(PORTFOLIO_OVERRIDES_FILE.read_text(encoding='utf-8'))
         for ticker, pos_data in ov.get('open_positions', {}).items():
@@ -113,12 +115,28 @@ def run():
     except FileNotFoundError:
         pass
 
+    # Yeni pozisyonlar (sadece override'da, base portfolio.json'da yok):
+    # purchased_date'den önce sayılmaz — geçmiş giriş şişirmesini önler.
+    # purchased_date yoksa bugün varsayılır.
+    new_pos_dates: dict[str, str] = {}
+    for ticker, pos_data in ov.get('open_positions', {}).items():
+        if ticker not in base_open and float(pos_data.get('qty', 0)) > 0:
+            pd_str = pos_data.get('purchased_date', today.isoformat())
+            new_pos_dates[ticker] = pd_str
+            log.info('Yeni override pozisyon: %s → alım tarihi %s', ticker, pd_str)
+
+    # NSP override: yeni pozisyonların alım tarihinden itibaren geçerli
+    nsp_units_base     = pf.get('nsp_current_units', 0.0)
+    nsp_units_override = ov.get('nsp_units_override')
+    nsp_change_date    = (min(new_pos_dates.values())
+                          if new_pos_dates and nsp_units_override is not None else None)
+
     if not open_pos:
         log.info('Açık pozisyon yok, çıkılıyor.')
         return
 
     tickers = list(open_pos.keys())
-    qty_map = {t: open_pos[t]['qty'] for t in tickers}
+    qty_map = {t: float(open_pos[t]['qty']) for t in tickers}
     log.info('Hisseler: %s', tickers)
 
     # Son portföy tarihi
@@ -136,9 +154,9 @@ def run():
         log.info('Portföy zaten güncel (%s)', last_date_str)
         return
 
-    # Son 10 işlem gününü her çalışmada yeniden hesapla — yanlış fiyatla
-    # yazılmış girişleri (ör. TV sembol hatası) otomatik düzeltir.
-    RECOMPUTE_DAYS = 10
+    # Son N işlem gününü her çalışmada yeniden hesapla — yanlış fiyatla
+    # yazılmış girişleri (ör. TV sembol hatası, yeni pozisyon ekleme) düzeltir.
+    RECOMPUTE_DAYS = 20
     recompute_from = last_date - timedelta(days=RECOMPUTE_DAYS)
     recompute_from_str = recompute_from.isoformat()
 
@@ -171,7 +189,6 @@ def run():
 
     # 3. NSP fiyatları (TEFAS)
     nsp_prices   = _fetch_nsp(recompute_from_str)
-    nsp_units    = pf.get('nsp_current_units', 0.0)
     # Yeniden hesaplama başlangıç noktasındaki NSP değerini bul
     pdv_kept_tmp = [e for e in pdv if e['date'] <= recompute_from_str]
     recompute_anchor = pdv_kept_tmp[-1] if pdv_kept_tmp else last_entry
@@ -200,14 +217,20 @@ def run():
         # Mevcut fiyatı al (yoksa son bilinen fiyatı kullan)
         sv = 0.0
         for ticker, qty in qty_map.items():
+            # Yeni override pozisyonunu alım tarihinden önce dahil etme
+            if ticker in new_pos_dates and d_str < new_pos_dates[ticker]:
+                continue
             p = stock_prices[ticker].get(d_str)
             if p is not None:
                 last_stock_prices[ticker] = p
             sv += qty * last_stock_prices.get(ticker, 0.0)
 
-        # NSP değeri
+        # NSP değeri: alım tarihinden itibaren override birimlerini kullan
+        nsp_u = (nsp_units_override
+                 if nsp_change_date and nsp_units_override is not None and d_str >= nsp_change_date
+                 else nsp_units_base)
         nsp_p = nsp_prices.get(d_str)
-        nsp_val = (nsp_units * nsp_p) if nsp_p else last_nsp_val
+        nsp_val = (nsp_u * nsp_p) if nsp_p else last_nsp_val
         last_nsp_val = nsp_val
 
         total = round(sv + nsp_val + last_cash, 2)
