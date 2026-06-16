@@ -3219,17 +3219,24 @@ function _mbTwoCol(raw) {
   }
   if (buf.length) sections.push(buf.join('\n'));
 
-  const colStyle = 'font-size:13.5px;line-height:1.85;color:var(--text);min-width:0;';
+  const colStyle = 'font-size:15px;line-height:1.9;color:var(--text);min-width:0;';
 
   if (sections.length < 3) {
     return `<div style="${colStyle}">${_mbFormat(raw)}</div>`;
   }
 
-  const mid = Math.ceil(sections.length / 2);
-  const leftRaw  = sections.slice(0, mid).join('\n');
-  const rightRaw = sections.slice(mid).join('\n');
+  // sections[0] = başlık + giriş metni (━━━ öncesi) → tam genişlik
+  const preamble = sections[0];
+  const rest = sections.slice(1);
+  const mid = Math.ceil(rest.length / 2);
+  const leftRaw  = rest.slice(0, mid).join('\n');
+  const rightRaw = rest.slice(mid).join('\n');
 
-  return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start;">
+  const preHtml = preamble.trim()
+    ? `<div style="${colStyle};margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--border);">${_mbFormat(preamble)}</div>`
+    : '';
+
+  return `${preHtml}<div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start;">
     <div style="${colStyle}">${_mbFormat(leftRaw)}</div>
     <div style="${colStyle}">${_mbFormat(rightRaw)}</div>
   </div>`;
