@@ -3228,9 +3228,18 @@ function _mbTwoCol(raw) {
   // sections[0] = başlık + giriş metni (━━━ öncesi) → tam genişlik
   const preamble = sections[0];
   const rest = sections.slice(1);
-  const mid = Math.ceil(rest.length / 2);
-  const leftRaw  = rest.slice(0, mid).join('\n');
-  const rightRaw = rest.slice(mid).join('\n');
+
+  // Karakter sayısına göre en dengeli bölme noktasını bul
+  const total = rest.reduce((s, x) => s + x.length, 0);
+  let splitAt = 1, bestDiff = Infinity, cum = 0;
+  for (let i = 0; i < rest.length - 1; i++) {
+    cum += rest[i].length;
+    const diff = Math.abs(cum - (total - cum));
+    if (diff < bestDiff) { bestDiff = diff; splitAt = i + 1; }
+  }
+
+  const leftRaw  = rest.slice(0, splitAt).join('\n');
+  const rightRaw = rest.slice(splitAt).join('\n');
 
   const preHtml = preamble.trim()
     ? `<div style="${colStyle};margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--border);">${_mbFormat(preamble)}</div>`
