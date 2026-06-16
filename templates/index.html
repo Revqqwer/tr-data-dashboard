@@ -1367,13 +1367,31 @@
   </header>
 
   <!-- ── PİYASA ÖZETİ İÇERİK ── -->
-  <div class="page-content hidden" id="page-market-briefs">
-    <div style="padding:28px 32px;max-width:960px;margin:0 auto;">
-      <div id="mb-loading" style="text-align:center;padding:60px 0;color:var(--text-muted);">
-        <div class="spinner" style="margin:0 auto 16px;"></div>
-        <div>Raporlar yükleniyor…</div>
+  <div class="page-content hidden" id="page-market-briefs" style="padding:0;overflow:hidden;">
+    <div style="display:grid;grid-template-columns:300px 1fr;height:calc(100vh - 56px);overflow:hidden;">
+
+      <!-- Sol: Rapor listesi -->
+      <div style="display:flex;flex-direction:column;border-right:1px solid var(--border);background:var(--surface);overflow:hidden;">
+        <div id="mb-subscribe-panel" style="padding:14px 16px;border-bottom:1px solid var(--border);flex-shrink:0;"></div>
+        <div id="mb-loading" style="text-align:center;padding:40px 16px;color:var(--text-muted);">
+          <div class="spinner" style="margin:0 auto 12px;"></div>
+          <div style="font-size:12px;">Raporlar yükleniyor…</div>
+        </div>
+        <div id="mb-list" style="overflow-y:auto;flex:1;padding:8px;display:flex;flex-direction:column;gap:3px;"></div>
       </div>
-      <div id="mb-list" style="display:flex;flex-direction:column;gap:16px;"></div>
+
+      <!-- Sağ: Rapor içeriği -->
+      <div id="mb-detail-panel" style="overflow-y:auto;background:var(--bg);">
+        <div style="padding:32px 40px;max-width:860px;">
+          <div id="mb-content-area">
+            <div style="text-align:center;padding:80px 0;color:var(--text-muted);">
+              <div style="font-size:36px;margin-bottom:12px;">📰</div>
+              <div style="font-size:14px;">Sol panelden bir rapor seçin</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
