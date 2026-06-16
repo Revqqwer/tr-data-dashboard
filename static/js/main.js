@@ -3279,10 +3279,11 @@ function _mbFormat(raw) {
     if (/^━+/.test(t)) {
       const label = t.replace(/━+/g,'').trim();
       if (label) {
-        html += `<div style="display:flex;align-items:center;gap:10px;margin:20px 0 10px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--blue);">
-          <span style="flex:0 0 24px;height:2px;background:var(--blue);opacity:.4;border-radius:1px;display:block"></span>
-          ${esc(label)}
-          <span style="flex:1;height:1px;background:var(--border);display:block"></span>
+        html += `<div style="margin:22px 0 10px;padding-bottom:9px;border-bottom:1px solid var(--border);">
+          <div style="display:flex;align-items:center;gap:9px;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text);">
+            <span style="display:block;width:3px;height:15px;background:var(--blue);border-radius:2px;flex-shrink:0;"></span>
+            ${esc(label)}
+          </div>
         </div>`;
       } else {
         html += `<div style="height:1px;background:var(--border);margin:16px 0"></div>`;
