@@ -194,6 +194,11 @@ def run():
     recompute_anchor = pdv_kept_tmp[-1] if pdv_kept_tmp else last_entry
     last_nsp_val = recompute_anchor.get('nsp_value', 0.0)
     last_cash    = recompute_anchor.get('cash_value', 0.0)
+    # TEFAS fiyat gelmediğinde birim değişikliğini yansıtmak için son bilinen NSP fiyatı
+    nsp_dv_all = pf.get('nsp_daily_value', [])
+    last_nsp_price_known = nsp_dv_all[-1]['price'] if nsp_dv_all else None
+    if last_nsp_price_known is None and last_nsp_val and nsp_units_base:
+        last_nsp_price_known = last_nsp_val / nsp_units_base
 
     # 4. Trading günleri → XU100'ün döndürdüğü tarihleri kullan
     # recompute_from_str'den itibaren yeniden hesapla (son RECOMPUTE_DAYS günü dahil)
@@ -230,7 +235,14 @@ def run():
                  if nsp_change_date and nsp_units_override is not None and d_str >= nsp_change_date
                  else nsp_units_base)
         nsp_p = nsp_prices.get(d_str)
-        nsp_val = (nsp_u * nsp_p) if nsp_p else last_nsp_val
+        if nsp_p:
+            last_nsp_price_known = nsp_p
+            nsp_val = nsp_u * nsp_p
+        elif last_nsp_price_known:
+            # TEFAS fiyat vermediğinde son bilinen fiyatla birimi uygula
+            nsp_val = nsp_u * last_nsp_price_known
+        else:
+            nsp_val = last_nsp_val
         last_nsp_val = nsp_val
 
         total = round(sv + nsp_val + last_cash, 2)
