@@ -604,10 +604,16 @@ function renderPf() {
             NSP ${nspBadge}
           </td>
           <td style="color:#475569;font-size:12px;">${nspUnitsDisp} pay</td>
-          <td colspan="2" style="color:#e2e8f0;font-size:13px;font-weight:600;">${nspValDisp} ₺</td>
-          <td></td>
+          <td colspan="2">
+            <input class="pf-input wide" id="nspUnitsInput" type="number" min="0" step="0.0001"
+                   value="${pfData.nsp_current_units ?? 0}" placeholder="48805">
+          </td>
+          <td style="color:#e2e8f0;font-size:13px;font-weight:600;">${nspValDisp} ₺</td>
           <td>
-            ${nspOv != null ? `<button class="pf-btn-reset" onclick="resetFunding()">Finansmanı Sıfırla</button>` : '<span style="color:#475569;font-size:11px;">—</span>'}
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button class="pf-btn-save" onclick="saveNspUnits()">Birimi Kaydet</button>
+              ${nspOv != null ? `<button class="pf-btn-reset" onclick="resetFunding()">Sıfırla</button>` : ''}
+            </div>
           </td>
         </tr>
         <!-- NAKİT satırı: düzenlenebilir -->
@@ -822,6 +828,21 @@ async function resetFunding() {
     const r = await fetch(`/admin/${SECRET}/portfolio-reset-funding`, {method:'POST'});
     const j = await r.json();
     if (j.ok) { toast('Finansman sıfırlandı'); loadPf(); }
+    else toast(j.error || 'Hata', false);
+  } catch(e) { toast(e.message, false); }
+}
+
+async function saveNspUnits() {
+  const val = parseFloat(document.getElementById('nspUnitsInput').value);
+  if (isNaN(val) || val < 0) { toast('Geçersiz birim sayısı', false); return; }
+  try {
+    const r = await fetch(`/admin/${SECRET}/portfolio-set-nsp`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({nsp_units: val}),
+    });
+    const j = await r.json();
+    if (j.ok) { toast(`NSP birimi ${val.toFixed(2)} olarak kaydedildi ✓`); loadPf(); }
     else toast(j.error || 'Hata', false);
   } catch(e) { toast(e.message, false); }
 }

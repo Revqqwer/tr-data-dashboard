@@ -1047,6 +1047,28 @@ def admin_portfolio_set_cash(secret):
     return jsonify({'ok': True})
 
 
+@app.route('/admin/<secret>/portfolio-set-nsp', methods=['POST'])
+def admin_portfolio_set_nsp(secret):
+    """NSP birim override'ını doğrudan kaydet."""
+    if secret != ADMIN_SECRET:
+        return jsonify({'error': 'forbidden'}), 403
+    data = request.get_json(silent=True) or {}
+    val  = data.get('nsp_units')
+    if val is None:
+        return jsonify({'error': 'nsp_units required'}), 400
+    try:
+        val = round(float(val), 4)
+    except (TypeError, ValueError):
+        return jsonify({'error': 'invalid nsp_units'}), 400
+    ov = _load_overrides()
+    if val <= 0:
+        ov.pop('nsp_units_override', None)
+    else:
+        ov['nsp_units_override'] = val
+    _save_overrides(ov)
+    return jsonify({'ok': True})
+
+
 @app.route('/admin/<secret>/portfolio-close-position', methods=['POST'])
 def admin_portfolio_close_position(secret):
     """Bir hisse pozisyonunu güncel fiyattan kapat, nakite ekle, geçmişe yaz."""
