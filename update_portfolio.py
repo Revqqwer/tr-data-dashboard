@@ -271,11 +271,12 @@ def run():
     existing_nsp_dates = {e['date'] for e in nsp_dv}
     for d_str, nsp_p in sorted(nsp_prices.items()):
         if d_str > last_date_str and d_str not in existing_nsp_dates:
+            u = (nsp_units_override if nsp_units_override is not None else nsp_units_base)
             nsp_dv.append({
                 'date':  d_str,
-                'units': nsp_units,
+                'units': u,
                 'price': nsp_p,
-                'value': round(nsp_units * nsp_p, 2),
+                'value': round(u * nsp_p, 2),
             })
     pf['nsp_daily_value'] = sorted(nsp_dv, key=lambda x: x['date'])
 
