@@ -3369,6 +3369,6 @@ function _mbInline(s) {
 }
 
 /* ── Bootstrap ── */
-const _initPage = window.location.hash.slice(1) || 'dth';
+const _initPage = window.location.hash.slice(1) || 'market-briefs';
 switchPage(_initPage);
 
