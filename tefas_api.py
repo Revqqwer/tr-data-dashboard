@@ -107,8 +107,8 @@ def leaderboard():
     end_str   = request.args.get("end")
     limit     = min(int(request.args.get("limit", 50)), 200)
     fund_type = request.args.get("fund_type")
-    cat_key      = request.args.get("cat_key", "").strip()
-    cat_category = _CATEGORY_PRESETS.get(cat_key, {}).get("category", "")
+    cat_keys       = [k for k in request.args.get("cat_key", "").split(",") if k.strip()]
+    cat_categories = {_CATEGORY_PRESETS[k]["category"] for k in cat_keys if k in _CATEGORY_PRESETS}
 
     with Session(engine) as db:
         q = select(FundFlow).where(FundFlow.net_flow.isnot(None))  # type: ignore
@@ -148,9 +148,9 @@ def leaderboard():
 
             sorted_codes = sorted(flow_sum.keys(), key=lambda c: -flow_sum[c])
             # Kategori filtresi
-            if cat_category:
+            if cat_categories:
                 cat_codes = {m.code for m in db.exec(
-                    select(FundMeta).where(FundMeta.category == cat_category)
+                    select(FundMeta).where(FundMeta.category.in_(cat_categories))  # type: ignore
                 ).all()}
                 sorted_codes = [c for c in sorted_codes if c in cat_codes]
             inflows  = [row_to_dict_range(c) for c in sorted_codes if flow_sum[c] > 0][:limit]
@@ -180,9 +180,9 @@ def leaderboard():
             rows = db.exec(q).all()
 
             # Kategori filtresi
-            if cat_category:
+            if cat_categories:
                 cat_codes = {m.code for m in db.exec(
-                    select(FundMeta).where(FundMeta.category == cat_category)
+                    select(FundMeta).where(FundMeta.category.in_(cat_categories))  # type: ignore
                 ).all()}
                 rows = [r for r in rows if r.code in cat_codes]
 
