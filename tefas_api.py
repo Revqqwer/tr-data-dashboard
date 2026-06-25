@@ -58,6 +58,40 @@ def _parse_date(s: str | None) -> datetime.date | None:
         return None
 
 
+def _nearest_trade_date(db, target: datetime.date, *, forward: bool) -> datetime.date | None:
+    """Hedef tarihte işlem yoksa (hafta sonu/tatil) en yakın işlem gününü bul."""
+    q = select(FundDaily.trade_date).distinct()
+    if forward:
+        q = q.where(FundDaily.trade_date >= target).order_by(FundDaily.trade_date.asc())  # type: ignore
+    else:
+        q = q.where(FundDaily.trade_date <= target).order_by(FundDaily.trade_date.desc())  # type: ignore
+    return db.exec(q.limit(1)).first()
+
+
+def _price_return_map(db, start: datetime.date, end: datetime.date, codes: set) -> dict:
+    """Verilen kodlar için start→end arası fiyat getirisi (%)."""
+    if not codes:
+        return {}
+    price_start = {m.code: m.price for m in db.exec(
+        select(FundDaily).where(
+            FundDaily.trade_date == start,
+            FundDaily.code.in_(codes),  # type: ignore
+        )
+    ).all()}
+    price_end = {m.code: m.price for m in db.exec(
+        select(FundDaily).where(
+            FundDaily.trade_date == end,
+            FundDaily.code.in_(codes),  # type: ignore
+        )
+    ).all()}
+    out = {}
+    for code in codes:
+        p0, p1 = price_start.get(code), price_end.get(code)
+        if p0 and p1:
+            out[code] = round((p1 / p0 - 1) * 100, 2)
+    return out
+
+
 def _serialize(obj):
     """JSON serializasyonu için datetime.date → str dönüşümü."""
     if isinstance(obj, datetime.date):
@@ -134,6 +168,26 @@ def leaderboard():
                 flow_sum[r.code] = flow_sum.get(r.code, 0.0) + (r.net_flow or 0.0)
                 fund_info[r.code] = r  # son kaydı sakla (meta için)
 
+            sorted_codes = sorted(flow_sum.keys(), key=lambda c: -flow_sum[c])
+            # Kategori filtresi
+            if cat_categories:
+                cat_codes = {m.code for m in db.exec(
+                    select(FundMeta).where(FundMeta.category.in_(cat_categories))  # type: ignore
+                ).all()}
+                sorted_codes = [c for c in sorted_codes if c in cat_codes]
+
+            inflow_codes  = [c for c in sorted_codes if flow_sum[c] > 0][:limit]
+            outflow_codes = [c for c in reversed(sorted_codes) if flow_sum[c] < 0][:limit]
+            result_codes  = set(inflow_codes) | set(outflow_codes)
+
+            # Fiyat getirisi: dönem başı/sonu fiyat oranı
+            price_return_map: dict = {}
+            if s and e:
+                start_td = _nearest_trade_date(db, s, forward=True)
+                end_td   = _nearest_trade_date(db, e, forward=False)
+                if start_td and end_td and start_td <= end_td:
+                    price_return_map = _price_return_map(db, start_td, end_td, result_codes)
+
             def row_to_dict_range(code):
                 r = fund_info[code]
                 return {
@@ -142,19 +196,12 @@ def leaderboard():
                     "name":      r.fname,
                     "fund_type": r.fund_type,
                     "net_flow":  round(flow_sum[code], 0),
-                    "flow_pct":  None,
+                    "price_return_pct": price_return_map.get(code),
                     "aum":       r.aum,
                 }
 
-            sorted_codes = sorted(flow_sum.keys(), key=lambda c: -flow_sum[c])
-            # Kategori filtresi
-            if cat_categories:
-                cat_codes = {m.code for m in db.exec(
-                    select(FundMeta).where(FundMeta.category.in_(cat_categories))  # type: ignore
-                ).all()}
-                sorted_codes = [c for c in sorted_codes if c in cat_codes]
-            inflows  = [row_to_dict_range(c) for c in sorted_codes if flow_sum[c] > 0][:limit]
-            outflows = [row_to_dict_range(c) for c in reversed(sorted_codes) if flow_sum[c] < 0][:limit]
+            inflows  = [row_to_dict_range(c) for c in inflow_codes]
+            outflows = [row_to_dict_range(c) for c in outflow_codes]
             range_label = f"{start_str}/{end_str}"
             return jsonify({"date": range_label, "inflows": inflows, "outflows": outflows})
 
@@ -186,6 +233,20 @@ def leaderboard():
                 ).all()}
                 rows = [r for r in rows if r.code in cat_codes]
 
+            inflow_rows  = [r for r in rows if (r.net_flow or 0) > 0][:limit]
+            outflow_rows = [r for r in reversed(rows) if (r.net_flow or 0) < 0][:limit]
+            actual_date  = rows[0].trade_date if rows else None
+            result_codes = {r.code for r in inflow_rows} | {r.code for r in outflow_rows}
+
+            # Fiyat getirisi: önceki işlem gününe göre günlük getiri
+            price_return_map: dict = {}
+            if actual_date:
+                prev_date = _nearest_trade_date(
+                    db, actual_date - datetime.timedelta(days=1), forward=False
+                )
+                if prev_date and prev_date < actual_date:
+                    price_return_map = _price_return_map(db, prev_date, actual_date, result_codes)
+
             def row_to_dict(r):
                 return {
                     "date":      r.trade_date.isoformat() if r.trade_date else None,
@@ -193,13 +254,13 @@ def leaderboard():
                     "name":      r.fname,
                     "fund_type": r.fund_type,
                     "net_flow":  r.net_flow,
-                    "flow_pct":  r.flow_pct,
+                    "price_return_pct": price_return_map.get(r.code),
                     "aum":       r.aum,
                 }
 
-            inflows  = [row_to_dict(r) for r in rows if (r.net_flow or 0) > 0][:limit]
-            outflows = [row_to_dict(r) for r in reversed(rows) if (r.net_flow or 0) < 0][:limit]
-            latest_date = rows[0].trade_date.isoformat() if rows else None
+            inflows  = [row_to_dict(r) for r in inflow_rows]
+            outflows = [row_to_dict(r) for r in outflow_rows]
+            latest_date = actual_date.isoformat() if actual_date else None
             return jsonify({"date": latest_date, "inflows": inflows, "outflows": outflows})
 
 
