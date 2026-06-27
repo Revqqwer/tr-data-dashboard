@@ -696,7 +696,6 @@ def sitemap():
     today = date.today().isoformat()
     pages = [
         ('/', '1.0', 'daily'),
-        ('/dashboard', '0.9', 'daily'),
         ('/register', '0.7', 'monthly'),
         ('/login', '0.6', 'monthly'),
     ]
@@ -722,6 +721,8 @@ def robots():
 
 @app.route('/dashboard')
 def dashboard():
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
     return render_template('index.html',
                            username=session.get('username', ''),
                            user_name=session.get('user_name', ''),
