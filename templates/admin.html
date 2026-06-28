@@ -193,34 +193,6 @@
     .mf-month-badge { background:rgba(6,182,212,0.12); color:#06b6d4;
       border-radius:20px; padding:2px 9px; font-size:11px; font-weight:700; }
 
-    /* ── Kategori Scraper ── */
-    .cat-section { margin-top:48px; }
-    .cat-section h2 { font-size:14px; letter-spacing:1.5px; text-transform:uppercase;
-      color:#64748b; margin-bottom:6px; }
-    .cat-card { background:#161b22; border:1px solid rgba(255,255,255,0.08);
-      border-radius:12px; padding:24px 28px; }
-    .cat-notice { font-size:12px; color:#475569; margin-bottom:18px;
-      background:rgba(6,182,212,0.06); border:1px solid rgba(6,182,212,0.18);
-      border-radius:8px; padding:10px 14px; line-height:1.6; }
-    .cat-notice b { color:#06b6d4; }
-    .cat-btn { padding:10px 22px; border:none; border-radius:8px;
-      background:#06b6d4; color:#0d1117; font-size:13px; font-weight:700;
-      cursor:pointer; transition:all .15s; }
-    .cat-btn:hover { background:#22d3ee; box-shadow:0 4px 14px rgba(6,182,212,0.3); }
-    .cat-btn:disabled { opacity:0.5; cursor:not-allowed; }
-    .cat-btn-force { padding:9px 18px; border:1px solid rgba(240,180,41,0.3);
-      border-radius:8px; background:rgba(240,180,41,0.08); color:#f0b429;
-      font-size:12px; font-weight:600; cursor:pointer; transition:all .15s; }
-    .cat-btn-force:hover { background:rgba(240,180,41,0.18); }
-    .cat-btn-force:disabled { opacity:0.5; cursor:not-allowed; }
-    .cat-actions { display:flex; gap:10px; align-items:center; margin-bottom:16px; }
-    .cat-log { background:#0d1117; border:1px solid rgba(255,255,255,0.06);
-      border-radius:8px; padding:14px 16px; font-size:12px; font-family:monospace;
-      color:#94a3b8; min-height:60px; white-space:pre-wrap; line-height:1.6; }
-    .cat-stats-table { width:100%; border-collapse:collapse; margin-top:16px; font-size:12px; }
-    .cat-stats-table th { text-align:left; color:#475569; padding:5px 10px; border-bottom:1px solid rgba(255,255,255,0.06); }
-    .cat-stats-table td { padding:5px 10px; border-bottom:1px solid rgba(255,255,255,0.04); }
-    .cat-stats-table td:last-child { text-align:right; color:#f0b429; font-weight:700; }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
@@ -229,24 +201,6 @@
 <div class="header">
   <div class="logo">3N Finans <span>Admin Panel</span></div>
   <a href="/logout" class="logout">Cikis Yap</a>
-</div>
-
-<!-- İstatistikler -->
-{% set total  = codes|length %}
-{% set active = codes|selectattr('active','equalto',1)|list|length %}
-<div class="stats">
-  <div class="stat-card">
-    <div class="stat-val">{{ total }}</div>
-    <div class="stat-label">Toplam Kod</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-val" style="color:#22c55e">{{ active }}</div>
-    <div class="stat-label">Aktif</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-val" style="color:#ef4444">{{ total - active }}</div>
-    <div class="stat-label">Pasif</div>
-  </div>
 </div>
 
 <!-- Son güncellenen veriler -->
@@ -345,17 +299,6 @@
   </table>
 </div>
 
-<!-- Yeni kod ekle -->
-<form method="POST" action="/admin/{{ secret }}/add">
-  <div class="add-card">
-    <div>
-      <label>Abone Adi</label>
-      <input type="text" name="name" placeholder="Ahmet Y." required autocomplete="off">
-    </div>
-    <button type="submit" class="btn btn-gold">+ Kod Olustur</button>
-  </div>
-</form>
-
 <!-- Kullanıcı tablosu -->
 <h2 style="font-size:14px;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:14px;">Kayitli Kullanicilar</h2>
 <div class="table-wrap" style="margin-bottom:32px;">
@@ -393,55 +336,6 @@
   </table>
   {% else %}
   <div class="empty">Henuz kayitli kullanici yok.</div>
-  {% endif %}
-</div>
-
-<h2 style="font-size:14px;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:14px;">Davet Kodlari</h2>
-<!-- Kod tablosu -->
-<div class="table-wrap">
-  {% if codes %}
-  <table>
-    <thead>
-      <tr>
-        <th>Kod</th>
-        <th>Abone</th>
-        <th>Durum</th>
-        <th>Olusturulma</th>
-        <th>Kullanan</th>
-        <th>Islemler</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for c in codes %}
-      <tr>
-        <td><span class="code-badge">{{ c.code }}</span></td>
-        <td>{{ c.name }}</td>
-        <td>
-          {% if c.active %}
-            <span class="badge-active">Aktif</span>
-          {% else %}
-            <span class="badge-passive">Pasif</span>
-          {% endif %}
-        </td>
-        <td class="muted">{{ c.created_at or '-' }}</td>
-        <td class="muted">{{ c.used_by or 'Kullanilmadi' }}</td>
-        <td>
-          <div class="actions">
-            <a href="/admin/{{ secret }}/toggle/{{ c.code }}" class="btn btn-muted">
-              {% if c.active %}Pasifestir{% else %}Aktifestir{% endif %}
-            </a>
-            <a href="/admin/{{ secret }}/delete/{{ c.code }}" class="btn btn-red"
-               onclick="return confirm('{{ c.name }} kodunu silmek istediginizden emin misiniz?')">
-              Sil
-            </a>
-          </div>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  {% else %}
-  <div class="empty">Henuz hic kod yok. Yukardaki formdan ekleyin.</div>
   {% endif %}
 </div>
 
@@ -490,30 +384,6 @@
     <button class="mf-btn-save" onclick="saveMakroFc()">💾 Kaydet</button>
     <button class="mf-btn-clear" onclick="clearMakroFc()">✕ Tüm Değerleri Sil</button>
     <span style="font-size:11px; color:#475569; margin-left:8px;">Kaydetmeden ayrılırsanız değişiklikler kaybolur</span>
-  </div>
-</div>
-
-<!-- ── Şemsiye Fon Kategorisi ─────────────────────────────────────────────── -->
-<div class="cat-section">
-  <h2>TEFAS Şemsiye Fon Kategorisi</h2>
-  <div class="cat-card">
-    <div class="cat-notice">
-      <b>Bu araç TEFAS'tan tüm fon adlarını çekerek fund_meta tablosuna şemsiye fon türü yazar.</b>
-      İlk kez veya yeni fonlar eklendikten sonra çalıştırın. Yaklaşık 30–60 saniye sürer.
-      · <b>Force</b> seçeneği mevcut kategorilerin üstüne yazar.
-    </div>
-    <div class="cat-actions">
-      <button class="cat-btn" id="catRunBtn" onclick="runCategoryScrape(false)">▶ Kategori Güncelle</button>
-      <button class="cat-btn-force" id="catForceBtn" onclick="runCategoryScrape(true)">⟳ Force (üstüne yaz)</button>
-      <button class="btn btn-muted" onclick="loadCatStats()">Mevcut İstatistikler</button>
-    </div>
-    <div class="cat-log" id="catLog">Henüz çalıştırılmadı.</div>
-    <div id="catStatsWrap" style="display:none">
-      <table class="cat-stats-table">
-        <thead><tr><th>Kategori</th><th>Fon Sayısı</th></tr></thead>
-        <tbody id="catStatsTbody"></tbody>
-      </table>
-    </div>
   </div>
 </div>
 
@@ -1140,76 +1010,6 @@ function clearMakroFc() {
 }
 
 loadMakroFc();
-
-// ═══════════════════════════════════════════════════════
-//  ŞEMSİYE FON KATEGORİSİ SCRAPER
-// ═══════════════════════════════════════════════════════
-
-function setCatBusy(busy) {
-  document.getElementById('catRunBtn').disabled   = busy;
-  document.getElementById('catForceBtn').disabled = busy;
-}
-
-function renderCatStats(stats) {
-  const wrap  = document.getElementById('catStatsWrap');
-  const tbody = document.getElementById('catStatsTbody');
-  if (!stats || !stats.length) { wrap.style.display = 'none'; return; }
-  tbody.innerHTML = stats.map(s =>
-    `<tr><td>${s.category}</td><td>${s.count}</td></tr>`
-  ).join('');
-  wrap.style.display = 'block';
-}
-
-async function runCategoryScrape(force) {
-  const log = document.getElementById('catLog');
-  log.textContent = force
-    ? '⟳ Force modda çalışıyor… (bu 30–60 sn sürebilir)'
-    : '▶ Kategoriler güncelleniyor… (bu 30–60 sn sürebilir)';
-  setCatBusy(true);
-  try {
-    const res = await fetch(`/admin/${SECRET}/scrape-categories`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ force }),
-    });
-    const j = await res.json();
-    if (j.ok) {
-      const r = j.result;
-      log.textContent =
-        `✅ Tamamlandı\n` +
-        `  Güncellendi  : ${r.updated}\n` +
-        `  Atlandı      : ${r.skipped}  (zaten vardı)\n` +
-        `  Eşleşmedi    : ${r.unknown}  (fname'den tür çıkarılamadı)\n` +
-        `  Toplam       : ${r.total}`;
-      renderCatStats(j.stats);
-      toast('Kategoriler güncellendi ✓');
-    } else {
-      log.textContent = '❌ Hata: ' + (j.error || 'Bilinmeyen hata');
-      toast(j.error || 'Hata', false);
-    }
-  } catch(e) {
-    log.textContent = '❌ İstek hatası: ' + e.message;
-    toast(e.message, false);
-  } finally {
-    setCatBusy(false);
-  }
-}
-
-async function loadCatStats() {
-  const log = document.getElementById('catLog');
-  log.textContent = 'İstatistikler yükleniyor…';
-  try {
-    const res = await fetch(`/admin/${SECRET}/scrape-categories/stats`);
-    const j   = await res.json();
-    if (j.ok) {
-      const total = j.stats.reduce((s, r) => s + r.count, 0);
-      log.textContent = `📊 Toplam ${total} fon kategorize edilmiş.`;
-      renderCatStats(j.stats);
-    } else {
-      log.textContent = '❌ ' + (j.error || 'Hata');
-    }
-  } catch(e) { log.textContent = '❌ ' + e.message; }
-}
 </script>
 
 <!-- ══ Market Brief Raporları ══ -->
