@@ -141,8 +141,51 @@ const _pageRendered = {};
 /* ════════════════════════════════════════
    PAGE NAVIGATION
    ════════════════════════════════════════ */
+/* ── Ziyaretçi süre takibi ─────────────────────────────────────────────────
+   Her sayfada (switchPage) geçirilen aktif süreyi ölçer, sekme gizliyken durur,
+   sayfa değişiminde/kapanışında sendBeacon ile /api/track'e gönderir. */
+const _pvSid = (() => {
+  try {
+    let s = sessionStorage.getItem('_pv_sid');
+    if (!s) { s = Math.random().toString(36).slice(2) + Date.now().toString(36); sessionStorage.setItem('_pv_sid', s); }
+    return s;
+  } catch (e) { return 'anon'; }
+})();
+let _pvPage = null, _pvStart = 0, _pvAccum = 0;
+
+function _pvFlush() {
+  if (_pvPage == null) return;
+  if (_pvStart) { _pvAccum += Date.now() - _pvStart; _pvStart = 0; }
+  const secs = Math.round(_pvAccum / 1000);
+  _pvAccum = 0;
+  if (secs < 2) return;
+  const body = JSON.stringify({ page: _pvPage, seconds: secs, sid: _pvSid });
+  try {
+    if (navigator.sendBeacon) navigator.sendBeacon('/api/track', new Blob([body], { type: 'application/json' }));
+    else fetch('/api/track', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body, keepalive: true });
+  } catch (e) {}
+}
+
+function _pvStartPage(page) {
+  _pvFlush();              // önceki sayfanın süresini kaydet
+  _pvPage = page;
+  _pvAccum = 0;
+  _pvStart = Date.now();
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    if (_pvStart) { _pvAccum += Date.now() - _pvStart; _pvStart = 0; }
+  } else if (_pvPage != null && !_pvStart) {
+    _pvStart = Date.now();
+  }
+});
+window.addEventListener('pagehide', _pvFlush);
+window.addEventListener('beforeunload', _pvFlush);
+
 function switchPage(page) {
   currentPage = page;
+  _pvStartPage(page);   // ziyaretçi süre takibi
 
   // URL hash güncelle (paylaşım linkleri için)
   history.replaceState(null, '', '/dashboard#' + page);
