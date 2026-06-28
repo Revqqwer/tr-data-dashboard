@@ -286,7 +286,11 @@
 <h2 style="font-size:14px;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:14px;margin-top:32px;">📧 Bülten Aboneleri</h2>
 <div class="stats">
   <div class="stat-card"><div class="stat-val" id="subConfirmed">—</div><div class="stat-label">Onaylı Abone</div></div>
-  <div class="stat-card"><div class="stat-val" style="color:#f59e0b" id="subPending">—</div><div class="stat-label">Bekleyen (Onaysız)</div></div>
+  <div class="stat-card">
+    <div class="stat-val" style="color:#f59e0b" id="subPending">—</div>
+    <div class="stat-label">Bekleyen (Onaysız)</div>
+    <button class="btn btn-muted" style="margin-top:10px;" onclick="confirmPending()" id="confirmPendingBtn">✓ Hepsini Onayla</button>
+  </div>
   <div class="stat-card"><div class="stat-val" style="color:#22c55e" id="subLast7">—</div><div class="stat-label">Son 7 Gün Yeni</div></div>
 </div>
 <div class="table-wrap" style="margin-bottom:32px;padding:18px 20px;">
@@ -592,6 +596,21 @@ function _lineOpts(legend=false){
       y:{ grid:{ color:CHART_GRID }, ticks:{ color:CHART_TICK, font:{size:10}, precision:0 }, beginAtZero:true }
     }
   };
+}
+
+async function confirmPending(){
+  const btn = document.getElementById('confirmPendingBtn');
+  const n = document.getElementById('subPending').textContent;
+  if (n === '0') { toast('Bekleyen abone yok', false); return; }
+  if (!confirm(`${n} bekleyen aboneyi onaylamak istiyor musun? (Hepsi sabah raporu almaya başlar)`)) return;
+  btn.disabled = true; btn.textContent = '...';
+  try{
+    const r = await fetch(`/admin/${SECRET}/subscribers/confirm-pending`, { method:'POST' });
+    const d = await r.json();
+    if (d.ok) { toast(`${d.confirmed} abone onaylandı ✓`); loadSubscribers(); }
+    else toast(d.error || 'Hata', false);
+  }catch(e){ toast(e.message, false); }
+  finally { btn.disabled = false; btn.textContent = '✓ Hepsini Onayla'; }
 }
 
 window.addEventListener('DOMContentLoaded', () => { loadSubscribers(); loadPageviews(); });
