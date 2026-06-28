@@ -29,9 +29,10 @@ from tefas_backend.market_agent.reports   import save_report
 import sqlite3 as _sqlite3, smtplib as _smtp, os as _os
 from email.mime.text import MIMEText as _MIMEText
 from email.mime.multipart import MIMEMultipart as _MIMEMultipart
+from datetime import datetime as _datetime
 
 
-def _send_to_subscribers(report_text: str, report_type: str):
+def _send_to_subscribers(report_text: str, report_type: str, report_id: str = None, title: str = None):
     """Tüm onaylı abonelere raporu emaile gönder."""
     mail_user = _os.environ.get('MAIL_USERNAME', '')
     mail_pass = _os.environ.get('MAIL_PASSWORD', '')
@@ -63,6 +64,11 @@ def _send_to_subscribers(report_text: str, report_type: str):
     sent = 0
     for email, token in rows:
         unsub = f"https://www.3nfinans.com/unsubscribe/{token}"
+        # Açılma takibi pixel'i (rapor + aboneye özel)
+        pixel = ""
+        if report_id:
+            pixel = (f'<img src="https://www.3nfinans.com/e/o/{report_id}/{token}.gif" '
+                     f'width="1" height="1" alt="" style="display:none;border:0;">')
         body = f"""
         <div style="font-family:'Segoe UI',sans-serif;max-width:600px;margin:0 auto;background:#060b16;color:#e2e8f0;border-radius:12px;overflow:hidden;">
           <div style="background:#f0b429;padding:4px 0"></div>
@@ -75,7 +81,7 @@ def _send_to_subscribers(report_text: str, report_type: str):
               <a href="{unsub}" style="color:#475569;text-decoration:none;">Abonelikten Çık</a>
             </div>
           </div>
-        </div>"""
+        </div>{pixel}"""
         try:
             msg = _MIMEMultipart()
             msg['From']    = mail_user
@@ -88,6 +94,19 @@ def _send_to_subscribers(report_text: str, report_type: str):
             sent += 1
         except Exception as e:
             print(f"  ✗ {email}: {e}")
+
+    # Gönderim kaydı (açılma oranı paydası)
+    if report_id:
+        try:
+            _now = _datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            with _sqlite3.connect(str(db_path)) as conn:
+                conn.execute(
+                    'INSERT OR REPLACE INTO email_sends '
+                    '(report_id, report_type, title, sent_count, created_at) VALUES (?,?,?,?,?)',
+                    (report_id, report_type, title or report_id, sent, _now)
+                )
+        except Exception as e:
+            print(f"⚠️  Gönderim kaydı yazılamadı: {e}")
 
     print(f"✉️  {sent}/{len(rows)} aboneye rapor gönderildi.")
 
@@ -201,8 +220,11 @@ def run_daily() -> str:
     print(report)
     print("=" * 60)
 
-    # Abonelere gönder
-    _send_to_subscribers(report, "daily")
+    # Abonelere gönder (açılma takibi için rapor kimliği/başlığı ile)
+    _rep = get_latest("daily")
+    _send_to_subscribers(report, "daily",
+                         _rep.get("id") if _rep else None,
+                         _rep.get("title") if _rep else None)
 
     # Telegram sesli özet
     _report_to_telegram(report)
@@ -228,7 +250,11 @@ def run_weekly() -> str:
     print(report)
     print("=" * 60)
 
-    _send_to_subscribers(report, "weekly")
+    from tefas_backend.market_agent.reports import get_latest as _get_latest_w
+    _rep = _get_latest_w("weekly")
+    _send_to_subscribers(report, "weekly",
+                         _rep.get("id") if _rep else None,
+                         _rep.get("title") if _rep else None)
     return report
 
 
