@@ -3281,12 +3281,12 @@ function _mbRenderRightRail(report) {
   // 2. Earnings Takvimi
   const earnings = _mbExtractEarnings(sections);
   if (earnings.length) {
+    const hasDate = earnings.some(e => e.dt && e.dt.length > 1);
     html += `<div class="mb-panel">
-      <div class="mb-panel-h"><span class="dot" style="background:var(--amber)"></span>${earnings[0].dt ? 'Earnings Takvimi' : 'Earnings'}</div>
+      <div class="mb-panel-h"><span class="dot" style="background:var(--amber)"></span>${hasDate ? 'Earnings Takvimi' : 'Bugünkü Earnings'}</div>
       ${earnings.map(e => `<div class="mb-erow">
         ${e.dt ? `<span class="dt">${_mbEsc(e.dt)}</span>` : ''}
         <span class="nm">${_mbEsc(e.nm)}</span>
-        ${e.eps ? `<span class="eps">${_mbEsc(e.eps)}</span>` : ''}
       </div>`).join('')}
     </div>`;
   }
@@ -3337,33 +3337,33 @@ function _mbExtractThemes(sections) {
       if (cur) themes.push(cur);
       cur = { title: bold[1].trim(), tickers: '' };
     } else if (cur && /^│/.test(t)) {
-      const c = t.replace(/^│\s*/, '').replace(/\s*│$/, '').trim();
-      if (c) cur.tickers += (cur.tickers ? ' · ' : '') + c.replace(/,\s*/g, ' · ');
+      let c = t.replace(/^│\s*/, '').replace(/\s*│$/, '').trim();
+      c = c.replace(/Sektör\/ETF\s*:\s*/i, '');   // etiketi at, tickerları tut
+      c = c.replace(/\([^)]*\)/g, '');             // (HBM lideri) gibi açıklamaları at
+      c = c.replace(/,\s*/g, ' · ').replace(/\s{2,}/g, ' ').trim();
+      if (c) cur.tickers += (cur.tickers ? ' · ' : '') + c;
     }
   }
   if (cur) themes.push(cur);
   return themes.slice(0, 6);
 }
 
-/* Earnings: önce haftalık ÖNÜMÜZDEKİ HAFTA, yoksa günlük BUGÜNKÜ */
+/* Earnings: önce haftalık ÖNÜMÜZDEKİ HAFTA, yoksa günlük BUGÜNKÜ.
+   Dar ray için sadeleştir: tarih + şirket adları (EPS parantezleri atılır). */
 function _mbExtractEarnings(sections) {
   const up = _mbFindSection(sections, 'ÖNÜMÜZDEKİ HAFTA EARNINGS');
   if (up) {
     const out = [];
     for (const line of up) {
-      const t = line.trim().replace(/^[•\-]\s*/, '');
-      if (!t) continue;
+      let t = line.trim().replace(/^[•\-]\s*/, '').replace(/\*\*/g, '');
+      if (!t || /^\*?Not\b/i.test(t)) continue;
       const parts = t.split(/\s+—\s+/);
-      if (parts.length >= 2) {
-        const dt = parts[0].trim();
-        let rest = parts.slice(1).join(' — ');
-        let eps = '';
-        const m = rest.match(/\(([^)]*EPS[^)]*)\)/i);
-        if (m) { eps = m[1].replace(/EPS\s*tahmin[:i]?\s*/i, '').trim(); rest = rest.replace(/\s*\([^)]*\)/, '').trim(); }
-        out.push({ dt, nm: rest, eps });
-      } else {
-        out.push({ dt: '', nm: t, eps: '' });
-      }
+      let dt = '', rest = t;
+      if (parts.length >= 2) { dt = parts[0].trim(); rest = parts.slice(1).join(' — '); }
+      dt   = dt.replace(/\([^)]*\)/g, '').trim();          // (açılış öncesi) at
+      rest = rest.replace(/\([^)]*\)/g, '')                // (EPS tahmin: X) at
+                 .replace(/\s*,\s*/g, ' · ').replace(/\s{2,}/g, ' ').trim();
+      if (rest) out.push({ dt, nm: rest });
       if (out.length >= 8) break;
     }
     if (out.length) return out;
@@ -3375,7 +3375,9 @@ function _mbExtractEarnings(sections) {
       const t = line.trim();
       if (!t || /öne çıkan earnings yok/i.test(t)) continue;
       if (/^(🟢|🔴|⏳)/.test(t)) {
-        out.push({ dt: '', nm: t.slice(1).trim().replace(/\*\*/g, ''), eps: '' });
+        const body = t.slice(1).trim().replace(/\*\*/g, '');
+        const nm = body.split(':')[0].trim();             // şirket adı (: öncesi)
+        out.push({ dt: t[0], nm });
       }
       if (out.length >= 8) break;
     }
