@@ -328,6 +328,23 @@
   </table>
 </div>
 
+<!-- ── Email Bülten Açılma ── -->
+<h2 style="font-size:14px;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:8px;margin-top:32px;">✉️ Email Bülten Açılma</h2>
+<p style="font-size:12px;color:#475569;margin-bottom:14px;">
+  Her bültene gömülü görünmez pixel ile ölçülür. Not: Gmail/Apple Mail görselleri otomatik önden yükleyebildiği için açılma sayısı bir miktar yüksek görünebilir — kesin değil, <b>trend</b> olarak değerlendir.
+</p>
+<div class="table-wrap" style="margin-bottom:32px;">
+  <table>
+    <thead><tr>
+      <th>Rapor</th><th>Tarih</th><th style="text-align:right;">Gönderildi</th>
+      <th style="text-align:right;">Açan (tekil)</th><th style="text-align:right;">Açılma Oranı</th>
+    </tr></thead>
+    <tbody id="emailTableBody">
+      <tr><td colspan="5" class="muted" style="text-align:center;padding:20px;">Yükleniyor…</td></tr>
+    </tbody>
+  </table>
+</div>
+
 <!-- Yeni kod ekle -->
 <form method="POST" action="/admin/{{ secret }}/add">
   <div class="add-card">
@@ -613,7 +630,32 @@ async function confirmPending(){
   finally { btn.disabled = false; btn.textContent = '✓ Hepsini Onayla'; }
 }
 
-window.addEventListener('DOMContentLoaded', () => { loadSubscribers(); loadPageviews(); });
+async function loadEmailStats(){
+  try{
+    const r = await fetch(`/admin/${SECRET}/analytics/email`);
+    const d = await r.json();
+    const body = document.getElementById('emailTableBody');
+    if (!d.reports || !d.reports.length){
+      body.innerHTML = '<tr><td colspan="5" class="muted" style="text-align:center;padding:20px;">Henüz gönderim yok. (İlk bülten gönderildikten sonra dolacak.)</td></tr>';
+      return;
+    }
+    body.innerHTML = d.reports.map(p => {
+      const tag = p.type === 'weekly'
+        ? '<span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:9px;background:rgba(139,92,246,.2);color:#c4b5fd;margin-right:6px;">HAFTALIK</span>'
+        : '<span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:9px;background:rgba(59,130,246,.2);color:#93c5fd;margin-right:6px;">GÜNLÜK</span>';
+      const rateColor = p.open_rate >= 40 ? '#22c55e' : p.open_rate >= 20 ? '#f59e0b' : '#94a3b8';
+      return `<tr>
+        <td style="font-weight:600;max-width:340px;">${tag}${(p.title||'').replace(/</g,'&lt;')}</td>
+        <td style="font-family:monospace;color:#94a3b8;">${p.date}</td>
+        <td style="text-align:right;font-family:monospace;">${p.sent}</td>
+        <td style="text-align:right;font-family:monospace;color:#f0b429;">${p.unique_opens}</td>
+        <td style="text-align:right;font-family:monospace;font-weight:700;color:${rateColor};">%${p.open_rate}</td>
+      </tr>`;
+    }).join('');
+  }catch(e){ console.error(e); }
+}
+
+window.addEventListener('DOMContentLoaded', () => { loadSubscribers(); loadPageviews(); loadEmailStats(); });
 
 function toast(msg, ok=true) {
   const el = document.getElementById('toast');

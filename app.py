@@ -136,6 +136,24 @@ def init_tables():
         )''')
         conn.execute('CREATE INDEX IF NOT EXISTS idx_pv_created ON page_views(created_at)')
         conn.execute('CREATE INDEX IF NOT EXISTS idx_pv_page    ON page_views(page)')
+        # Email bülten gönderim kaydı (açılma oranı paydası)
+        conn.execute('''CREATE TABLE IF NOT EXISTS email_sends (
+            report_id   TEXT PRIMARY KEY,
+            report_type TEXT,
+            title       TEXT,
+            sent_count  INTEGER DEFAULT 0,
+            created_at  TEXT NOT NULL
+        )''')
+        # Email açılma olayları (tracking pixel)
+        conn.execute('''CREATE TABLE IF NOT EXISTS email_opens (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            report_id  TEXT NOT NULL,
+            token      TEXT,
+            ua         TEXT,
+            opened_at  TEXT NOT NULL
+        )''')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_eo_report ON email_opens(report_id)')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_eo_opened ON email_opens(opened_at)')
         conn.execute('''CREATE TABLE IF NOT EXISTS user_layouts (
             username    TEXT NOT NULL,
             page        TEXT NOT NULL,
@@ -325,6 +343,67 @@ def api_track():
     except Exception:
         pass
     return jsonify({'ok': True})
+
+
+# 1x1 şeffaf GIF (email açılma pixel'i)
+_PIXEL_GIF = (b'GIF89a\x01\x00\x01\x00\x80\x00\x00\xff\xff\xff\x00\x00\x00!\xf9\x04'
+              b'\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;')
+
+
+@app.route('/e/o/<report_id>/<token>')
+@app.route('/e/o/<report_id>/<token>.gif')
+def email_open_pixel(report_id, token):
+    """Email açılma takibi — bülten içindeki 1x1 pixel buraya istek atar."""
+    from flask import Response
+    try:
+        ua  = request.headers.get('User-Agent', '')[:200]
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.execute(
+                'INSERT INTO email_opens (report_id, token, ua, opened_at) VALUES (?,?,?,?)',
+                (report_id[:60], token[:60], ua, now)
+            )
+    except Exception:
+        pass
+    resp = Response(_PIXEL_GIF, mimetype='image/gif')
+    resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, private'
+    resp.headers['Pragma'] = 'no-cache'
+    resp.headers['Expires'] = '0'
+    return resp
+
+
+@app.route('/admin/<secret>/analytics/email')
+def admin_analytics_email(secret):
+    if secret != ADMIN_SECRET:
+        return jsonify({'error': 'forbidden'}), 403
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        sends = conn.execute(
+            'SELECT report_id, report_type, title, sent_count, created_at '
+            'FROM email_sends ORDER BY created_at DESC LIMIT 60'
+        ).fetchall()
+        # Rapor başına benzersiz açan (token) + toplam açılma
+        opens = conn.execute(
+            'SELECT report_id, COUNT(DISTINCT token) AS uniq, COUNT(*) AS total '
+            'FROM email_opens GROUP BY report_id'
+        ).fetchall()
+        omap = {r['report_id']: {'uniq': r['uniq'], 'total': r['total']} for r in opens}
+    reports = []
+    for s in sends:
+        o = omap.get(s['report_id'], {'uniq': 0, 'total': 0})
+        sent = s['sent_count'] or 0
+        rate = round(o['uniq'] / sent * 100, 1) if sent else 0.0
+        reports.append({
+            'report_id': s['report_id'],
+            'type':      s['report_type'],
+            'title':     s['title'] or s['report_id'],
+            'date':      (s['created_at'] or '')[:10],
+            'sent':      sent,
+            'unique_opens': o['uniq'],
+            'total_opens':  o['total'],
+            'open_rate': rate,
+        })
+    return jsonify({'reports': reports})
 
 
 @app.route('/admin/<secret>/analytics/subscribers')
