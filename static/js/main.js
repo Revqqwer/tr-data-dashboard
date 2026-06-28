@@ -3420,7 +3420,7 @@ function _mbTwoCol(raw) {
   }
   if (buf.length) sections.push(buf.join('\n'));
 
-  const colStyle = 'font-size:15px;line-height:1.9;color:var(--text);min-width:0;';
+  const colStyle = 'font-size:16.5px;line-height:1.95;color:var(--text);min-width:0;';
 
   if (sections.length < 3) {
     return `<div style="${colStyle}">${_mbFormat(raw)}</div>`;
@@ -3510,7 +3510,7 @@ function _mbFormat(raw) {
     // Kutu içi satır: │ ...
     if (/^│/.test(t)) {
       const content = t.replace(/^│\s*/,'');
-      if (content) html += `<div style="font-size:13px;font-weight:600;color:var(--text);padding:2px 0;">${_mbInline(esc(content))}</div>`;
+      if (content) html += `<div style="font-size:14.5px;font-weight:600;color:var(--text);padding:2px 0;">${_mbInline(esc(content))}</div>`;
       continue;
     }
 
@@ -3518,9 +3518,9 @@ function _mbFormat(raw) {
     if (/^\d+\./.test(t)) {
       const num = t.match(/^(\d+)\./)[1];
       const rest = t.replace(/^\d+\.\s*/,'');
-      html += `<div style="display:flex;gap:10px;margin:6px 0;padding:8px 12px;background:var(--surface2);border-radius:7px;border-left:3px solid var(--blue);">
-        <span style="font-size:12px;font-weight:700;color:var(--blue);min-width:18px;padding-top:1px;">${num}.</span>
-        <span style="font-size:13px;color:var(--text);">${_mbInline(esc(rest))}</span>
+      html += `<div style="display:flex;gap:10px;margin:6px 0;padding:9px 13px;background:var(--surface2);border-radius:7px;border-left:3px solid var(--blue);">
+        <span style="font-size:13.5px;font-weight:700;color:var(--blue);min-width:18px;padding-top:1px;">${num}.</span>
+        <span style="font-size:14.5px;color:var(--text);">${_mbInline(esc(rest))}</span>
       </div>`;
       continue;
     }
@@ -3528,8 +3528,8 @@ function _mbFormat(raw) {
     // Bullet: • veya -
     if (/^[•\-]\s/.test(t)) {
       const rest = t.replace(/^[•\-]\s*/,'');
-      html += `<div style="display:flex;gap:8px;margin:4px 0;color:var(--text-secondary);font-size:13px;">
-        <span style="color:var(--blue);font-size:10px;margin-top:5px;">●</span>
+      html += `<div style="display:flex;gap:8px;margin:4px 0;color:var(--text-secondary);font-size:14.5px;">
+        <span style="color:var(--blue);font-size:11px;margin-top:5px;">●</span>
         <span>${_mbInline(esc(rest))}</span>
       </div>`;
       continue;
@@ -3540,7 +3540,7 @@ function _mbFormat(raw) {
       const isUp = t.startsWith('🟢');
       const isDown = t.startsWith('🔴');
       const color = isUp ? '#10b981' : isDown ? '#ef4444' : '#f59e0b';
-      html += `<div style="display:flex;align-items:flex-start;gap:8px;margin:5px 0;padding:8px 12px;background:${isUp?'rgba(16,185,129,.05)':isDown?'rgba(239,68,68,.05)':'rgba(245,158,11,.05)'};border-radius:7px;font-size:13px;">
+      html += `<div style="display:flex;align-items:flex-start;gap:8px;margin:5px 0;padding:9px 13px;background:${isUp?'rgba(16,185,129,.05)':isDown?'rgba(239,68,68,.05)':'rgba(245,158,11,.05)'};border-radius:7px;font-size:14.5px;">
         <span style="margin-top:1px;">${t[0]}</span>
         <span style="color:var(--text);">${_mbInline(esc(t.slice(1).trim()))}</span>
       </div>`;
@@ -3554,7 +3554,7 @@ function _mbFormat(raw) {
     }
 
     // Normal paragraf
-    html += `<p style="margin:4px 0;color:var(--text-secondary);font-size:13.5px;">${_mbInline(esc(t))}</p>`;
+    html += `<p style="margin:5px 0;color:var(--text-secondary);font-size:15px;">${_mbInline(esc(t))}</p>`;
   }
 
   if (inBox) html += '</div></div>';
