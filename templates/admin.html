@@ -222,6 +222,7 @@
     .cat-stats-table td { padding:5px 10px; border-bottom:1px solid rgba(255,255,255,0.04); }
     .cat-stats-table td:last-child { text-align:right; color:#f0b429; font-weight:700; }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -277,6 +278,48 @@
         <td class="muted">{{ d.source }}</td>
       </tr>
       {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- ── Bülten Aboneleri ── -->
+<h2 style="font-size:14px;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:14px;margin-top:32px;">📧 Bülten Aboneleri</h2>
+<div class="stats">
+  <div class="stat-card"><div class="stat-val" id="subConfirmed">—</div><div class="stat-label">Onaylı Abone</div></div>
+  <div class="stat-card"><div class="stat-val" style="color:#f59e0b" id="subPending">—</div><div class="stat-label">Bekleyen (Onaysız)</div></div>
+  <div class="stat-card"><div class="stat-val" style="color:#22c55e" id="subLast7">—</div><div class="stat-label">Son 7 Gün Yeni</div></div>
+</div>
+<div class="table-wrap" style="margin-bottom:32px;padding:18px 20px;">
+  <div style="font-size:12px;color:#64748b;margin-bottom:10px;">Günlere göre toplam abone (kümülatif)</div>
+  <div style="height:240px;position:relative;"><canvas id="subChart"></canvas></div>
+</div>
+
+<!-- ── Ziyaretçi İstatistikleri ── -->
+<h2 style="font-size:14px;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:14px;margin-top:32px;display:flex;align-items:center;gap:12px;">
+  📊 Ziyaretçi İstatistikleri
+  <select id="pvDays" onchange="loadPageviews()" style="background:#0d1117;border:1px solid rgba(255,255,255,0.12);color:#e2e8f0;border-radius:6px;padding:4px 8px;font-size:12px;">
+    <option value="7">Son 7 gün</option>
+    <option value="30" selected>Son 30 gün</option>
+    <option value="90">Son 90 gün</option>
+  </select>
+</h2>
+<div class="stats">
+  <div class="stat-card"><div class="stat-val" id="pvViews">—</div><div class="stat-label">Toplam Görüntüleme</div></div>
+  <div class="stat-card"><div class="stat-val" style="color:#22c55e" id="pvSessions">—</div><div class="stat-label">Tekil Oturum</div></div>
+  <div class="stat-card"><div class="stat-val" style="color:#60a5fa" id="pvTotalTime">—</div><div class="stat-label">Toplam Süre</div></div>
+</div>
+<div class="table-wrap" style="margin-bottom:18px;padding:18px 20px;">
+  <div style="font-size:12px;color:#64748b;margin-bottom:10px;">Günlük görüntüleme &amp; oturum</div>
+  <div style="height:220px;position:relative;"><canvas id="pvChart"></canvas></div>
+</div>
+<div class="table-wrap" style="margin-bottom:32px;">
+  <table>
+    <thead><tr>
+      <th>Sayfa</th><th style="text-align:right;">Görüntüleme</th>
+      <th style="text-align:right;">Ort. Süre</th><th style="text-align:right;">Toplam Süre</th>
+    </tr></thead>
+    <tbody id="pvTableBody">
+      <tr><td colspan="4" class="muted" style="text-align:center;padding:20px;">Yükleniyor…</td></tr>
     </tbody>
   </table>
 </div>
@@ -458,6 +501,100 @@
 <script>
 const SECRET = '{{ secret }}';
 let pfData = null; // sunucudan gelen güncel durum
+
+/* ── Analytics: Aboneler + Ziyaretçi İstatistikleri ── */
+const PAGE_LABELS = {
+  'landing':'Açılış Sayfası','market-briefs':'Global Piyasalarda Neler Oldu',
+  'global':'Global Piyasa Takip','bist-endeks-getiri':'Endeks Getiri Takibi',
+  'bist-endeks-karisim':'Dönem Karşılaştırması','tefas':'TEFAS Fon Akışları',
+  'bist':'BIST Portföy','kripto':'Kripto ETF','dth':'Döviz Hesapları',
+  'menkul':'Yabancı Hisse/Tahvil Alımı','kredi':'Krediler','kredi-detay':'Kredi Detayı',
+  'butce':'Bütçe','dis-ticaret':'Dış Ticaret','odeme-dengesi':'Ödemeler Dengesi',
+  'turizm':'Turizm','konut':'Konut','enflasyon':'Enflasyon','tcmb-ab':'TCMB AB',
+  'makro':'Makro Tahmin'
+};
+function pageLabel(p){ return PAGE_LABELS[p] || p; }
+function fmtDur(s){
+  s = Math.round(s || 0);
+  if (s < 60) return s + ' sn';
+  if (s < 3600) return Math.floor(s/60) + ' dk ' + (s%60) + ' sn';
+  return Math.floor(s/3600) + ' sa ' + Math.floor((s%3600)/60) + ' dk';
+}
+const CHART_GRID = 'rgba(255,255,255,0.06)';
+const CHART_TICK = '#64748b';
+let _subChart = null, _pvChart = null;
+
+async function loadSubscribers(){
+  try{
+    const r = await fetch(`/admin/${SECRET}/analytics/subscribers`);
+    const d = await r.json();
+    document.getElementById('subConfirmed').textContent = d.confirmed;
+    document.getElementById('subPending').textContent   = d.pending;
+    // Son 7 gün yeni abone
+    const cut = new Date(Date.now() - 7*864e5).toISOString().slice(0,10);
+    const last7 = (d.daily||[]).filter(x => x.date >= cut).reduce((s,x)=>s+x.count,0);
+    document.getElementById('subLast7').textContent = last7;
+    const cum = d.cumulative || [];
+    if (_subChart) _subChart.destroy();
+    _subChart = new Chart(document.getElementById('subChart'), {
+      type:'line',
+      data:{ labels: cum.map(x=>x.date), datasets:[{
+        label:'Toplam abone', data: cum.map(x=>x.total),
+        borderColor:'#f0b429', backgroundColor:'rgba(240,180,41,0.12)',
+        fill:true, tension:0.25, pointRadius:2, borderWidth:2 }] },
+      options: _lineOpts()
+    });
+  }catch(e){ console.error(e); }
+}
+
+async function loadPageviews(){
+  const days = document.getElementById('pvDays').value;
+  try{
+    const r = await fetch(`/admin/${SECRET}/analytics/pageviews?days=${days}`);
+    const d = await r.json();
+    document.getElementById('pvViews').textContent     = (d.totals.views||0).toLocaleString('tr-TR');
+    document.getElementById('pvSessions').textContent  = (d.totals.sessions||0).toLocaleString('tr-TR');
+    document.getElementById('pvTotalTime').textContent = fmtDur(d.totals.total_sec);
+    // Tablo
+    const body = document.getElementById('pvTableBody');
+    if (!d.pages.length){
+      body.innerHTML = '<tr><td colspan="4" class="muted" style="text-align:center;padding:20px;">Henüz veri yok.</td></tr>';
+    } else {
+      body.innerHTML = d.pages.map(p => `<tr>
+        <td style="font-weight:600;">${pageLabel(p.page)}</td>
+        <td style="text-align:right;font-family:monospace;color:#f0b429;">${p.views.toLocaleString('tr-TR')}</td>
+        <td style="text-align:right;font-family:monospace;color:#94a3b8;">${fmtDur(p.avg_sec)}</td>
+        <td style="text-align:right;font-family:monospace;color:#94a3b8;">${fmtDur(p.total_sec)}</td>
+      </tr>`).join('');
+    }
+    // Günlük grafik
+    const daily = d.daily || [];
+    if (_pvChart) _pvChart.destroy();
+    _pvChart = new Chart(document.getElementById('pvChart'), {
+      type:'line',
+      data:{ labels: daily.map(x=>x.date), datasets:[
+        { label:'Görüntüleme', data: daily.map(x=>x.views), borderColor:'#60a5fa',
+          backgroundColor:'rgba(96,165,250,0.12)', fill:true, tension:0.25, pointRadius:2, borderWidth:2 },
+        { label:'Oturum', data: daily.map(x=>x.sessions), borderColor:'#22c55e',
+          backgroundColor:'rgba(34,197,94,0.08)', fill:false, tension:0.25, pointRadius:2, borderWidth:2 }
+      ]},
+      options: _lineOpts(true)
+    });
+  }catch(e){ console.error(e); }
+}
+
+function _lineOpts(legend=false){
+  return {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{ display:legend, labels:{ color:CHART_TICK, font:{size:11} } } },
+    scales:{
+      x:{ grid:{ color:CHART_GRID }, ticks:{ color:CHART_TICK, font:{size:10}, maxRotation:0, autoSkip:true, maxTicksLimit:8 } },
+      y:{ grid:{ color:CHART_GRID }, ticks:{ color:CHART_TICK, font:{size:10}, precision:0 }, beginAtZero:true }
+    }
+  };
+}
+
+window.addEventListener('DOMContentLoaded', () => { loadSubscribers(); loadPageviews(); });
 
 function toast(msg, ok=true) {
   const el = document.getElementById('toast');

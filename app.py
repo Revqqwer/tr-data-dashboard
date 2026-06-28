@@ -125,6 +125,17 @@ def init_tables():
             created_at TEXT NOT NULL,
             read_at    TEXT
         )''')
+        # Sayfa ziyaret/süre takibi (ziyaretçi istatistikleri)
+        conn.execute('''CREATE TABLE IF NOT EXISTS page_views (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            page       TEXT NOT NULL,
+            seconds    INTEGER DEFAULT 0,
+            session_id TEXT,
+            username   TEXT,
+            created_at TEXT NOT NULL
+        )''')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_pv_created ON page_views(created_at)')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_pv_page    ON page_views(page)')
         conn.execute('''CREATE TABLE IF NOT EXISTS user_layouts (
             username    TEXT NOT NULL,
             page        TEXT NOT NULL,
@@ -287,6 +298,89 @@ def api_subscribers_count():
     with sqlite3.connect(DB_PATH) as conn:
         n = conn.execute('SELECT COUNT(*) FROM report_subscribers WHERE confirmed=1').fetchone()[0]
     return jsonify({'count': n})
+
+
+# ── Ziyaretçi Takibi (sayfa görüntüleme + süre) ──────────────────────────────
+@app.route('/api/track', methods=['POST'])
+def api_track():
+    """Sayfa görüntüleme + kalınan süre kaydı. sendBeacon ile gelir, auth gerektirmez."""
+    data = request.get_json(silent=True) or {}
+    page = str(data.get('page', '')).strip()[:60]
+    if not page:
+        return jsonify({'ok': False}), 204
+    try:
+        seconds = int(float(data.get('seconds', 0)))
+    except (TypeError, ValueError):
+        seconds = 0
+    seconds = max(0, min(seconds, 3600))   # 1 saat üst sınır (anormal değerleri kırp)
+    sid = str(data.get('sid', ''))[:40]
+    user = session.get('username')
+    now  = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.execute(
+                'INSERT INTO page_views (page, seconds, session_id, username, created_at) VALUES (?,?,?,?,?)',
+                (page, seconds, sid, user, now)
+            )
+    except Exception:
+        pass
+    return jsonify({'ok': True})
+
+
+@app.route('/admin/<secret>/analytics/subscribers')
+def admin_analytics_subscribers(secret):
+    if secret != ADMIN_SECRET:
+        return jsonify({'error': 'forbidden'}), 403
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        confirmed = conn.execute('SELECT COUNT(*) FROM report_subscribers WHERE confirmed=1').fetchone()[0]
+        pending   = conn.execute('SELECT COUNT(*) FROM report_subscribers WHERE confirmed=0').fetchone()[0]
+        # Günlük yeni abone (onaylı) — created_at "YYYY-MM-DD HH:MM"
+        rows = conn.execute(
+            "SELECT substr(created_at,1,10) AS d, COUNT(*) AS c "
+            "FROM report_subscribers WHERE confirmed=1 GROUP BY d ORDER BY d"
+        ).fetchall()
+    daily = [{'date': r['d'], 'count': r['c']} for r in rows if r['d']]
+    # Kümülatif seri
+    cum, total = [], 0
+    for it in daily:
+        total += it['count']
+        cum.append({'date': it['date'], 'total': total})
+    return jsonify({'confirmed': confirmed, 'pending': pending, 'daily': daily, 'cumulative': cum})
+
+
+@app.route('/admin/<secret>/analytics/pageviews')
+def admin_analytics_pageviews(secret):
+    if secret != ADMIN_SECRET:
+        return jsonify({'error': 'forbidden'}), 403
+    days = max(1, min(int(request.args.get('days', 30)), 365))
+    since = (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%d 00:00:00')
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        per_page = conn.execute(
+            "SELECT page, COUNT(*) AS views, "
+            "       COALESCE(SUM(seconds),0) AS total_sec, "
+            "       COALESCE(AVG(seconds),0) AS avg_sec "
+            "FROM page_views WHERE created_at >= ? "
+            "GROUP BY page ORDER BY views DESC", (since,)
+        ).fetchall()
+        daily = conn.execute(
+            "SELECT substr(created_at,1,10) AS d, COUNT(*) AS views, "
+            "       COUNT(DISTINCT session_id) AS sessions "
+            "FROM page_views WHERE created_at >= ? GROUP BY d ORDER BY d", (since,)
+        ).fetchall()
+        totals = conn.execute(
+            "SELECT COUNT(*) AS views, COUNT(DISTINCT session_id) AS sessions, "
+            "       COALESCE(SUM(seconds),0) AS total_sec "
+            "FROM page_views WHERE created_at >= ?", (since,)
+        ).fetchone()
+    return jsonify({
+        'days': days,
+        'totals': {'views': totals['views'], 'sessions': totals['sessions'], 'total_sec': totals['total_sec']},
+        'pages': [{'page': r['page'], 'views': r['views'],
+                   'total_sec': int(r['total_sec']), 'avg_sec': round(r['avg_sec'], 1)} for r in per_page],
+        'daily': [{'date': r['d'], 'views': r['views'], 'sessions': r['sessions']} for r in daily if r['d']],
+    })
 
 
 @app.route('/forgot-password', methods=['GET', 'POST'])

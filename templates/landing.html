@@ -703,6 +703,28 @@ else{window.addEventListener('load',()=>setTimeout(_runAll,500));}
 document.addEventListener('DOMContentLoaded',()=>setTimeout(_runAll,600));
 window.addEventListener('scroll',_runAll,{passive:true,once:true});
 </script>
+
+<!-- Ziyaretçi süre takibi (kendi istatistiğimiz) -->
+<script>
+(function(){
+  var sid; try{ sid=sessionStorage.getItem('_pv_sid'); if(!sid){ sid=Math.random().toString(36).slice(2)+Date.now().toString(36); sessionStorage.setItem('_pv_sid',sid);} }catch(e){ sid='anon'; }
+  var start=Date.now(), accum=0;
+  function flush(){
+    if(start){ accum+=Date.now()-start; start=0; }
+    var secs=Math.round(accum/1000); accum=0;
+    if(secs<2) return;
+    var body=JSON.stringify({page:'landing',seconds:secs,sid:sid});
+    try{ if(navigator.sendBeacon) navigator.sendBeacon('/api/track',new Blob([body],{type:'application/json'}));
+         else fetch('/api/track',{method:'POST',headers:{'Content-Type':'application/json'},body:body,keepalive:true}); }catch(e){}
+  }
+  document.addEventListener('visibilitychange',function(){
+    if(document.hidden){ if(start){ accum+=Date.now()-start; start=0; } }
+    else if(!start){ start=Date.now(); }
+  });
+  window.addEventListener('pagehide',flush);
+  window.addEventListener('beforeunload',flush);
+})();
+</script>
 </body>
 </html>
 
