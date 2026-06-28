@@ -242,27 +242,27 @@ def api_subscribe():
         existing = conn.execute('SELECT confirmed FROM report_subscribers WHERE email=?', (email,)).fetchone()
         if existing and existing[0]:
             return jsonify({'ok': False, 'error': 'Bu email zaten abone.'})
+        # Tek tıkla abonelik (çift onay kaldırıldı) → doğrudan confirmed=1
         conn.execute(
-            'INSERT OR REPLACE INTO report_subscribers (email, token, confirmed, created_at) VALUES (?,?,0,?)',
+            'INSERT OR REPLACE INTO report_subscribers (email, token, confirmed, created_at) VALUES (?,?,1,?)',
             (email, token, now)
         )
-    confirm_url = f'https://www.3nfinans.com/confirm-subscription/{token}'
+    # Hoş geldin maili — abonelik zaten aktif; mail engelleyici değil, sadece bilgilendirme
+    unsub_url = f'https://www.3nfinans.com/unsubscribe/{token}'
     body = f'''
     <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
-      <h2 style="color:#f0b429">3N Finans — Sabah Raporu Aboneliği</h2>
-      <p>Her sabah günlük piyasa özetini emailinize almak için aşağıdaki butona tıklayın.</p>
-      <div style="margin:24px 0">
-        <a href="{confirm_url}" style="display:inline-block;padding:14px 28px;
+      <h2 style="color:#f0b429">3N Finans — Aboneliğiniz Başladı ✅</h2>
+      <p>Her sabah <strong>09:30</strong>'da günlük piyasa özetini <strong>{email}</strong> adresinize göndereceğiz.</p>
+      <div style="margin:20px 0">
+        <a href="https://www.3nfinans.com/dashboard#market-briefs" style="display:inline-block;padding:14px 28px;
            background:#f0b429;color:#050a14;font-weight:700;border-radius:8px;text-decoration:none;">
-          Aboneliği Onayla
+          Panele Git →
         </a>
       </div>
-      <p style="color:#666;font-size:12px">Bu emaili siz istemediyseniz görmezden gelebilirsiniz.</p>
+      <p style="color:#888;font-size:12px">Abonelikten çıkmak için <a href="{unsub_url}" style="color:#888">buraya tıklayın</a>.</p>
     </div>'''
-    ok = send_email(email, '3N Finans — Sabah Raporu Aboneliğini Onayla', body)
-    if ok:
-        return jsonify({'ok': True, 'msg': 'Onay emaili gönderildi. Gelen kutunuzu kontrol edin.'})
-    return jsonify({'ok': False, 'error': 'Email gönderilemedi. Lütfen tekrar deneyin.'})
+    send_email(email, '3N Finans — Sabah Raporu Aboneliğiniz Başladı', body)
+    return jsonify({'ok': True, 'msg': 'Abone oldunuz! Her sabah piyasa özeti gelecek.'})
 
 
 @app.route('/confirm-subscription/<token>')
@@ -347,6 +347,17 @@ def admin_analytics_subscribers(secret):
         total += it['count']
         cum.append({'date': it['date'], 'total': total})
     return jsonify({'confirmed': confirmed, 'pending': pending, 'daily': daily, 'cumulative': cum})
+
+
+@app.route('/admin/<secret>/subscribers/confirm-pending', methods=['POST'])
+def admin_confirm_pending_subscribers(secret):
+    """Bekleyen (onaysız) tüm aboneleri toplu onayla."""
+    if secret != ADMIN_SECRET:
+        return jsonify({'error': 'forbidden'}), 403
+    with sqlite3.connect(DB_PATH) as conn:
+        cur = conn.execute('UPDATE report_subscribers SET confirmed=1 WHERE confirmed=0')
+        n = cur.rowcount
+    return jsonify({'ok': True, 'confirmed': n})
 
 
 @app.route('/admin/<secret>/analytics/pageviews')
