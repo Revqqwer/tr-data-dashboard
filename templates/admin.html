@@ -299,9 +299,13 @@
   </table>
 </div>
 
-<!-- Kullanıcı tablosu -->
-<h2 style="font-size:14px;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:14px;">Kayitli Kullanicilar</h2>
-<div class="table-wrap" style="margin-bottom:32px;">
+<!-- Kullanıcı tablosu (tıklayınca açılır) -->
+<h2 onclick="toggleUsers()" style="font-size:14px;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:14px;cursor:pointer;user-select:none;display:flex;align-items:center;gap:10px;">
+  <span id="usersChevron" style="display:inline-block;transition:transform .2s;font-size:11px;">▶</span>
+  Kayitli Kullanicilar
+  <span style="background:rgba(255,255,255,0.07);color:#94a3b8;font-size:11px;padding:2px 9px;border-radius:10px;letter-spacing:0;">{{ users|length }}</span>
+</h2>
+<div class="table-wrap" id="usersWrap" style="margin-bottom:32px;display:none;">
   {% if users %}
   <table>
     <thead>
@@ -523,6 +527,14 @@ async function loadEmailStats(){
       </tr>`;
     }).join('');
   }catch(e){ console.error(e); }
+}
+
+function toggleUsers(){
+  const wrap = document.getElementById('usersWrap');
+  const chev = document.getElementById('usersChevron');
+  const open = wrap.style.display !== 'none';
+  wrap.style.display = open ? 'none' : 'block';
+  chev.style.transform = open ? '' : 'rotate(90deg)';
 }
 
 window.addEventListener('DOMContentLoaded', () => { loadSubscribers(); loadPageviews(); loadEmailStats(); });
