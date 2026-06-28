@@ -3078,11 +3078,13 @@ async function mbLoad() {
   try {
     const r = await fetch('/api/market-briefs?limit=60');
     const d = await r.json();
-    window._mbReports = d.reports || [];
+    // Görüntüleme sırasına göre bir kez sırala — DOM indeksleri rapor dizisiyle hizalı kalsın
+    window._mbReports = (d.reports || []).sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
     _mbLoaded = true;
     document.getElementById('mb-loading').style.display = 'none';
     _mbRender(window._mbReports);
     _mbRenderSubscribeBox();
+    _mbRenderRails(window._mbReports);
   } catch(e) {
     document.getElementById('mb-loading').innerHTML =
       '<p style="color:var(--red)">Raporlar yüklenemedi: ' + e + '</p>';
@@ -3158,7 +3160,7 @@ function _mbRender(reports) {
     const weeklyStripe = isWeekly ? `<div style="height:3px;background:linear-gradient(90deg,#7c3aed,#a78bfa,#7c3aed);"></div>` : '';
 
     return `
-    <div style="background:var(--surface);${cardBorder};border-radius:12px;overflow:hidden;">
+    <div id="mb-card-${i}" data-idx="${i}" style="background:var(--surface);${cardBorder};border-radius:12px;overflow:hidden;">
       ${weeklyStripe}
       <div style="${headerBg};padding:18px 24px;display:flex;align-items:center;gap:12px;cursor:pointer;"
            onclick="mbToggle(this)">
@@ -3200,6 +3202,203 @@ function mbToggle(header) {
   const open = body.style.display === 'block';
   body.style.display = open ? 'none' : 'block';
   chevron.style.transform = open ? '' : 'rotate(180deg)';
+  // Açılan raporu sağ rayda göster
+  if (!open) {
+    const card = header.closest('[data-idx]');
+    if (card) _mbSyncRails(parseInt(card.dataset.idx, 10));
+  }
+}
+
+/* Belirli bir rapora geç: aç + scroll + sağ ray güncelle */
+function mbOpenReport(idx) {
+  const card = document.getElementById('mb-card-' + idx);
+  if (!card) return;
+  const header = card.querySelector('[onclick="mbToggle(this)"]');
+  const body = header ? header.nextElementSibling : null;
+  if (body && body.style.display !== 'block') mbToggle(header);
+  _mbSyncRails(idx);
+  card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/* Sol rayda aktif raporu işaretle + sağ rayı o rapora göre yenile */
+function _mbSyncRails(idx) {
+  document.querySelectorAll('#mb-rail-left .mb-arc a').forEach(a => {
+    a.classList.toggle('active', parseInt(a.dataset.idx, 10) === idx);
+  });
+  const reps = window._mbReports || [];
+  if (reps[idx]) _mbRenderRightRail(reps[idx]);
+}
+
+/* ── Yan rayları oluştur (sol: Arşiv, sağ: Temalar+Earnings+Risk) ── */
+function _mbRenderRails(reports) {
+  const left = document.getElementById('mb-rail-left');
+  const sorted = [...reports].sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
+
+  if (left) {
+    if (!sorted.length) {
+      left.innerHTML = '';
+    } else {
+      const items = sorted.map((r, i) => {
+        const isWeekly = r.type === 'weekly';
+        const tag = isWeekly ? '<span class="mb-tag w">HAFTALIK</span>' : '<span class="mb-tag g">GÜNLÜK</span>';
+        const title = r.title || r.date_label || r.date || '';
+        const date  = r.created_at ? r.created_at.replace('T', ' ').slice(0, 10) : '';
+        return `<a data-idx="${i}" class="${i === 0 ? 'active' : ''}" onclick="mbOpenReport(${i})">
+          ${tag}<div class="t">${_mbEsc(title)}</div><div class="d">${date}</div>
+        </a>`;
+      }).join('');
+      left.innerHTML = `<div class="mb-panel">
+        <div class="mb-panel-h"><span class="dot"></span>Arşiv</div>
+        <div class="mb-arc">${items}</div>
+      </div>`;
+    }
+  }
+
+  if (sorted.length) _mbRenderRightRail(sorted[0]);
+}
+
+/* ── Sağ ray: bültenin kendi içinden Temalar / Earnings / Risk ── */
+function _mbRenderRightRail(report) {
+  const right = document.getElementById('mb-rail-right');
+  if (!right) return;
+  const sections = _mbSections(report.content || '');
+
+  let html = '';
+
+  // 1. Bu Haftanın / Günün Temaları
+  const themes = _mbExtractThemes(sections);
+  if (themes.length) {
+    const isWeekly = report.type === 'weekly';
+    html += `<div class="mb-panel">
+      <div class="mb-panel-h"><span class="dot"></span>${isWeekly ? 'Bu Haftanın Temaları' : 'Günün Temaları'}</div>
+      ${themes.map(t => `<div class="mb-item">
+        <div class="h">${_mbEsc(t.title)}</div>
+        ${t.tickers ? `<div class="tk">${_mbEsc(t.tickers)}</div>` : ''}
+      </div>`).join('')}
+    </div>`;
+  }
+
+  // 2. Earnings Takvimi
+  const earnings = _mbExtractEarnings(sections);
+  if (earnings.length) {
+    html += `<div class="mb-panel">
+      <div class="mb-panel-h"><span class="dot" style="background:var(--amber)"></span>${earnings[0].dt ? 'Earnings Takvimi' : 'Earnings'}</div>
+      ${earnings.map(e => `<div class="mb-erow">
+        ${e.dt ? `<span class="dt">${_mbEsc(e.dt)}</span>` : ''}
+        <span class="nm">${_mbEsc(e.nm)}</span>
+        ${e.eps ? `<span class="eps">${_mbEsc(e.eps)}</span>` : ''}
+      </div>`).join('')}
+    </div>`;
+  }
+
+  // 3. Risk Radarı
+  const risks = _mbExtractRisks(sections);
+  if (risks.length) {
+    html += `<div class="mb-panel">
+      <div class="mb-panel-h"><span class="dot" style="background:var(--red)"></span>Risk Radarı</div>
+      ${risks.map(r => `<div class="mb-risk"><span class="ic">⚠</span><span>${_mbEsc(r)}</span></div>`).join('')}
+    </div>`;
+  }
+
+  right.innerHTML = html;
+}
+
+/* İçeriği ━━━ başlıklarına göre bölümlere ayır → {label: [satırlar]} */
+function _mbSections(raw) {
+  const lines = raw.split('\n');
+  const out = {};
+  let cur = '__pre__';
+  out[cur] = [];
+  for (const line of lines) {
+    const t = line.trim();
+    const m = t.match(/^━+\s*(.*?)\s*━+$/);
+    if (m && m[1]) { cur = m[1].toUpperCase(); out[cur] = []; }
+    else out[cur].push(line);
+  }
+  return out;
+}
+
+/* Bölüm anahtarını parçaya göre bul */
+function _mbFindSection(sections, needle) {
+  const key = Object.keys(sections).find(k => k.includes(needle));
+  return key ? sections[key] : null;
+}
+
+/* Temalar: **🏷️ TEMA** başlığı + altındaki │ ticker satırları */
+function _mbExtractThemes(sections) {
+  const lines = _mbFindSection(sections, 'TEMATİK');
+  if (!lines) return [];
+  const themes = [];
+  let cur = null;
+  for (const line of lines) {
+    const t = line.trim();
+    const bold = t.match(/^\*\*(.+?)\*\*$/);
+    if (bold) {
+      if (cur) themes.push(cur);
+      cur = { title: bold[1].trim(), tickers: '' };
+    } else if (cur && /^│/.test(t)) {
+      const c = t.replace(/^│\s*/, '').replace(/\s*│$/, '').trim();
+      if (c) cur.tickers += (cur.tickers ? ' · ' : '') + c.replace(/,\s*/g, ' · ');
+    }
+  }
+  if (cur) themes.push(cur);
+  return themes.slice(0, 6);
+}
+
+/* Earnings: önce haftalık ÖNÜMÜZDEKİ HAFTA, yoksa günlük BUGÜNKÜ */
+function _mbExtractEarnings(sections) {
+  const up = _mbFindSection(sections, 'ÖNÜMÜZDEKİ HAFTA EARNINGS');
+  if (up) {
+    const out = [];
+    for (const line of up) {
+      const t = line.trim().replace(/^[•\-]\s*/, '');
+      if (!t) continue;
+      const parts = t.split(/\s+—\s+/);
+      if (parts.length >= 2) {
+        const dt = parts[0].trim();
+        let rest = parts.slice(1).join(' — ');
+        let eps = '';
+        const m = rest.match(/\(([^)]*EPS[^)]*)\)/i);
+        if (m) { eps = m[1].replace(/EPS\s*tahmin[:i]?\s*/i, '').trim(); rest = rest.replace(/\s*\([^)]*\)/, '').trim(); }
+        out.push({ dt, nm: rest, eps });
+      } else {
+        out.push({ dt: '', nm: t, eps: '' });
+      }
+      if (out.length >= 8) break;
+    }
+    if (out.length) return out;
+  }
+  const today = _mbFindSection(sections, 'BUGÜNKÜ EARNINGS');
+  if (today) {
+    const out = [];
+    for (const line of today) {
+      const t = line.trim();
+      if (!t || /öne çıkan earnings yok/i.test(t)) continue;
+      if (/^(🟢|🔴|⏳)/.test(t)) {
+        out.push({ dt: '', nm: t.slice(1).trim().replace(/\*\*/g, ''), eps: '' });
+      }
+      if (out.length >= 8) break;
+    }
+    return out;
+  }
+  return [];
+}
+
+/* Risk Radarı: • bullet satırları */
+function _mbExtractRisks(sections) {
+  const lines = _mbFindSection(sections, 'RİSK RADARI');
+  if (!lines) return [];
+  const out = [];
+  for (const line of lines) {
+    const t = line.trim().replace(/^[•\-]\s*/, '');
+    if (t) out.push(t.replace(/\*\*/g, ''));
+    if (out.length >= 6) break;
+  }
+  return out;
+}
+
+function _mbEsc(s) {
+  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 /* ── Rapor içeriğini 2 sütuna böl (bölüm başlıklarında kır) ── */
