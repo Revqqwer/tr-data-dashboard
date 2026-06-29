@@ -6,6 +6,7 @@ Tüm /api/leaderboard, /api/flow/*, /api/funds/*, /api/categories/* endpoint'ler
 import datetime
 from flask import Blueprint, jsonify, request, session as flask_session
 from sqlmodel import Session, select
+from sqlalchemy import func
 
 from tefas_backend.database import (
     FundFlow, FundDaily, FundMeta, FundComposition,
@@ -151,28 +152,23 @@ def leaderboard():
             # Dönem modu: tarihleri topla
             s = _parse_date(start_str)
             e = _parse_date(end_str)
+
+            # Net akışı SQL tarafında topla (bellek dostu — tüm satırları çekme!)
+            agg_q = select(FundFlow.code, func.sum(FundFlow.net_flow)).where(
+                FundFlow.net_flow.isnot(None)  # type: ignore
+            )
             if s and e:
-                q = q.where(
-                    FundFlow.trade_date >= s,  # type: ignore
-                    FundFlow.trade_date <= e,  # type: ignore
-                )
+                agg_q = agg_q.where(FundFlow.trade_date >= s, FundFlow.trade_date <= e)  # type: ignore
             if fund_type:
-                q = q.where(FundFlow.fund_type == fund_type.upper())
-
-            rows = db.exec(q).all()
-
-            # Fon başına net_flow topla
-            flow_sum: dict = {}
-            fund_info: dict = {}
-            for r in rows:
-                flow_sum[r.code] = flow_sum.get(r.code, 0.0) + (r.net_flow or 0.0)
-                fund_info[r.code] = r  # son kaydı sakla (meta için)
+                agg_q = agg_q.where(FundFlow.fund_type == fund_type.upper())
+            agg_q = agg_q.group_by(FundFlow.code)  # type: ignore
+            flow_sum: dict = {code: (total or 0.0) for code, total in db.exec(agg_q).all()}
 
             sorted_codes = sorted(flow_sum.keys(), key=lambda c: -flow_sum[c])
             # Kategori filtresi
             if cat_categories:
-                cat_codes = {m.code for m in db.exec(
-                    select(FundMeta).where(FundMeta.category.in_(cat_categories))  # type: ignore
+                cat_codes = {m for (m,) in db.exec(
+                    select(FundMeta.code).where(FundMeta.category.in_(cat_categories))  # type: ignore
                 ).all()}
                 sorted_codes = [c for c in sorted_codes if c in cat_codes]
 
@@ -180,24 +176,39 @@ def leaderboard():
             outflow_codes = [c for c in reversed(sorted_codes) if flow_sum[c] < 0][:limit]
             result_codes  = set(inflow_codes) | set(outflow_codes)
 
+            # Meta (isim/tür): fund_meta küçük tablo
+            meta = {c: (fn, ft) for c, fn, ft in db.exec(
+                select(FundMeta.code, FundMeta.fname, FundMeta.fund_type)
+            ).all()}
+
+            # En güncel gün: aum + (meta'da yoksa) isim/tür — sadece sonuç kodları
+            start_td = _nearest_trade_date(db, s, forward=True)  if s else None
+            end_td   = _nearest_trade_date(db, e, forward=False) if e else None
+            latest: dict = {}
+            if result_codes and end_td:
+                for c, fn, ft, aum in db.exec(
+                    select(FundFlow.code, FundFlow.fname, FundFlow.fund_type, FundFlow.aum)
+                    .where(FundFlow.trade_date == end_td, FundFlow.code.in_(result_codes))  # type: ignore
+                ).all():
+                    latest[c] = (fn, ft, aum)
+
             # Fiyat getirisi: dönem başı/sonu fiyat oranı
             price_return_map: dict = {}
-            if s and e:
-                start_td = _nearest_trade_date(db, s, forward=True)
-                end_td   = _nearest_trade_date(db, e, forward=False)
-                if start_td and end_td and start_td <= end_td:
-                    price_return_map = _price_return_map(db, start_td, end_td, result_codes)
+            if start_td and end_td and start_td <= end_td:
+                price_return_map = _price_return_map(db, start_td, end_td, result_codes)
 
             def row_to_dict_range(code):
-                r = fund_info[code]
+                fn, ft, aum = latest.get(code, (None, None, None))
+                if fn is None and code in meta:
+                    fn, ft = meta[code]
                 return {
                     "date":      end_str,
-                    "code":      r.code,
-                    "name":      r.fname,
-                    "fund_type": r.fund_type,
+                    "code":      code,
+                    "name":      fn,
+                    "fund_type": ft,
                     "net_flow":  round(flow_sum[code], 0),
                     "price_return_pct": price_return_map.get(code),
-                    "aum":       r.aum,
+                    "aum":       aum,
                 }
 
             inflows  = [row_to_dict_range(c) for c in inflow_codes]
