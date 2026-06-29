@@ -165,11 +165,11 @@ def leaderboard():
             flow_sum: dict = {code: (total or 0.0) for code, total in db.exec(agg_q).all()}
 
             sorted_codes = sorted(flow_sum.keys(), key=lambda c: -flow_sum[c])
-            # Kategori filtresi
+            # Kategori filtresi (tek kolon seçimi → skaler döner, tuple değil)
             if cat_categories:
-                cat_codes = {m for (m,) in db.exec(
+                cat_codes = set(db.exec(
                     select(FundMeta.code).where(FundMeta.category.in_(cat_categories))  # type: ignore
-                ).all()}
+                ).all())
                 sorted_codes = [c for c in sorted_codes if c in cat_codes]
 
             inflow_codes  = [c for c in sorted_codes if flow_sum[c] > 0][:limit]
