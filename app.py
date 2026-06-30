@@ -983,7 +983,11 @@ def _portfolio_with_overrides() -> dict | None:
     if cash_ov is not None:
         pdv = pf.get('portfolio_daily_value', [])
         if pdv:
-            pdv[-1]['cash_value'] = round(float(cash_ov), 2)
+            new_cash = round(float(cash_ov), 2)
+            old_cash = pdv[-1].get('cash_value', 0.0)
+            # total_value'yu da nakit farkı kadar düzelt (yoksa header ile grafik tutmaz)
+            pdv[-1]['total_value'] = round(pdv[-1].get('total_value', 0.0) - old_cash + new_cash, 2)
+            pdv[-1]['cash_value']  = new_cash
 
     # ── Manuel kapatılan pozisyonları pnl_by_ticker'a yansıt ───────────────
     for cp in ov.get('closed_positions', []):
