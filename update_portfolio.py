@@ -126,11 +126,23 @@ def run():
             new_pos_dates[ticker] = pd_str
             log.info('Yeni override pozisyon: %s → alım tarihi %s', ticker, pd_str)
 
-    # NSP override: yeni pozisyonların alım tarihinden itibaren geçerli
+    # ── Fonlama: NSP + nakit override'ı, yeni alımların KENDİ tarihlerine
+    #    maliyetlerine orantılı dağıtılır. Böylece her hisse eklendiği gün
+    #    karşılığı fon düşülür → grafikte sahte sıçrama olmaz ve seri tam
+    #    doğru son değerde (override) biter. ──
     nsp_units_base     = pf.get('nsp_current_units', 0.0)
     nsp_units_override = ov.get('nsp_units_override')
-    nsp_change_date    = (min(new_pos_dates.values())
-                          if new_pos_dates and nsp_units_override is not None else None)
+    cash_override      = ov.get('cash_value_override')
+
+    new_pos_cost = {
+        t: float(ov['open_positions'][t].get('qty', 0)) * float(ov['open_positions'][t].get('avg_cost', 0))
+        for t in new_pos_dates
+    }
+    total_new_cost = sum(new_pos_cost.values()) or 1.0   # 0'a bölmeyi önle
+
+    total_nsp_reduction = (nsp_units_base - float(nsp_units_override)) if nsp_units_override is not None else 0.0
+    # Her pozisyonun alım tarihinde düşülecek NSP birimi (maliyetine orantılı)
+    nsp_units_removed = {t: total_nsp_reduction * (new_pos_cost[t] / total_new_cost) for t in new_pos_dates}
 
     if not open_pos:
         log.info('Açık pozisyon yok, çıkılıyor.')
@@ -194,6 +206,15 @@ def run():
     recompute_anchor = pdv_kept_tmp[-1] if pdv_kept_tmp else last_entry
     last_nsp_val = recompute_anchor.get('nsp_value', 0.0)
     last_cash    = recompute_anchor.get('cash_value', 0.0)
+    # Nakit override'ı da yeni alımlara orantılı dağıt.
+    # Anchor'da zaten başlamış alımların payını geri çıkar → run'lar arası çift sayım olmaz.
+    frac_anchor = sum(new_pos_cost.get(t, 0.0) for t in new_pos_dates
+                      if new_pos_dates[t] <= recompute_from_str) / total_new_cost
+    cash_target = float(cash_override) if cash_override is not None else last_cash
+    _denom      = 1.0 - frac_anchor
+    cash_delta  = (cash_target - last_cash) / _denom if _denom > 1e-6 else 0.0
+    cash_base_abs = last_cash - cash_delta * frac_anchor
+    cash_added  = {t: cash_delta * (new_pos_cost.get(t, 0.0) / total_new_cost) for t in new_pos_dates}
     # TEFAS fiyat gelmediğinde birim değişikliğini yansıtmak için son bilinen NSP fiyatı
     nsp_dv_all = pf.get('nsp_daily_value', [])
     last_nsp_price_known = nsp_dv_all[-1]['price'] if nsp_dv_all else None
@@ -230,10 +251,10 @@ def run():
                 last_stock_prices[ticker] = p
             sv += qty * last_stock_prices.get(ticker, 0.0)
 
-        # NSP değeri: alım tarihinden itibaren override birimlerini kullan
-        nsp_u = (nsp_units_override
-                 if nsp_change_date and nsp_units_override is not None and d_str >= nsp_change_date
-                 else nsp_units_base)
+        # O güne kadar alımı yapılmış yeni pozisyonlar → fonlamayı kademeli düş
+        started = [t for t in new_pos_dates if d_str >= new_pos_dates[t]]
+        nsp_u  = nsp_units_base - sum(nsp_units_removed.get(t, 0.0) for t in started)
+        cash_d = cash_base_abs  + sum(cash_added.get(t, 0.0)        for t in started)
         nsp_p = nsp_prices.get(d_str)
         if nsp_p:
             last_nsp_price_known = nsp_p
@@ -245,12 +266,12 @@ def run():
             nsp_val = last_nsp_val
         last_nsp_val = nsp_val
 
-        total = round(sv + nsp_val + last_cash, 2)
+        total = round(sv + nsp_val + cash_d, 2)
         new_entries.append({
             'date':         d_str,
             'stock_value':  round(sv, 2),
             'nsp_value':    round(nsp_val, 2),
-            'cash_value':   round(last_cash, 2),
+            'cash_value':   round(cash_d, 2),
             'total_value':  total,
         })
 
