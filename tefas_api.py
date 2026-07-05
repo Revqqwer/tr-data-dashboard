@@ -4,6 +4,8 @@ Tüm /api/leaderboard, /api/flow/*, /api/funds/*, /api/categories/* endpoint'ler
 """
 
 import datetime
+import json as _json
+from pathlib import Path as _Path
 from flask import Blueprint, jsonify, request, session as flask_session
 from sqlmodel import Session, select
 from sqlalchemy import func
@@ -273,6 +275,154 @@ def leaderboard():
             outflows = [row_to_dict(r) for r in outflow_rows]
             latest_date = actual_date.isoformat() if actual_date else None
             return jsonify({"date": latest_date, "inflows": inflows, "outflows": outflows})
+
+
+# ---------------------------------------------------------------------------
+# Özel Fonlar — admin tarafından seçilen fonların akış + getiri takibi
+# ---------------------------------------------------------------------------
+_CUSTOM_FUNDS_FILE = _Path(__file__).parent / "data" / "custom_funds.json"
+
+
+def load_custom_funds() -> list:
+    """Seçili özel fon kodlarını oku."""
+    try:
+        d = _json.loads(_CUSTOM_FUNDS_FILE.read_text(encoding="utf-8"))
+        seen, out = set(), []
+        for c in d.get("funds", []):
+            c = str(c).strip().upper()
+            if c and c not in seen:
+                seen.add(c); out.append(c)
+        return out
+    except Exception:
+        return []
+
+
+def save_custom_funds(codes: list):
+    """Özel fon listesini yaz (benzersiz, büyük harf)."""
+    _CUSTOM_FUNDS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    seen, clean = set(), []
+    for c in codes:
+        c = str(c).strip().upper()
+        if c and c not in seen:
+            seen.add(c); clean.append(c)
+    _CUSTOM_FUNDS_FILE.write_text(
+        _json.dumps({"funds": clean}, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def custom_funds_detail() -> list:
+    """Kod + isim + kayıt var mı bilgisiyle özel fon listesi (admin için)."""
+    codes = load_custom_funds()
+    if not codes:
+        return []
+    with Session(engine) as db:
+        names = {c: fn for c, fn in db.exec(
+            select(FundMeta.code, FundMeta.fname).where(FundMeta.code.in_(codes))  # type: ignore
+        ).all()}
+        # fund_meta boşsa fund_daily'den son ismi dene
+        missing = [c for c in codes if c not in names]
+        if missing:
+            for c, fn in db.exec(
+                select(FundDaily.code, FundDaily.fname).where(FundDaily.code.in_(missing))  # type: ignore
+            ).all():
+                names.setdefault(c, fn)
+    return [{"code": c, "name": names.get(c) or c, "found": c in names} for c in codes]
+
+
+@tefas_bp.route("/api/custom-funds")
+def custom_funds_list():
+    """Seçili özel fonların listesi (kod + isim)."""
+    err = _auth()
+    if err:
+        return err
+    return jsonify([{"code": d["code"], "name": d["name"]} for d in custom_funds_detail()])
+
+
+@tefas_bp.route("/api/custom-funds/flow")
+def custom_funds_flow():
+    """Seçili fonların kümülatif net akışı (fon bazında + TOPLAM) + getiri serisi."""
+    err = _auth()
+    if err:
+        return err
+    codes = load_custom_funds()
+    if not codes:
+        return jsonify({"funds": [], "flow": [], "ret": []})
+
+    days      = request.args.get("days")
+    start_str = request.args.get("start")
+    end_str   = request.args.get("end")
+
+    with Session(engine) as db:
+        # Tarih penceresi
+        s = _parse_date(start_str) if start_str else None
+        e = _parse_date(end_str)   if end_str   else None
+        if not (s and e) and days and days != "all":
+            latest = db.exec(
+                select(FundFlow.trade_date).where(FundFlow.code.in_(codes))  # type: ignore
+                .order_by(FundFlow.trade_date.desc()).limit(1)
+            ).first()
+            if latest:
+                e = latest
+                s = latest - datetime.timedelta(days=int(days))
+
+        # Akış satırları
+        fq = select(FundFlow.code, FundFlow.trade_date, FundFlow.net_flow).where(
+            FundFlow.code.in_(codes), FundFlow.net_flow.isnot(None)  # type: ignore
+        )
+        if s and e:
+            fq = fq.where(FundFlow.trade_date >= s, FundFlow.trade_date <= e)  # type: ignore
+        flows = db.exec(fq.order_by(FundFlow.trade_date)).all()
+
+        # Fiyat satırları (getiri için)
+        pq = select(FundDaily.code, FundDaily.trade_date, FundDaily.price).where(
+            FundDaily.code.in_(codes), FundDaily.price.isnot(None)  # type: ignore
+        )
+        if s and e:
+            pq = pq.where(FundDaily.trade_date >= s, FundDaily.trade_date <= e)  # type: ignore
+        prices = db.exec(pq.order_by(FundDaily.trade_date)).all()
+
+        names = {c: fn for c, fn in db.exec(
+            select(FundMeta.code, FundMeta.fname).where(FundMeta.code.in_(codes))  # type: ignore
+        ).all()}
+
+    # ── Kümülatif net akış serisi (fon bazında + TOPLAM) ──
+    flow_map: dict = {}
+    for code, td, nf in flows:
+        flow_map.setdefault(td, {})[code] = flow_map.get(td, {}).get(code, 0.0) + (nf or 0.0)
+    flow_dates = sorted(flow_map.keys())
+    flow_series = []
+    cum = {c: 0.0 for c in codes}
+    for d in flow_dates:
+        total = 0.0
+        row = {"date": d.isoformat()}
+        for c in codes:
+            cum[c] += flow_map[d].get(c, 0.0)
+            row[c] = round(cum[c], 0)
+            total += cum[c]
+        row["TOPLAM"] = round(total, 0)
+        flow_series.append(row)
+
+    # ── Getiri serisi (başlangıç = 100) ──
+    price_map: dict = {}
+    for code, td, px in prices:
+        if px:
+            price_map.setdefault(td, {})[code] = px
+    ret_dates = sorted(price_map.keys())
+    ret_series = []
+    base: dict = {}
+    last: dict = {}
+    for d in ret_dates:
+        row = {"date": d.isoformat()}
+        for c in codes:
+            px = price_map[d].get(c)
+            if px:
+                last[c] = px
+                base.setdefault(c, px)
+            if c in base and c in last:
+                row[c] = round(last[c] / base[c] * 100, 2)
+        ret_series.append(row)
+
+    funds = [{"code": c, "name": names.get(c) or c} for c in codes]
+    return jsonify({"funds": funds, "flow": flow_series, "ret": ret_series})
 
 
 # ---------------------------------------------------------------------------
