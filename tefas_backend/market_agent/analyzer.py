@@ -230,7 +230,7 @@ def generate_daily_report(filtered_news: list[dict], earnings: list[dict]) -> st
     try:
         resp = _get_client().messages.create(
             model="claude-sonnet-4-5",
-            max_tokens=3000,
+            max_tokens=6000,
             messages=[{"role": "user", "content": content}]
         )
         return resp.content[0].text
@@ -259,7 +259,7 @@ def generate_weekly_report(filtered_news: list[dict], upcoming_earnings: list[di
     try:
         resp = _get_client().messages.create(
             model="claude-sonnet-4-5",
-            max_tokens=2500,
+            max_tokens=8000,
             messages=[{"role": "user", "content": content}]
         )
         return resp.content[0].text
