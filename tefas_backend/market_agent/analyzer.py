@@ -17,6 +17,28 @@ def _get_client():
     return _client
 
 
+# Model fiyatları ($ / 1M token) — girdi, çıktı
+_PRICES = {
+    "claude-haiku-4-5":  (1.0, 5.0),
+    "claude-sonnet-4-5": (3.0, 15.0),
+    "claude-opus-4-8":   (5.0, 25.0),
+}
+
+
+def _log_usage(resp, model: str, label: str):
+    """API çağrısının token kullanımını ve tahmini maliyetini logla."""
+    try:
+        u = resp.usage
+        pin  = getattr(u, 'input_tokens', 0) or 0
+        pout = getattr(u, 'output_tokens', 0) or 0
+        cin, cout = _PRICES.get(model, (0.0, 0.0))
+        cost = pin / 1e6 * cin + pout / 1e6 * cout
+        log.info("💰 [%s] %s | girdi=%d çıktı=%d token | ≈ $%.4f (₺%.2f)",
+                 label, model, pin, pout, cost, cost * 41)  # ~41 TL/USD
+    except Exception as e:
+        log.warning("Usage loglanamadı (%s): %s", label, e)
+
+
 # ── Prompt'lar ────────────────────────────────────────────────────────────────
 
 _FILTER_PROMPT = """\
@@ -169,6 +191,7 @@ def filter_news(raw_news: list[dict], prev_report_content: str = "") -> list[dic
             max_tokens=2500,
             messages=[{"role": "user", "content": prompt + "\n\nHABERLER:\n" + headlines}]
         )
+        _log_usage(resp, "claude-haiku-4-5", "haber filtreleme")
         text = resp.content[0].text.strip()
         start = text.find('[')
         end   = text.rfind(']') + 1
@@ -233,6 +256,7 @@ def generate_daily_report(filtered_news: list[dict], earnings: list[dict]) -> st
             max_tokens=6000,
             messages=[{"role": "user", "content": content}]
         )
+        _log_usage(resp, "claude-sonnet-4-5", "günlük rapor")
         return resp.content[0].text
     except Exception as e:
         log.error("Günlük rapor hatası: %s", e)
@@ -262,6 +286,7 @@ def generate_weekly_report(filtered_news: list[dict], upcoming_earnings: list[di
             max_tokens=8000,
             messages=[{"role": "user", "content": content}]
         )
+        _log_usage(resp, "claude-sonnet-4-5", "haftalık rapor")
         return resp.content[0].text
     except Exception as e:
         log.error("Haftalık rapor hatası: %s", e)
