@@ -17,5 +17,6 @@ data/btcethflow.xlsx
 data/global_market.db
 data/makro_forecast.json
 data/portfolio_overrides.json
+data/custom_funds.json
 data/market_reports/
 logs/

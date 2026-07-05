@@ -428,6 +428,41 @@ def admin_analytics_subscribers(secret):
     return jsonify({'confirmed': confirmed, 'pending': pending, 'daily': daily, 'cumulative': cum})
 
 
+@app.route('/admin/<secret>/custom-funds')
+def admin_custom_funds_get(secret):
+    if secret != ADMIN_SECRET:
+        return jsonify({'error': 'forbidden'}), 403
+    from tefas_api import custom_funds_detail
+    return jsonify({'funds': custom_funds_detail()})
+
+
+@app.route('/admin/<secret>/custom-funds', methods=['POST'])
+def admin_custom_funds_add(secret):
+    if secret != ADMIN_SECRET:
+        return jsonify({'error': 'forbidden'}), 403
+    from tefas_api import load_custom_funds, save_custom_funds
+    code = (request.get_json(silent=True) or {}).get('code', '').strip().upper()
+    if not code:
+        return jsonify({'ok': False, 'error': 'Fon kodu gerekli'}), 400
+    codes = load_custom_funds()
+    if code in codes:
+        return jsonify({'ok': False, 'error': 'Bu fon zaten ekli'}), 400
+    codes.append(code)
+    save_custom_funds(codes)
+    return jsonify({'ok': True})
+
+
+@app.route('/admin/<secret>/custom-funds/<code>/delete', methods=['POST'])
+def admin_custom_funds_delete(secret, code):
+    if secret != ADMIN_SECRET:
+        return jsonify({'error': 'forbidden'}), 403
+    from tefas_api import load_custom_funds, save_custom_funds
+    code = code.strip().upper()
+    codes = [c for c in load_custom_funds() if c != code]
+    save_custom_funds(codes)
+    return jsonify({'ok': True})
+
+
 @app.route('/admin/<secret>/subscribers/confirm-pending', methods=['POST'])
 def admin_confirm_pending_subscribers(secret):
     """Bekleyen (onaysız) tüm aboneleri toplu onayla."""

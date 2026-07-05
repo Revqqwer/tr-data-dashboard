@@ -299,6 +299,29 @@
   </table>
 </div>
 
+<!-- ── Özel Fonlar ── -->
+<h2 style="font-size:14px;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:8px;margin-top:32px;">🎯 Özel Fonlar</h2>
+<p style="font-size:12px;color:#475569;margin-bottom:14px;">
+  Buraya eklediğin fonlar TEFAS sayfasındaki <b>Özel Fonlar</b> sekmesinde akış + getiri grafiğiyle gösterilir. Fon kodunu (örn. <code>TP2</code>, <code>PRY</code>) Liderboard'daki KOD sütunundan görebilirsin.
+</p>
+<div class="add-card" style="margin-bottom:14px;">
+  <div>
+    <label>Fon Kodu</label>
+    <input type="text" id="cfCode" placeholder="TP2" maxlength="12"
+           oninput="this.value=this.value.toUpperCase()"
+           onkeydown="if(event.key==='Enter')addCustomFund()" style="width:160px;">
+  </div>
+  <button class="btn btn-gold" onclick="addCustomFund()">+ Ekle</button>
+</div>
+<div class="table-wrap" style="margin-bottom:32px;">
+  <table>
+    <thead><tr><th>Kod</th><th>Fon Adı</th><th style="text-align:right;">İşlem</th></tr></thead>
+    <tbody id="cfTableBody">
+      <tr><td colspan="3" class="muted" style="text-align:center;padding:20px;">Yükleniyor…</td></tr>
+    </tbody>
+  </table>
+</div>
+
 <!-- Kullanıcı tablosu (tıklayınca açılır) -->
 <h2 onclick="toggleUsers()" style="font-size:14px;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:14px;cursor:pointer;user-select:none;display:flex;align-items:center;gap:10px;">
   <span id="usersChevron" style="display:inline-block;transition:transform .2s;font-size:11px;">▶</span>
@@ -537,7 +560,50 @@ function toggleUsers(){
   chev.style.transform = open ? '' : 'rotate(90deg)';
 }
 
-window.addEventListener('DOMContentLoaded', () => { loadSubscribers(); loadPageviews(); loadEmailStats(); });
+async function loadCustomFunds(){
+  const body = document.getElementById('cfTableBody');
+  try{
+    const r = await fetch(`/admin/${SECRET}/custom-funds`);
+    const d = await r.json();
+    const funds = d.funds || [];
+    if (!funds.length){
+      body.innerHTML = '<tr><td colspan="3" class="muted" style="text-align:center;padding:20px;">Henüz özel fon eklenmemiş.</td></tr>';
+      return;
+    }
+    body.innerHTML = funds.map(f => `<tr>
+      <td style="font-family:monospace;font-weight:700;color:#f0b429;">${f.code}</td>
+      <td>${f.found ? (f.name||'').replace(/</g,'&lt;') : '<span style="color:#f59e0b;">(kayıt bulunamadı — veri gelince görünür)</span>'}</td>
+      <td style="text-align:right;"><button class="btn btn-red" onclick="removeCustomFund('${f.code}')">✕ Kaldır</button></td>
+    </tr>`).join('');
+  }catch(e){ body.innerHTML = `<tr><td colspan="3" style="color:#ef4444;text-align:center;padding:20px;">${e.message}</td></tr>`; }
+}
+
+async function addCustomFund(){
+  const el = document.getElementById('cfCode');
+  const code = el.value.trim().toUpperCase();
+  if (!code) { toast('Fon kodu giriniz', false); return; }
+  try{
+    const r = await fetch(`/admin/${SECRET}/custom-funds`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({code})
+    });
+    const d = await r.json();
+    if (d.ok) { toast(`${code} eklendi ✓`); el.value=''; loadCustomFunds(); }
+    else toast(d.error || 'Hata', false);
+  }catch(e){ toast(e.message, false); }
+}
+
+async function removeCustomFund(code){
+  if (!confirm(`${code} özel fonlardan kaldırılsın mı?`)) return;
+  try{
+    const r = await fetch(`/admin/${SECRET}/custom-funds/${code}/delete`, { method:'POST' });
+    const d = await r.json();
+    if (d.ok) { toast(`${code} kaldırıldı`); loadCustomFunds(); }
+    else toast(d.error || 'Hata', false);
+  }catch(e){ toast(e.message, false); }
+}
+
+window.addEventListener('DOMContentLoaded', () => { loadSubscribers(); loadPageviews(); loadEmailStats(); loadCustomFunds(); });
 
 function toast(msg, ok=true) {
   const el = document.getElementById('toast');
