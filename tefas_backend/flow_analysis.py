@@ -391,37 +391,39 @@ def category_history(
         return []
     min_date, max_date = dates[0], dates[-1]
 
-    cat_map: dict[str, str] = {
-        r.code: (r.category or "Diğer")
-        for r in session.exec(select(FundMetaDB)).all()
-    }
+    # ── SQL tarafında topla (tüm satırları belleğe çekme — RAM/zaman patlamasını önler) ──
+    from sqlalchemy import func as _func
+    cat_expr = _func.coalesce(FundMetaDB.category, "Diğer")   # meta yoksa "Diğer"
 
-    fq = select(FundFlow).where(
-        FundFlow.trade_date >= min_date,
-        FundFlow.trade_date <= max_date,
-        FundFlow.net_flow.isnot(None),  # type: ignore
-    )
-    if fund_type:
-        fq = fq.where(FundFlow.fund_type == fund_type.upper())
-    all_flows = session.exec(fq).all()
+    def _base():
+        q = (select(FundFlow.trade_date, cat_expr, _func.sum(FundFlow.net_flow),
+                    _func.sum(_func.abs(FundFlow.net_flow)))
+             .join(FundMetaDB, FundMetaDB.code == FundFlow.code, isouter=True)  # type: ignore
+             .where(
+                 FundFlow.trade_date >= min_date,   # type: ignore
+                 FundFlow.trade_date <= max_date,   # type: ignore
+                 FundFlow.net_flow.isnot(None),     # type: ignore
+             ))
+        if fund_type:
+            q = q.where(FundFlow.fund_type == fund_type.upper())
+        return q.group_by(FundFlow.trade_date, cat_expr)  # type: ignore
 
+    rows = session.exec(_base()).all()   # ~ gün × kategori (birkaç bin satır)
+
+    # En aktif kategoriler (mutlak akış toplamı) → top_n
     cat_totals: dict[str, float] = {}
-    for f in all_flows:
-        cat = cat_map.get(f.code, "Diğer")
-        cat_totals[cat] = cat_totals.get(cat, 0.0) + abs(f.net_flow or 0.0)
+    day_cat: dict = {}
+    for td, cat, net, absnet in rows:
+        cat_totals[cat] = cat_totals.get(cat, 0.0) + (absnet or 0.0)
+        day_cat.setdefault(td, {})[cat] = round(net or 0.0, 0)
     top_cats = [k for k, _ in sorted(cat_totals.items(), key=lambda x: -x[1])[:top_n]]
 
     result = []
     for d in dates:
         row: dict = {"date": str(d)}
-        day_flows = [f for f in all_flows if f.trade_date == d]
-        cat_day: dict[str, float] = {}
-        for f in day_flows:
-            cat = cat_map.get(f.code, "Diğer")
-            if cat in top_cats:
-                cat_day[cat] = cat_day.get(cat, 0.0) + (f.net_flow or 0.0)
+        dc = day_cat.get(d, {})
         for cat in top_cats:
-            row[cat] = round(cat_day.get(cat, 0.0), 0)
+            row[cat] = dc.get(cat, 0.0)
         result.append(row)
 
     return result
