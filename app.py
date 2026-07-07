@@ -897,6 +897,32 @@ def _update_last_seen():
                 pass
 
 
+# ── Giriş kapısı: girişsiz kullanıcı sadece public yolları açabilir ──────────
+_PUBLIC_EXACT = {
+    '/', '/login', '/register', '/logout', '/forgot-password', '/reset-password',
+    '/sitemap.xml', '/robots.txt',
+    '/api/subscribe', '/api/track', '/api/subscribers/count',
+    '/auth/discord', '/auth/discord/callback', '/auth/discord/setup',
+}
+_PUBLIC_PREFIXES = (
+    '/static/', '/admin/', '/confirm-subscription/', '/unsubscribe/', '/e/o/', '/favicon',
+)
+
+
+@app.before_request
+def _require_login():
+    """Giriş yapmamış kullanıcıyı public olmayan tüm yollarda login'e yönlendir."""
+    if session.get('logged_in'):
+        return  # girişli → serbest
+    p = request.path
+    if p in _PUBLIC_EXACT or p.startswith(_PUBLIC_PREFIXES):
+        return  # public yol → serbest
+    # Girişsiz + public değil → engelle
+    if p.startswith('/api/'):
+        return jsonify({'error': 'unauthorized'}), 401
+    return redirect(url_for('login'))
+
+
 @app.route('/')
 def index():
     # Giriş yapmamış kullanıcılara landing page göster
