@@ -393,12 +393,16 @@ def custom_funds_flow():
     cum = {c: 0.0 for c in codes}
     for d in flow_dates:
         total = 0.0
+        gunluk = 0.0
         row = {"date": d.isoformat()}
         for c in codes:
-            cum[c] += flow_map[d].get(c, 0.0)
+            dv = flow_map[d].get(c, 0.0)
+            gunluk += dv
+            cum[c] += dv
             row[c] = round(cum[c], 0)
             total += cum[c]
-        row["TOPLAM"] = round(total, 0)
+        row["TOPLAM"]  = round(total, 0)
+        row["GUNLUK"]  = round(gunluk, 0)   # o günkü toplam net akış (bar için)
         flow_series.append(row)
 
     # ── Getiri serisi (başlangıç = 100) ──
