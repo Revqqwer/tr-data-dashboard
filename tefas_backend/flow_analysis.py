@@ -286,71 +286,92 @@ def asset_class_history(
 
     cat_codes: set[str] | None = None
     if category:
-        cat_codes = {r.code for r in session.exec(
-            select(FundMetaDB).where(FundMetaDB.category == category)
-        ).all()}
+        cat_codes = set(session.exec(
+            select(FundMetaDB.code).where(FundMetaDB.category == category)
+        ).all())
 
-    fq = select(FundFlow).where(
+    # --- Akışlar: tam ORM nesnesi yerine hafif kolonlar; güne göre grupla ---
+    # (18 aylık aralikta ~300K ORM nesnesi + O(gun × akis) tarama -> OOM/harakiri idi)
+    from collections import defaultdict
+    fq = select(FundFlow.trade_date, FundFlow.code, FundFlow.net_flow).where(
         FundFlow.trade_date >= min_date,
         FundFlow.trade_date <= max_date,
         FundFlow.net_flow.isnot(None),  # type: ignore
     )
     if fund_type:
         fq = fq.where(FundFlow.fund_type == fund_type.upper())
-    all_flows = session.exec(fq).all()
 
-    codes = list({f.code for f in all_flows})
+    flows_by_date: dict = defaultdict(list)  # d -> [(code, net), ...]
+    codes: set[str] = set()
+    for td, code, net in session.exec(fq):
+        if cat_codes is not None and code not in cat_codes:
+            continue
+        flows_by_date[td].append((code, net or 0.0))
+        codes.add(code)
+
+    # --- Kompozisyonlar: yalniz gerekli agirlik kolonlari; varlik-sinifi
+    #     agirligina indirgeyerek sakla (fon basi ~12 float, 60+ ORM alani degil) ---
+    comp_cols: list[str] = []
+    for _fs in ASSET_CLASSES.values():
+        comp_cols += _fs
+    comp_cols = list(dict.fromkeys(comp_cols))  # tekil, sirali
+    _cidx = {f: i for i, f in enumerate(comp_cols)}
     lookback = datetime.timedelta(days=45)
-    all_comps = session.exec(
-        select(FundComposition).where(
-            FundComposition.trade_date >= min_date - lookback,
-            FundComposition.trade_date <= max_date,
-            FundComposition.code.in_(codes),  # type: ignore
-        )
-    ).all()
-    # Her (code) için tarih sıralı liste: en güncel kompozisyonu bulmak için
-    from collections import defaultdict
-    comp_by_code: dict[str, list] = defaultdict(list)
-    for c in all_comps:
-        comp_by_code[c.code].append(c)
-    for lst in comp_by_code.values():
-        lst.sort(key=lambda x: x.trade_date)
+    cq = select(
+        FundComposition.code, FundComposition.trade_date,
+        *[getattr(FundComposition, f) for f in comp_cols],
+    ).where(
+        FundComposition.trade_date >= min_date - lookback,
+        FundComposition.trade_date <= max_date,
+        FundComposition.code.in_(list(codes)),  # type: ignore
+    )
+    # code -> (tarih_listesi[sirali], [( {asset_class: w}, total_weight ), ...])
+    _tmp: dict[str, list] = defaultdict(list)
+    for row in session.exec(cq):
+        code = row[0]
+        td = row[1]
+        vals = row[2:]
+        acw: dict[str, float] = {}
+        tw = 0.0
+        for ac_name, fields in ASSET_CLASSES.items():
+            w = 0.0
+            for f in fields:
+                v = vals[_cidx[f]]
+                if v:
+                    w += v
+            acw[ac_name] = w
+            tw += w
+        _tmp[code].append((td, acw, tw))
 
-    def _latest_comp_as_of(code: str, d) -> "FundComposition | None":
-        lst = comp_by_code.get(code)
-        if not lst:
+    import bisect
+    comp_dates: dict[str, list] = {}
+    comp_items: dict[str, list] = {}
+    for code, lst in _tmp.items():
+        lst.sort(key=lambda x: x[0])
+        comp_dates[code] = [x[0] for x in lst]
+        comp_items[code] = [(x[1], x[2]) for x in lst]
+
+    def _as_of(code: str, d):
+        ds = comp_dates.get(code)
+        if not ds:
             return None
-        # En son <= d olan kompozisyon
-        result_comp = None
-        for c in lst:
-            if c.trade_date <= d:
-                result_comp = c
-            else:
-                break
-        return result_comp
+        i = bisect.bisect_right(ds, d) - 1
+        if i < 0:
+            return None
+        return comp_items[code][i]
 
     result = []
     for d in dates:
-        day_flows = [f for f in all_flows if f.trade_date == d]
-        if cat_codes is not None:
-            day_flows = [f for f in day_flows if f.code in cat_codes]
-
         ac_totals = {ac: 0.0 for ac in ASSET_CLASSES}
         total = 0.0
-        for flow in day_flows:
-            comp = _latest_comp_as_of(flow.code, d)
-            net = flow.net_flow or 0.0
-            if not comp:
-                total += net
-                continue
-            total_weight = sum(_comp_weight(comp, fields) for fields in ASSET_CLASSES.values())
-            if total_weight < 1.0:
-                total += net
-                continue
+        for code, net in flows_by_date.get(d, ()):
             total += net
-            for ac_name, fields in ASSET_CLASSES.items():
-                w = _comp_weight(comp, fields)
-                ac_totals[ac_name] += net * w / 100.0
+            comp = _as_of(code, d)
+            if not comp or comp[1] < 1.0:
+                continue
+            for ac_name, w in comp[0].items():
+                if w:
+                    ac_totals[ac_name] += net * w / 100.0
 
         row: dict = {"date": str(d), "total": total}
         for ac, v in ac_totals.items():
