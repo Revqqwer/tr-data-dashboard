@@ -257,7 +257,7 @@ def main():
     print("Fon sayisi:", len(per_fund))
     print("Sinif toplamlari (kumulatif TL):")
     for ac in sorted(class_totals, key=lambda a: abs(class_totals[a]), reverse=True):
-        print("  %-26s %+,.0f" % (ac, class_totals[ac]))
+        print(f"  {ac:<26} {class_totals[ac]:+,.0f}")
     print("Excel yazildi:", out)
 
 
