@@ -1107,41 +1107,25 @@ def api_live_prices():
     if not open_tickers:
         return jsonify({})
 
-    yf_tickers = [t for t in open_tickers if t not in _TV_MAP]
-    tv_tickers  = [t for t in open_tickers if t in _TV_MAP]
     prices: dict = {}
 
-    # ── Yahoo Finance ──────────────────────────────────────────────────────
-    if yf_tickers:
-        try:
-            import yfinance as yf
-            import pandas as _pd
-            symbols = [f'{t}.IS' for t in yf_tickers]
-            df = yf.download(symbols, period='5d', auto_adjust=True, progress=False)
-            if not df.empty:
-                close = (df['Close'] if isinstance(df.columns, _pd.MultiIndex)
-                         else df[['Close']].rename(columns={'Close': symbols[0]}))
-                for t in yf_tickers:
-                    col = f'{t}.IS'
-                    if col in close.columns:
-                        s = close[col].dropna()
-                        if not s.empty:
-                            prices[t] = round(float(s.iloc[-1]), 4)
-        except Exception:
-            pass
-
-    # ── TradingView WebSocket (sertifikalar not on Yahoo Finance) ──────────
-    if tv_tickers:
-        try:
-            import sys as _sys
+    # ── Canlı fiyatlar: TradingView WebSocket ──────────────────────────────
+    # (yfinance + pandas kaldırıldı — worker RAM yükünü ciddi azaltır)
+    try:
+        import sys as _sys
+        if os.path.dirname(__file__) not in _sys.path:
             _sys.path.insert(0, os.path.dirname(__file__))
-            from parse_portfolio import _fetch_tv_ws
-            for t in tv_tickers:
-                result = _fetch_tv_ws(_TV_MAP[t], 'BIST', n_bars=5)
+        from parse_portfolio import _fetch_tv_ws
+        for t in open_tickers:
+            sym = _TV_MAP.get(t, t)   # sembol farklıysa haritadan, değilse ticker
+            try:
+                result = _fetch_tv_ws(sym, 'BIST', n_bars=5)
                 if result:
                     prices[t] = result[max(result.keys())]
-        except Exception:
-            pass
+            except Exception:
+                pass
+    except Exception:
+        pass
 
     # Cache result, purge stale entries
     _LIVE_PRICE_CACHE[today] = prices
