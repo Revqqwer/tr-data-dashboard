@@ -17,8 +17,10 @@
   <meta name="twitter:description" content="TEFAS, BIST, Global Piyasa ve Makro Ekonomi verilerini tek ekranda görün.">
   <meta name="twitter:image"      content="https://www.3nfinans.com/static/og-image.png">
   <meta name="description" content="TEFAS fon akışları, BIST endeksleri, global piyasalar ve TCMB verileri — hepsi tek platformda. Türkiye'nin finansal nabzını gerçek zamanlı takip et. Ücretsiz üye ol.">
+  <meta name="keywords" content="TEFAS fon akışları, TEFAS fon para girişi, yatırım fonu net akış, BIST endeks getirileri, TCMB makro veriler, kripto ETF akışları, Türkiye finansal veri platformu, hangi fona para girdi">
+  <meta name="robots" content="index, follow, max-image-preview:large">
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>3N Finans</title>
+<title>3N Finans — TEFAS Fon Akışları, BIST & Makro Ekonomi Verileri</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -239,6 +241,20 @@ footer a:hover{color:#999}
 .footer-brand{color:#777;font-weight:600}
 .footer-brand span{color:var(--gold)}
 
+/* ── FAQ ── */
+.faq-list{display:flex;flex-direction:column;border:1px solid #1a1a1a;border-radius:2px;overflow:hidden}
+.faq-item{background:#0d0d0d;border-bottom:1px solid #161616}
+.faq-item:last-child{border-bottom:none}
+.faq-item summary{cursor:pointer;list-style:none;padding:22px 28px;font-size:15px;font-weight:600;color:var(--off);display:flex;justify-content:space-between;align-items:center;gap:20px;transition:color .15s}
+.faq-item summary:hover{color:var(--white)}
+.faq-item summary::-webkit-details-marker{display:none}
+.faq-item summary::after{content:'+';color:var(--gold);font-size:22px;font-weight:300;line-height:1;flex-shrink:0}
+.faq-item[open] summary::after{content:'\2212'}
+.faq-item p{padding:0 28px 24px;font-size:14px;line-height:1.8;color:#888;max-width:820px}
+.faq-item em{color:#b9b0a2;font-style:italic}
+.seo-body{font-size:15px;line-height:1.85;color:#7d7d7d;max-width:760px;margin-bottom:44px}
+.seo-body strong{color:#b9b0a2;font-weight:600}
+
 /* ══ MOBİL UYUM ══════════════════════════════════════════════════════════════ */
 @media (max-width:768px){
 
@@ -323,6 +339,30 @@ footer a:hover{color:#999}
     "url": "https://www.3nfinans.com"
   }
 }
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "3N Finans",
+  "url": "https://www.3nfinans.com",
+  "inLanguage": "tr-TR",
+  "description": "TEFAS fon akışları, BIST endeksleri, global piyasalar ve TCMB makro verileri tek platformda."
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {"@type":"Question","name":"TEFAS fon akışı nedir ve nasıl hesaplanır?","acceptedAnswer":{"@type":"Answer","text":"TEFAS fon akışı, bir yatırım fonuna belirli bir günde giren ya da çıkan net parayı ifade eder. 3N Finans bunu net akış = (bugünkü pay sayısı − dünkü pay sayısı) × bugünkü birim pay fiyatı formülüyle 800'den fazla yatırım, emeklilik ve borsa yatırım fonu için günlük olarak hesaplar."}},
+    {"@type":"Question","name":"Hangi yatırım fonuna ne kadar para girdi veya çıktı, nereden öğrenebilirim?","acceptedAnswer":{"@type":"Answer","text":"3N Finans'ın TEFAS Liderboard sayfasında günlük ve dönemsel olarak en çok para girişi ve çıkışı yaşayan fonları sıralı görürsünüz. Kategori bazlı akış analiziyle hisse, borçlanma, para piyasası ve altın fonlarına yönelen parayı ayrı ayrı takip edebilirsiniz."}},
+    {"@type":"Question","name":"3N Finans hangi verileri sunuyor?","acceptedAnswer":{"@type":"Answer","text":"TEFAS fon akışları, BIST endeks ve hisse getirileri, 44 global enstrümanın (faizler, döviz, emtia, endeksler) performansı, ABD Bitcoin ve Ethereum spot ETF para akışları ve TCMB EVDS kaynaklı Türkiye makro verileri (enflasyon, bütçe, ödemeler dengesi, krediler) tek platformda sunulur."}},
+    {"@type":"Question","name":"BIST endekslerinin getirilerini nasıl karşılaştırırım?","acceptedAnswer":{"@type":"Answer","text":"BİST endeks analizi sayfasında tüm BİST endekslerinin seçtiğiniz dönemdeki getirilerini normalize edilmiş şekilde karşılaştırır, hisse bazlı performansı görebilirsiniz."}},
+    {"@type":"Question","name":"Kripto ETF para akışları ne anlama gelir?","acceptedAnswer":{"@type":"Answer","text":"ABD'de işlem gören Bitcoin ve Ethereum spot ETF'lerine giren günlük net parayı gösterir. Bu akışlar kurumsal talebin önemli bir göstergesidir ve 3N Finans'ta günlük güncellenir."}},
+    {"@type":"Question","name":"3N Finans ücretsiz mi?","acceptedAnswer":{"@type":"Answer","text":"Evet. Ücretsiz bir hesap oluşturarak TEFAS fon akışları, BIST, global piyasa ve makro ekonomi verilerinin tamamına erişebilirsiniz."}}
+  ]
+}
 </script>  <!-- Google Analytics 4 -->
   {% if config.get('GA4_ID') %}
   <script async src="https://www.googletagmanager.com/gtag/js?id={{ config['GA4_ID'] }}"></script>
@@ -336,7 +376,7 @@ footer a:hover{color:#999}
 
 <!-- ══ NAV ══ -->
 <nav>
-  <a class="nav-logo" href="#">
+  <a class="nav-logo" href="/">
     <div class="logo-mark">3N</div>
     <span class="logo-name">3N<span>Finans</span></span>
   </a>
@@ -508,6 +548,54 @@ footer a:hover{color:#999}
 </section>
 
 
+<!-- ══ SEO CONTENT + FAQ ══ -->
+<section class="page-section" style="padding-top:0">
+  <div class="features-header">
+    <div class="feat-label">Türkiye Fon & Piyasa Verisi</div>
+    <h2 class="feat-title">TEFAS fon akışları ve Türkiye piyasa verileri tek platformda</h2>
+  </div>
+  <p class="seo-body">
+    <strong>3N Finans</strong>, TEFAS'ta işlem gören 800'den fazla yatırım, emeklilik ve borsa yatırım fonunun
+    günlük net para giriş ve çıkışlarını hesaplayan bağımsız bir finansal veri platformudur. Hangi fona ne kadar
+    para girdiğini, hangi varlık sınıfına (hisse senedi, devlet tahvili, özel sektör borçlanma, para piyasası,
+    altın, döviz mevduatı) yöneldiğini kategori bazında görebilirsiniz. TEFAS fon akışlarının yanı sıra
+    <strong>BIST endeks ve hisse getirileri</strong>, 44 global enstrümanın performansı, ABD Bitcoin ve Ethereum
+    spot <strong>ETF para akışları</strong> ve TCMB EVDS kaynaklı <strong>Türkiye makro ekonomi verileri</strong>
+    (enflasyon, bütçe dengesi, ödemeler dengesi, krediler, döviz tevdiat hesapları) tek ekranda sunulur.
+  </p>
+
+  <div class="features-header" style="border-top:none;padding-top:0;margin-bottom:28px">
+    <div class="feat-label">Sıkça Sorulan Sorular</div>
+    <h2 class="feat-title">Merak edilenler</h2>
+  </div>
+  <div class="faq-list">
+    <details class="faq-item" open>
+      <summary>TEFAS fon akışı nedir ve nasıl hesaplanır?</summary>
+      <p>TEFAS fon akışı, bir yatırım fonuna belirli bir günde giren ya da çıkan net parayı ifade eder. 3N Finans bunu <em>net akış = (bugünkü pay sayısı − dünkü pay sayısı) × bugünkü birim pay fiyatı</em> formülüyle 800'den fazla yatırım, emeklilik ve borsa yatırım fonu için günlük olarak hesaplar.</p>
+    </details>
+    <details class="faq-item">
+      <summary>Hangi yatırım fonuna ne kadar para girdi veya çıktı, nereden öğrenebilirim?</summary>
+      <p>3N Finans'ın TEFAS Liderboard sayfasında günlük ve dönemsel olarak en çok para girişi ve çıkışı yaşayan fonları sıralı görürsünüz. Kategori bazlı akış analiziyle hisse, borçlanma, para piyasası ve altın fonlarına yönelen parayı ayrı ayrı takip edebilirsiniz.</p>
+    </details>
+    <details class="faq-item">
+      <summary>3N Finans hangi verileri sunuyor?</summary>
+      <p>TEFAS fon akışları, BIST endeks ve hisse getirileri, 44 global enstrümanın (faizler, döviz, emtia, endeksler) performansı, ABD Bitcoin ve Ethereum spot ETF para akışları ve TCMB EVDS kaynaklı Türkiye makro verileri (enflasyon, bütçe, ödemeler dengesi, krediler) tek platformda sunulur.</p>
+    </details>
+    <details class="faq-item">
+      <summary>BIST endekslerinin getirilerini nasıl karşılaştırırım?</summary>
+      <p>BİST endeks analizi sayfasında tüm BİST endekslerinin seçtiğiniz dönemdeki getirilerini normalize edilmiş şekilde karşılaştırır, hisse bazlı performansı görebilirsiniz.</p>
+    </details>
+    <details class="faq-item">
+      <summary>Kripto ETF para akışları ne anlama gelir?</summary>
+      <p>ABD'de işlem gören Bitcoin ve Ethereum spot ETF'lerine giren günlük net parayı gösterir. Bu akışlar kurumsal talebin önemli bir göstergesidir ve 3N Finans'ta günlük güncellenir.</p>
+    </details>
+    <details class="faq-item">
+      <summary>3N Finans ücretsiz mi?</summary>
+      <p>Evet. Ücretsiz bir hesap oluşturarak TEFAS fon akışları, BIST, global piyasa ve makro ekonomi verilerinin tamamına erişebilirsiniz.</p>
+    </details>
+  </div>
+</section>
+
 <!-- ══ CTA ══ -->
 <section class="page-section" style="padding-top:0;padding-bottom:120px">
   <div class="cta-section">
@@ -516,7 +604,7 @@ footer a:hover{color:#999}
     </h2>
     <div class="cta-right">
       <p>Ücretsiz hesap oluşturun, tüm verilere anında erişin.</p>
-      <a href="#" class="cta-btn">
+      <a href="/register" class="cta-btn">
         Panele Gir
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
       </a>
