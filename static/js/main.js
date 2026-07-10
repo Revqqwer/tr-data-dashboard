@@ -207,8 +207,8 @@ function switchPage(page) {
   const _iframePages = ['tefas','kripto','bist','bist-endeks-getiri','bist-endeks-karisim','global','market-briefs'];
   if (!grids[page] && !_iframePages.includes(page)) {
     grids[page] = GridStack.init({
-      column: 12,
-      cellHeight: 60,
+      column: window.innerWidth <= 768 ? 1 : 12,
+      cellHeight: window.innerWidth <= 768 ? 90 : 60,
       margin: 6,
       animate: true,
       float: false,

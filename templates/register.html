@@ -10,8 +10,9 @@
     body{background:#050a14;color:#e2e8f0;font-family:'Segoe UI',system-ui,sans-serif;
          min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
     .card{background:rgba(8,14,28,.95);border:1px solid rgba(240,180,41,.18);
-          border-radius:18px;padding:44px 52px;width:440px;
+          border-radius:18px;padding:44px 52px;width:min(440px,calc(100% - 20px));
           box-shadow:0 24px 64px rgba(0,0,0,.55)}
+    @media(max-width:480px){.card{padding:34px 24px}}
     .logo{text-align:center;margin-bottom:6px}
     .logo-3n{font-size:48px;font-weight:900;color:#f0b429;line-height:1;letter-spacing:-2px;
              text-shadow:0 0 40px rgba(240,180,41,.5)}
