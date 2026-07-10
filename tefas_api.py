@@ -434,6 +434,24 @@ def custom_funds_flow():
 # ---------------------------------------------------------------------------
 _BIST_CACHE: dict = {"ts": 0.0, "data": {}}
 
+# İstatistikler sayfası için elle seçilmiş fon listesi (varsa kategoriyi ezer)
+_STATS_FUNDS_FILE = _Path(__file__).parent / "data" / "stats_funds.json"
+
+
+def load_stats_funds() -> list:
+    """İstatistikler whitelist'i — {"funds": [...]} ya da düz liste kabul eder."""
+    try:
+        d = _json.loads(_STATS_FUNDS_FILE.read_text(encoding="utf-8"))
+        raw = d.get("funds", []) if isinstance(d, dict) else d
+        seen, out = set(), []
+        for c in raw:
+            c = str(c).strip().upper()
+            if c and c not in seen:
+                seen.add(c); out.append(c)
+        return out
+    except Exception:
+        return []
+
 
 def _fetch_with_timeout(fn, timeout: float = 12.0):
     """WS fetch'i sınırlı sürede çalıştır — takılırsa worker'ı HARAKIRI'ye bırakma."""
@@ -494,7 +512,11 @@ def stats_beat_bist():
         if not (s and e):
             return jsonify(empty)
 
-        codes = set(db.exec(select(FundMeta.code).where(FundMeta.category == CAT)).all())
+        wl = load_stats_funds()
+        if wl:
+            codes = set(wl)  # elle seçilmiş liste kategoriyi ezer
+        else:
+            codes = set(db.exec(select(FundMeta.code).where(FundMeta.category == CAT)).all())
         if not codes:
             return jsonify({**empty, "start": s.isoformat(), "end": e.isoformat(),
                             "note": "Hisse Yoğun fon bulunamadı."})
