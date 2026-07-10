@@ -614,18 +614,31 @@ def stats_beat_bist():
         ).all()
 
     # ── BIST100 günlük (TradingView) ──
+    # TEFAS fon NAV'ı piyasadan ~1 işlem günü gecikmeli açıklanır; BIST'i canlı
+    # çekiyoruz. Adil kıyas için fon NAV[D]'yi BIST'in bir ÖNCEKİ işlem gününün
+    # kapanışıyla eşleştiriyoruz (aksi halde oynak seanslarda sayı yapay zıplıyor).
+    import bisect
     bist_all = _get_bist100_daily()
-    bist = {}
+    bist_full = {}
     for ds, v in bist_all.items():
         try:
             dd = datetime.date.fromisoformat(ds)
         except Exception:
             continue
-        if s <= dd <= e and v:
-            bist[dd] = v
+        if v:
+            bist_full[dd] = v
+    bist = {d: v for d, v in bist_full.items() if s <= d <= e}
     if not bist:
         return jsonify({**empty, "start": s.isoformat(), "end": e.isoformat(),
                         "note": "BIST100 verisi alınamadı (TradingView)."})
+    all_bd = sorted(bist_full.keys())
+
+    def bist_aligned(d):
+        """BIST'in d'den bir önceki işlem günü kapanışı — fon NAV gecikmesini hizalar."""
+        i = bisect.bisect_left(all_bd, d) - 1
+        if i >= 0:
+            return bist_full[all_bd[i]]
+        return bist_full.get(d)
 
     # ── Fon fiyat serileri (kod → sıralı tarih/fiyat) + as-of arama ──
     from collections import defaultdict
@@ -649,7 +662,7 @@ def stats_beat_bist():
 
     bist_dates = sorted(bist.keys())
     base_date = bist_dates[0]
-    bist_base = bist[base_date]
+    bist_base = bist_aligned(base_date)   # 1 işlem günü kaydırılmış baz
 
     # Dönem başında fiyatı olan (kıyaslanabilir) fonlar
     fund_base = {}
@@ -659,10 +672,13 @@ def stats_beat_bist():
             fund_base[code] = b
     total_funds = len(fund_base)
 
-    # ── Zaman serisi: her BIST gününde BIST'i geçen fon sayısı ──
+    # ── Zaman serisi: her gün BIST'i geçen fon sayısı (BIST 1 gün kaydırılmış) ──
     series = []
     for d in bist_dates:
-        bist_ret = bist[d] / bist_base - 1.0
+        bref = bist_aligned(d)
+        if not bref or not bist_base:
+            continue
+        bist_ret = bref / bist_base - 1.0
         cnt = 0
         for code, b in fund_base.items():
             px = px_asof(code, d)
@@ -675,7 +691,7 @@ def stats_beat_bist():
 
     # ── Dönem sonu liste ──
     end_d = bist_dates[-1]
-    bist_ret_end = bist[end_d] / bist_base - 1.0
+    bist_ret_end = (bist_aligned(end_d) / bist_base - 1.0) if bist_base else 0.0
     beat_list = []
     for code, b in fund_base.items():
         px = px_asof(code, end_d)
