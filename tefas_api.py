@@ -453,6 +453,29 @@ def load_stats_funds() -> list:
         return []
 
 
+# İsimde şu ifadeleri içeren fonlar İstatistikler'den hariç tutulur (varsayılan)
+_STATS_EXCLUDE_FILE = _Path(__file__).parent / "data" / "stats_exclude.json"
+_STATS_EXCLUDE_DEFAULT = ["YABANCI HİSSE SENEDİ FONU"]
+
+
+def _norm_name(s: str) -> str:
+    """Türkçe İ/I farkını yok sayan büyük harf normalizasyonu."""
+    return (s or "").upper().replace("İ", "I")
+
+
+def load_stats_exclude() -> list:
+    """İsim bazlı hariç tutma ifadeleri — dosya varsa onu, yoksa varsayılanı döner."""
+    try:
+        d = _json.loads(_STATS_EXCLUDE_FILE.read_text(encoding="utf-8"))
+        raw = d.get("exclude", []) if isinstance(d, dict) else d
+        out = [str(x).strip() for x in raw if str(x).strip()]
+        if out:
+            return out
+    except Exception:
+        pass
+    return list(_STATS_EXCLUDE_DEFAULT)
+
+
 def _fetch_with_timeout(fn, timeout: float = 12.0):
     """WS fetch'i sınırlı sürede çalıştır — takılırsa worker'ı HARAKIRI'ye bırakma."""
     import threading
@@ -521,6 +544,23 @@ def stats_beat_bist():
             return jsonify({**empty, "start": s.isoformat(), "end": e.isoformat(),
                             "note": "Hisse Yoğun fon bulunamadı."})
 
+        names = {c: fn for c, fn in db.exec(
+            select(FundMeta.code, FundMeta.fname).where(FundMeta.code.in_(list(codes)))  # type: ignore
+        ).all()}
+
+        # ── İsim bazlı hariç tutma (ör. "YABANCI HİSSE SENEDİ FONU") ──
+        excl_phrases = [_norm_name(p) for p in load_stats_exclude()]
+        excluded_list = []
+        if excl_phrases:
+            drop = set()
+            for c in list(codes):
+                nm = _norm_name(names.get(c) or "")
+                if any(p in nm for p in excl_phrases):
+                    drop.add(c)
+                    excluded_list.append({"code": c, "name": names.get(c) or c})
+            codes -= drop
+        excluded_list.sort(key=lambda x: x["code"])
+
         rows = db.exec(
             select(FundDaily.code, FundDaily.trade_date, FundDaily.price).where(
                 FundDaily.code.in_(list(codes)),      # type: ignore
@@ -528,9 +568,6 @@ def stats_beat_bist():
                 FundDaily.trade_date >= s, FundDaily.trade_date <= e,
             ).order_by(FundDaily.trade_date)
         ).all()
-        names = {c: fn for c, fn in db.exec(
-            select(FundMeta.code, FundMeta.fname).where(FundMeta.code.in_(list(codes)))  # type: ignore
-        ).all()}
 
     # ── BIST100 günlük (TradingView) ──
     bist_all = _get_bist100_daily()
@@ -612,7 +649,8 @@ def stats_beat_bist():
         "start": base_date.isoformat(), "end": end_d.isoformat(),
         "total_funds": total_funds, "beat_count": beat_count,
         "bist_ret": round(bist_ret_end * 100, 2),
-        "series": series, "beat_list": beat_list, "note": None,
+        "series": series, "beat_list": beat_list,
+        "excluded": excluded_list, "note": None,
     })
 
 
