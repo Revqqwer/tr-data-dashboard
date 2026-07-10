@@ -1415,6 +1415,16 @@
     .mb-risk .ic{color:var(--amber);flex-shrink:0;}
     @media(max-width:1400px){.mb-layout{grid-template-columns:minmax(0,1fr) 300px;}.mb-rail-left{display:none;}}
     @media(max-width:1024px){.mb-layout{grid-template-columns:minmax(0,1fr);}.mb-rail{display:none;}}
+    @media(max-width:768px){
+      .mb-layout{grid-template-columns:1fr;padding:14px 12px;gap:16px;}
+      /* rail'ler gizlenmesin — içeriğin altına yığılsın, sticky kapalı */
+      .mb-rail{display:flex !important;position:static;top:auto;}
+      .mb-center{order:1;} .mb-rail-right{order:2;} .mb-rail-left{order:3;}
+      /* rapor iki kolonu telefonda tek kolon */
+      .mb-report-cols{grid-template-columns:1fr !important;gap:0 !important;}
+      .mb-panel-h{font-size:11.5px;}
+      .mb-item .h{font-size:14px;} .mb-erow,.mb-risk{font-size:13.5px;}
+    }
   </style>
 
   <!-- ── GLOBAL PİYASA TAKİP TOPBAR ── -->

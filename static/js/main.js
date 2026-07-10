@@ -3489,7 +3489,7 @@ function _mbTwoCol(raw) {
     ? `<div style="${colStyle};margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--border);">${_mbFormat(preamble)}</div>`
     : '';
 
-  return `${preHtml}<div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start;">
+  return `${preHtml}<div class="mb-report-cols" style="display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start;">
     <div style="${colStyle}">${_mbFormat(leftRaw)}</div>
     <div style="${colStyle}">${_mbFormat(rightRaw)}</div>
   </div>`;
