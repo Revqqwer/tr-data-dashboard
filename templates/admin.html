@@ -193,6 +193,16 @@
     .mf-month-badge { background:rgba(6,182,212,0.12); color:#06b6d4;
       border-radius:20px; padding:2px 9px; font-size:11px; font-weight:700; }
 
+    @media (max-width: 768px) {
+      body { padding: 16px 12px; }
+      .header { flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+      .add-card { padding: 16px 14px; }
+      /* Geniş tabloları kart içinde yatay kaydır */
+      .add-card, section, .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      table { min-width: 0; }
+      .mf-table { min-width: 700px; }
+      input, select { max-width: 100%; }
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>

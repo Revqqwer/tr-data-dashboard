@@ -566,3 +566,72 @@ body.sidebar-collapsed .sb-toggle-btn svg { transform: rotate(180deg); }
 .sb-sep { color: var(--sb-border); }
 
 
+/* ═══════════════════════════════════════════════════════
+   MOBİL UYUM
+   ═══════════════════════════════════════════════════════ */
+#mobile-menu-btn { display: none; }
+.sidebar-overlay { display: none; }
+
+@media (max-width: 768px) {
+  /* Sidebar → soldan açılan çekmece */
+  .sidebar {
+    width: 264px !important;
+    transform: translateX(-100%);
+    transition: transform 0.28s ease;
+    box-shadow: 2px 0 18px rgba(0,0,0,0.4);
+    border-right: 1px solid var(--sb-border);
+  }
+  .sidebar.mobile-open { transform: translateX(0); }
+  body.sidebar-collapsed .sidebar { width: 264px !important; }
+
+  /* İçerik tam genişlik */
+  .main,
+  body.sidebar-collapsed .main { margin-left: 0 !important; }
+
+  /* Masaüstü kenar-toggle gizli; hamburger görünür */
+  .sb-toggle-btn { display: none !important; }
+  #mobile-menu-btn {
+    display: flex; align-items: center; justify-content: center;
+    position: fixed; top: 11px; left: 12px; z-index: 300;
+    width: 40px; height: 40px; border-radius: 10px;
+    background: var(--sb-bg); color: var(--sb-text);
+    border: 1px solid var(--sb-border);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25); cursor: pointer;
+  }
+
+  /* Karartma katmanı */
+  .sidebar-overlay {
+    display: block; position: fixed; inset: 0; z-index: 90;
+    background: rgba(0,0,0,0.45);
+    opacity: 0; pointer-events: none; transition: opacity 0.28s ease;
+  }
+  .sidebar-overlay.visible { opacity: 1; pointer-events: auto; }
+
+  /* Topbar — hamburger'a yer aç */
+  .topbar { padding: 12px 14px 12px 62px; }
+  .topbar h1 { font-size: 15px; }
+  .topbar-sub { font-size: 11px; }
+  .topbar-actions { gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+  .range-select, .refresh-btn { padding: 6px 10px; font-size: 12px; }
+
+  /* GridStack + kartlar — dolguları küçült */
+  .grid-stack { padding: 8px; }
+  .chart-card { padding: 12px 14px; }
+  .chart-header h2 { font-size: 13px; }
+
+  /* Sürükle-boyutlandır tutamaçlarını dokunmatikte kapat */
+  .ui-resizable-handle { display: none !important; }
+
+  /* Geniş tablolarda dokunmatik yatay kaydırma */
+  .butce-table-wrap, .bop-wrap, #makroTableWrap,
+  .chart-card.table-card { -webkit-overflow-scrolling: touch; }
+}
+
+@media (max-width: 480px) {
+  .topbar h1 { font-size: 14px; }
+  .topbar-sub { display: none; }
+  .chart-card { padding: 10px 12px; }
+  .grid-stack { padding: 6px; }
+}
+
+
