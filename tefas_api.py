@@ -457,7 +457,7 @@ def _get_bist100_daily(n_bars: int = 2000) -> dict:
         base = _os.path.dirname(_os.path.abspath(__file__))
         if base not in _sys.path:
             _sys.path.insert(0, base)
-        from parse_portfolio import _fetch_tv_ws
+        from tv_ws import _fetch_tv_ws
         data = _fetch_with_timeout(lambda: _fetch_tv_ws("XU100", "BIST", n_bars=n_bars)) or {}
     except Exception:
         data = {}

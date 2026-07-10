@@ -1115,7 +1115,7 @@ def api_live_prices():
         import sys as _sys
         if os.path.dirname(__file__) not in _sys.path:
             _sys.path.insert(0, os.path.dirname(__file__))
-        from parse_portfolio import _fetch_tv_ws
+        from tv_ws import _fetch_tv_ws
         for t in open_tickers:
             sym = _TV_MAP.get(t, t)   # sembol farklıysa haritadan, değilse ticker
             try:
