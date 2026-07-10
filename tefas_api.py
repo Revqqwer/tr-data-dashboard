@@ -456,6 +456,8 @@ def load_stats_funds() -> list:
 # İsimde şu ifadeleri içeren fonlar İstatistikler'den hariç tutulur (varsayılan)
 _STATS_EXCLUDE_FILE = _Path(__file__).parent / "data" / "stats_exclude.json"
 _STATS_EXCLUDE_DEFAULT = ["YABANCI HİSSE SENEDİ FONU"]
+# Bu fon tipleri İstatistikler'den hariç tutulur (EMK = emeklilik fonları)
+_STATS_EXCLUDE_TYPES = ["EMK"]
 
 
 def _norm_name(s: str) -> str:
@@ -544,21 +546,23 @@ def stats_beat_bist():
             return jsonify({**empty, "start": s.isoformat(), "end": e.isoformat(),
                             "note": "Hisse Yoğun fon bulunamadı."})
 
-        names = {c: fn for c, fn in db.exec(
-            select(FundMeta.code, FundMeta.fname).where(FundMeta.code.in_(list(codes)))  # type: ignore
-        ).all()}
+        meta_rows = db.exec(
+            select(FundMeta.code, FundMeta.fname, FundMeta.fund_type).where(FundMeta.code.in_(list(codes)))  # type: ignore
+        ).all()
+        names = {c: fn for c, fn, ft in meta_rows}
+        ftype = {c: (ft or "").upper() for c, fn, ft in meta_rows}
 
-        # ── İsim bazlı hariç tutma (ör. "YABANCI HİSSE SENEDİ FONU") ──
+        # ── Hariç tutma: isim ("YABANCI HİSSE SENEDİ FONU") + fon tipi (EMK) ──
         excl_phrases = [_norm_name(p) for p in load_stats_exclude()]
+        excl_types = {t.upper() for t in _STATS_EXCLUDE_TYPES}
         excluded_list = []
-        if excl_phrases:
-            drop = set()
-            for c in list(codes):
-                nm = _norm_name(names.get(c) or "")
-                if any(p in nm for p in excl_phrases):
-                    drop.add(c)
-                    excluded_list.append({"code": c, "name": names.get(c) or c})
-            codes -= drop
+        drop = set()
+        for c in list(codes):
+            nm = _norm_name(names.get(c) or "")
+            if (excl_phrases and any(p in nm for p in excl_phrases)) or (ftype.get(c) in excl_types):
+                drop.add(c)
+                excluded_list.append({"code": c, "name": names.get(c) or c})
+        codes -= drop
         excluded_list.sort(key=lambda x: x["code"])
 
         rows = db.exec(
