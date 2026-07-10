@@ -477,6 +477,24 @@ def load_stats_include() -> list:
     return list(_STATS_INCLUDE_DEFAULT)
 
 
+# Kod bazlı elle çıkarma (isim filtresine takılmayan tekil fonlar)
+_STATS_EXCLUDE_CODES_FILE = _Path(__file__).parent / "data" / "stats_exclude_codes.json"
+_STATS_EXCLUDE_CODES_DEFAULT = ["YAY", "GUH"]
+
+
+def load_stats_exclude_codes() -> list:
+    """Elle çıkarılan fon kodları — dosya varsa onu, yoksa varsayılanı döner."""
+    try:
+        d = _json.loads(_STATS_EXCLUDE_CODES_FILE.read_text(encoding="utf-8"))
+        raw = d.get("funds", []) if isinstance(d, dict) else d
+        out = [str(x).strip().upper() for x in raw if str(x).strip()]
+        if out:
+            return out
+    except Exception:
+        pass
+    return list(_STATS_EXCLUDE_CODES_DEFAULT)
+
+
 def _norm_name(s: str) -> str:
     """Türkçe İ/I farkını yok sayan büyük harf normalizasyonu."""
     return (s or "").upper().replace("İ", "I")
@@ -574,13 +592,14 @@ def stats_beat_bist():
         # ── Hariç tutma: isim ("YABANCI HİSSE SENEDİ FONU") + fon tipi (EMK) ──
         excl_phrases = [_norm_name(p) for p in load_stats_exclude()]
         excl_types = {t.upper() for t in _STATS_EXCLUDE_TYPES}
+        excl_codes = set(load_stats_exclude_codes())
         excluded_list = []
         drop = set()
         for c in list(codes):
             if c in inc_set:
                 continue  # elle eklenen fonlar asla elenmez
             nm = _norm_name(names.get(c) or "")
-            if (excl_phrases and any(p in nm for p in excl_phrases)) or (ftype.get(c) in excl_types):
+            if (c in excl_codes) or (excl_phrases and any(p in nm for p in excl_phrases)) or (ftype.get(c) in excl_types):
                 drop.add(c)
                 excluded_list.append({"code": c, "name": names.get(c) or c})
         codes -= drop
