@@ -804,7 +804,7 @@ def admin(secret):
             'SELECT code, name, active, created_at, used_by FROM invite_codes ORDER BY created_at DESC'
         ).fetchall()
         users = conn.execute(
-            'SELECT id, username, name, active, created_at, last_login FROM users ORDER BY created_at DESC'
+            'SELECT id, username, name, email, active, created_at, last_login FROM users ORDER BY created_at DESC'
         ).fetchall()
     data_status = _data_status()
     # Market brief raporları

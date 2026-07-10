@@ -345,6 +345,7 @@
       <tr>
         <th>Kullanici Adi</th>
         <th>Abone Adi</th>
+        <th>E-posta</th>
         <th>Durum</th>
         <th>Kayit</th>
         <th>Son Giris</th>
@@ -356,6 +357,7 @@
       <tr>
         <td style="font-weight:600;">{{ u.username }}</td>
         <td>{{ u.name or '-' }}</td>
+        <td class="muted">{{ u.email or '-' }}</td>
         <td>
           {% if u.active %}<span class="badge-active">Aktif</span>
           {% else %}<span class="badge-passive">Pasif</span>{% endif %}
