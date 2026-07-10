@@ -459,6 +459,23 @@ _STATS_EXCLUDE_DEFAULT = ["YABANCI HİSSE SENEDİ FONU"]
 # Bu fon tipleri İstatistikler'den hariç tutulur (EMK = emeklilik fonları)
 _STATS_EXCLUDE_TYPES = ["EMK"]
 
+# Kategoride olmasa da elle dahil edilen fonlar (Hisse Senedi Yoğun ama farklı şemsiye)
+_STATS_INCLUDE_FILE = _Path(__file__).parent / "data" / "stats_include.json"
+_STATS_INCLUDE_DEFAULT = ["VHS", "IH1", "LTL", "HFO"]
+
+
+def load_stats_include() -> list:
+    """Elle eklenen fon kodları — dosya varsa onu, yoksa varsayılanı döner."""
+    try:
+        d = _json.loads(_STATS_INCLUDE_FILE.read_text(encoding="utf-8"))
+        raw = d.get("funds", []) if isinstance(d, dict) else d
+        out = [str(x).strip().upper() for x in raw if str(x).strip()]
+        if out:
+            return out
+    except Exception:
+        pass
+    return list(_STATS_INCLUDE_DEFAULT)
+
 
 def _norm_name(s: str) -> str:
     """Türkçe İ/I farkını yok sayan büyük harf normalizasyonu."""
@@ -542,6 +559,8 @@ def stats_beat_bist():
             codes = set(wl)  # elle seçilmiş liste kategoriyi ezer
         else:
             codes = set(db.exec(select(FundMeta.code).where(FundMeta.category == CAT)).all())
+        inc_set = set(load_stats_include())
+        codes |= inc_set  # kategoride olmasa da elle eklenenleri dahil et
         if not codes:
             return jsonify({**empty, "start": s.isoformat(), "end": e.isoformat(),
                             "note": "Hisse Yoğun fon bulunamadı."})
@@ -558,6 +577,8 @@ def stats_beat_bist():
         excluded_list = []
         drop = set()
         for c in list(codes):
+            if c in inc_set:
+                continue  # elle eklenen fonlar asla elenmez
             nm = _norm_name(names.get(c) or "")
             if (excl_phrases and any(p in nm for p in excl_phrases)) or (ftype.get(c) in excl_types):
                 drop.add(c)
