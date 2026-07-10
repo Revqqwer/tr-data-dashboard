@@ -430,6 +430,171 @@ def custom_funds_flow():
 
 
 # ---------------------------------------------------------------------------
+# İstatistikler: BIST100'ü geçen Hisse Yoğun fon sayısı
+# ---------------------------------------------------------------------------
+_BIST_CACHE: dict = {"ts": 0.0, "data": {}}
+
+
+def _fetch_with_timeout(fn, timeout: float = 12.0):
+    """WS fetch'i sınırlı sürede çalıştır — takılırsa worker'ı HARAKIRI'ye bırakma."""
+    import threading
+    box: dict = {}
+    t = threading.Thread(target=lambda: box.update(r=fn()), daemon=True)
+    t.start()
+    t.join(timeout)
+    return box.get("r")
+
+
+def _get_bist100_daily(n_bars: int = 2000) -> dict:
+    """BIST100 (XU100) günlük kapanışları {tarih_str: kapanış}. 1 saat cache."""
+    import time
+    now = time.time()
+    if _BIST_CACHE["data"] and (now - _BIST_CACHE["ts"] < 3600):
+        return _BIST_CACHE["data"]
+    data = {}
+    try:
+        import sys as _sys, os as _os
+        base = _os.path.dirname(_os.path.abspath(__file__))
+        if base not in _sys.path:
+            _sys.path.insert(0, base)
+        from parse_portfolio import _fetch_tv_ws
+        data = _fetch_with_timeout(lambda: _fetch_tv_ws("XU100", "BIST", n_bars=n_bars)) or {}
+    except Exception:
+        data = {}
+    if data:
+        _BIST_CACHE["data"] = data
+        _BIST_CACHE["ts"] = now
+    return data or _BIST_CACHE["data"]
+
+
+@tefas_bp.route("/api/stats/beat-bist")
+def stats_beat_bist():
+    """Seçilen dönemde BIST100'ün getirisini geçen Hisse Yoğun fon sayısı serisi + liste."""
+    err = _auth()
+    if err:
+        return err
+
+    CAT = "Hisse Senedi Şemsiye Fonu"
+    days = request.args.get("days")
+    s = _parse_date(request.args.get("start"))
+    e = _parse_date(request.args.get("end"))
+    empty = {"series": [], "beat_list": [], "total_funds": 0, "beat_count": 0,
+             "bist_ret": None, "start": None, "end": None, "note": None}
+
+    with Session(engine) as db:
+        latest = db.exec(select(FundDaily.trade_date).order_by(FundDaily.trade_date.desc()).limit(1)).first()
+        earliest = db.exec(select(FundDaily.trade_date).order_by(FundDaily.trade_date).limit(1)).first()
+        if not e:
+            e = latest
+        if not s:
+            if days and days != "all" and e:
+                s = e - datetime.timedelta(days=int(days))
+            else:
+                s = earliest
+        if not (s and e):
+            return jsonify(empty)
+
+        codes = set(db.exec(select(FundMeta.code).where(FundMeta.category == CAT)).all())
+        if not codes:
+            return jsonify({**empty, "start": s.isoformat(), "end": e.isoformat(),
+                            "note": "Hisse Yoğun fon bulunamadı."})
+
+        rows = db.exec(
+            select(FundDaily.code, FundDaily.trade_date, FundDaily.price).where(
+                FundDaily.code.in_(list(codes)),      # type: ignore
+                FundDaily.price.isnot(None),          # type: ignore
+                FundDaily.trade_date >= s, FundDaily.trade_date <= e,
+            ).order_by(FundDaily.trade_date)
+        ).all()
+        names = {c: fn for c, fn in db.exec(
+            select(FundMeta.code, FundMeta.fname).where(FundMeta.code.in_(list(codes)))  # type: ignore
+        ).all()}
+
+    # ── BIST100 günlük (TradingView) ──
+    bist_all = _get_bist100_daily()
+    bist = {}
+    for ds, v in bist_all.items():
+        try:
+            dd = datetime.date.fromisoformat(ds)
+        except Exception:
+            continue
+        if s <= dd <= e and v:
+            bist[dd] = v
+    if not bist:
+        return jsonify({**empty, "start": s.isoformat(), "end": e.isoformat(),
+                        "note": "BIST100 verisi alınamadı (TradingView)."})
+
+    # ── Fon fiyat serileri (kod → sıralı tarih/fiyat) + as-of arama ──
+    from collections import defaultdict
+    import bisect
+    pf_dates: dict = {}
+    pf_px: dict = {}
+    tmp: dict = defaultdict(list)
+    for code, td, px in rows:
+        tmp[code].append((td, px))
+    for code, lst in tmp.items():
+        lst.sort(key=lambda x: x[0])
+        pf_dates[code] = [x[0] for x in lst]
+        pf_px[code] = [x[1] for x in lst]
+
+    def px_asof(code, d):
+        arr = pf_dates.get(code)
+        if not arr:
+            return None
+        i = bisect.bisect_right(arr, d) - 1
+        return pf_px[code][i] if i >= 0 else None
+
+    bist_dates = sorted(bist.keys())
+    base_date = bist_dates[0]
+    bist_base = bist[base_date]
+
+    # Dönem başında fiyatı olan (kıyaslanabilir) fonlar
+    fund_base = {}
+    for code in codes:
+        b = px_asof(code, base_date)
+        if b and b > 0:
+            fund_base[code] = b
+    total_funds = len(fund_base)
+
+    # ── Zaman serisi: her BIST gününde BIST'i geçen fon sayısı ──
+    series = []
+    for d in bist_dates:
+        bist_ret = bist[d] / bist_base - 1.0
+        cnt = 0
+        for code, b in fund_base.items():
+            px = px_asof(code, d)
+            if px is None:
+                continue
+            if (px / b - 1.0) > bist_ret:
+                cnt += 1
+        series.append({"date": d.isoformat(), "count": cnt,
+                       "total": total_funds, "bist": round(bist_ret * 100, 2)})
+
+    # ── Dönem sonu liste ──
+    end_d = bist_dates[-1]
+    bist_ret_end = bist[end_d] / bist_base - 1.0
+    beat_list = []
+    for code, b in fund_base.items():
+        px = px_asof(code, end_d)
+        if px is None:
+            continue
+        fr = px / b - 1.0
+        beat_list.append({"code": code, "name": names.get(code) or code,
+                          "fund_ret": round(fr * 100, 2),
+                          "diff": round((fr - bist_ret_end) * 100, 2),
+                          "beat": fr > bist_ret_end})
+    beat_list.sort(key=lambda x: -x["fund_ret"])
+    beat_count = sum(1 for x in beat_list if x["beat"])
+
+    return jsonify({
+        "start": base_date.isoformat(), "end": end_d.isoformat(),
+        "total_funds": total_funds, "beat_count": beat_count,
+        "bist_ret": round(bist_ret_end * 100, 2),
+        "series": series, "beat_list": beat_list, "note": None,
+    })
+
+
+# ---------------------------------------------------------------------------
 # Tekil fon akış serisi
 # ---------------------------------------------------------------------------
 @tefas_bp.route("/api/funds/<code>/flow")
