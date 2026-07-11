@@ -613,6 +613,17 @@ def stats_beat_bist():
             ).order_by(FundDaily.trade_date)
         ).all()
 
+        # Dönem içi kümülatif net para akışı (fon başına) — SQL tarafında topla
+        from sqlalchemy import func as _sqlfunc
+        flow_rows = db.exec(
+            select(FundFlow.code, _sqlfunc.sum(FundFlow.net_flow)).where(
+                FundFlow.code.in_(list(codes)),       # type: ignore
+                FundFlow.net_flow.isnot(None),        # type: ignore
+                FundFlow.trade_date >= s, FundFlow.trade_date <= e,
+            ).group_by(FundFlow.code)
+        ).all()
+        net_flow_by_code = {c: (v or 0.0) for c, v in flow_rows}
+
     # ── BIST100 günlük (TradingView) ──
     # TEFAS fon NAV'ı piyasadan ~1 işlem günü gecikmeli açıklanır; BIST'i canlı
     # çekiyoruz. Adil kıyas için fon NAV[D]'yi BIST'in bir ÖNCEKİ işlem gününün
@@ -701,6 +712,7 @@ def stats_beat_bist():
         beat_list.append({"code": code, "name": names.get(code) or code,
                           "fund_ret": round(fr * 100, 2),
                           "diff": round((fr - bist_ret_end) * 100, 2),
+                          "net_flow": round(net_flow_by_code.get(code, 0.0), 0),
                           "beat": fr > bist_ret_end})
     beat_list.sort(key=lambda x: -x["fund_ret"])
     beat_count = sum(1 for x in beat_list if x["beat"])
