@@ -463,6 +463,22 @@ def custom_fund_holdings(code: str):
 
     live = _load_live()
     prices = live.get("prices", {})
+
+    # BYF / fon kodları TradingView'da yok → TEFAS fund_daily'den günlük değişim (son 2 fiyat, T+1 gecikmeli)
+    byf_codes = {str(h.get("code", "")).upper() for h in holds if h.get("type") == "byf"}
+    byf_change, byf_price = {}, {}
+    if byf_codes:
+        with Session(engine) as db:
+            for bc in byf_codes:
+                r2 = db.exec(
+                    select(FundDaily.trade_date, FundDaily.price).where(
+                        FundDaily.code == bc, FundDaily.price.isnot(None)  # type: ignore
+                    ).order_by(FundDaily.trade_date.desc()).limit(2)
+                ).all()
+                if len(r2) >= 2 and r2[1][1]:
+                    byf_change[bc] = round((r2[0][1] / r2[1][1] - 1.0) * 100, 2)
+                    byf_price[bc] = r2[0][1]
+
     out = []
     total = 0.0
     covered = 0.0
@@ -470,18 +486,24 @@ def custom_fund_holdings(code: str):
     for h in holds:
         c = str(h.get("code", "")).upper()
         w = float(h.get("weight", 0.0))
-        info = prices.get(c)
-        chg = info.get("change_pct") if info else None
+        typ = h.get("type", "hisse")
+        if typ == "byf":
+            chg = byf_change.get(c)
+            px = byf_price.get(c)
+        else:
+            info = prices.get(c)
+            chg = info.get("change_pct") if info else None
+            px = info.get("price") if info else None
         if chg is None:
             unpriced.append(c)
-            out.append({"code": c, "weight": round(w, 4), "change_pct": None,
-                        "contribution": None, "price": info.get("price") if info else None})
+            out.append({"code": c, "weight": round(w, 4), "type": typ,
+                        "change_pct": None, "contribution": None, "price": px})
             continue
         contrib = w * chg  # yüzde puanı
         total += contrib
         covered += w
-        out.append({"code": c, "weight": round(w, 4), "change_pct": chg,
-                    "contribution": round(contrib, 3), "price": info.get("price")})
+        out.append({"code": c, "weight": round(w, 4), "type": typ,
+                    "change_pct": chg, "contribution": round(contrib, 3), "price": px})
 
     # katkıya göre sırala (büyük artı üstte, büyük eksi altta); fiyatsızlar en sona
     out.sort(key=lambda x: (x["contribution"] is None, -(x["contribution"] or 0.0)))
