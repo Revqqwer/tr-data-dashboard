@@ -430,6 +430,74 @@ def custom_funds_flow():
 
 
 # ---------------------------------------------------------------------------
+# Fon içi hisse dağılımı + canlı günlük getiri tahmini (Özel Fonlar)
+# ---------------------------------------------------------------------------
+_HOLDINGS_FILE = _Path(__file__).parent / "data" / "fund_holdings.json"
+_LIVE_FILE = _Path(__file__).parent / "data" / "bist_live.json"
+
+
+def _load_holdings() -> dict:
+    try:
+        return _json.loads(_HOLDINGS_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def _load_live() -> dict:
+    try:
+        return _json.loads(_LIVE_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        return {"prices": {}, "not_found": [], "updated_at": None}
+
+
+@tefas_bp.route("/api/custom-funds/<code>/holdings")
+def custom_fund_holdings(code: str):
+    """Fonun hisseleri + ağırlıkları + canlı günlük getiri katkısı (saatlik güncellenen fiyatla)."""
+    err = _auth()
+    if err:
+        return err
+    code = code.upper()
+    holds = _load_holdings().get(code)
+    if not holds:
+        return jsonify({"code": code, "holdings": [], "note": "Bu fon için hisse dağılımı tanımlı değil."})
+
+    live = _load_live()
+    prices = live.get("prices", {})
+    out = []
+    total = 0.0
+    covered = 0.0
+    unpriced = []
+    for h in holds:
+        c = str(h.get("code", "")).upper()
+        w = float(h.get("weight", 0.0))
+        info = prices.get(c)
+        chg = info.get("change_pct") if info else None
+        if chg is None:
+            unpriced.append(c)
+            out.append({"code": c, "weight": round(w, 4), "change_pct": None,
+                        "contribution": None, "price": info.get("price") if info else None})
+            continue
+        contrib = w * chg  # yüzde puanı
+        total += contrib
+        covered += w
+        out.append({"code": c, "weight": round(w, 4), "change_pct": chg,
+                    "contribution": round(contrib, 3), "price": info.get("price")})
+
+    # katkıya göre sırala (büyük artı üstte, büyük eksi altta); fiyatsızlar en sona
+    out.sort(key=lambda x: (x["contribution"] is None, -(x["contribution"] or 0.0)))
+    return jsonify({
+        "code": code,
+        "updated_at": live.get("updated_at"),
+        "total_est": round(total, 2),          # tahmini günlük getiri (yüzde puanı)
+        "covered_weight": round(covered, 4),    # fiyatı olan hisselerin toplam ağırlığı
+        "equity_weight": round(sum(float(h.get("weight", 0.0)) for h in holds), 4),
+        "holdings": out,
+        "unpriced": unpriced,
+        "note": None,
+    })
+
+
+# ---------------------------------------------------------------------------
 # İstatistikler: BIST100'ü geçen Hisse Yoğun fon sayısı
 # ---------------------------------------------------------------------------
 _BIST_CACHE: dict = {"ts": 0.0, "data": {}}
