@@ -1,0 +1,340 @@
+{
+ "TLY": [
+  {
+   "code": "DSTKF",
+   "weight": 0.2285
+  },
+  {
+   "code": "OZATD",
+   "weight": 0.143
+  },
+  {
+   "code": "PEKGY",
+   "weight": 0.0773
+  },
+  {
+   "code": "TEHOL",
+   "weight": 0.0714
+  },
+  {
+   "code": "TERA",
+   "weight": 0.0663
+  },
+  {
+   "code": "TRHOL",
+   "weight": 0.0561
+  },
+  {
+   "code": "ANELE",
+   "weight": 0.0199
+  },
+  {
+   "code": "SELEC",
+   "weight": 0.0104
+  },
+  {
+   "code": "ALKLC",
+   "weight": 0.0054
+  },
+  {
+   "code": "SVGYO",
+   "weight": 0.0052
+  },
+  {
+   "code": "HEDEF",
+   "weight": 0.0027
+  },
+  {
+   "code": "MANAS",
+   "weight": 0.0014
+  },
+  {
+   "code": "DAPGM",
+   "weight": 0.0007
+  },
+  {
+   "code": "TMPOL",
+   "weight": 0.0001
+  },
+  {
+   "code": "EUPWR",
+   "weight": 0.0001
+  }
+ ],
+ "PBR": [
+  {
+   "code": "ODINE",
+   "weight": 0.0965
+  },
+  {
+   "code": "KTLEV",
+   "weight": 0.0929
+  },
+  {
+   "code": "GUNDG",
+   "weight": 0.0924
+  },
+  {
+   "code": "BALSU",
+   "weight": 0.0609
+  },
+  {
+   "code": "HEDEF",
+   "weight": 0.0473
+  },
+  {
+   "code": "PASEU",
+   "weight": 0.0452
+  },
+  {
+   "code": "TRALT",
+   "weight": 0.034
+  },
+  {
+   "code": "THYAO",
+   "weight": 0.0273
+  },
+  {
+   "code": "ANELE",
+   "weight": 0.023
+  },
+  {
+   "code": "TCELL",
+   "weight": 0.0167
+  },
+  {
+   "code": "TATEN",
+   "weight": 0.0158
+  },
+  {
+   "code": "DSTKF",
+   "weight": 0.0157
+  },
+  {
+   "code": "AKBNK",
+   "weight": 0.0113
+  },
+  {
+   "code": "YKBNK",
+   "weight": 0.0103
+  },
+  {
+   "code": "MGROS",
+   "weight": 0.0098
+  },
+  {
+   "code": "SKBNK",
+   "weight": 0.0087
+  },
+  {
+   "code": "DAPGM",
+   "weight": 0.0059
+  },
+  {
+   "code": "EREGL",
+   "weight": 0.005
+  },
+  {
+   "code": "BRSAN",
+   "weight": 0.0048
+  },
+  {
+   "code": "TTKOM",
+   "weight": 0.0042
+  },
+  {
+   "code": "MPARK",
+   "weight": 0.004
+  },
+  {
+   "code": "PGSUS",
+   "weight": 0.0038
+  },
+  {
+   "code": "TERA",
+   "weight": 0.0025
+  },
+  {
+   "code": "DCTTR",
+   "weight": 0.0025
+  },
+  {
+   "code": "IZFAS",
+   "weight": 0.0024
+  },
+  {
+   "code": "PEKGY",
+   "weight": 0.0023
+  },
+  {
+   "code": "ANSGR",
+   "weight": 0.002
+  },
+  {
+   "code": "BETAE",
+   "weight": 0.0008
+  },
+  {
+   "code": "MOPAS",
+   "weight": 0.0001
+  }
+ ],
+ "PHE": [
+  {
+   "code": "KTLEV",
+   "weight": 0.096
+  },
+  {
+   "code": "ODINE",
+   "weight": 0.0948
+  },
+  {
+   "code": "GUNDG",
+   "weight": 0.0891
+  },
+  {
+   "code": "PASEU",
+   "weight": 0.0664
+  },
+  {
+   "code": "HEDEF",
+   "weight": 0.0511
+  },
+  {
+   "code": "THYAO",
+   "weight": 0.0475
+  },
+  {
+   "code": "AKBNK",
+   "weight": 0.0405
+  },
+  {
+   "code": "TRALT",
+   "weight": 0.0387
+  },
+  {
+   "code": "YKBNK",
+   "weight": 0.0362
+  },
+  {
+   "code": "BALSU",
+   "weight": 0.0288
+  },
+  {
+   "code": "DSTKF",
+   "weight": 0.0277
+  },
+  {
+   "code": "ISCTR",
+   "weight": 0.0264
+  },
+  {
+   "code": "ANELE",
+   "weight": 0.022
+  },
+  {
+   "code": "TATEN",
+   "weight": 0.0186
+  },
+  {
+   "code": "MGROS",
+   "weight": 0.0176
+  },
+  {
+   "code": "SAHOL",
+   "weight": 0.0174
+  },
+  {
+   "code": "BIMAS",
+   "weight": 0.0159
+  },
+  {
+   "code": "TCELL",
+   "weight": 0.0151
+  },
+  {
+   "code": "KCHOL",
+   "weight": 0.014
+  },
+  {
+   "code": "TTKOM",
+   "weight": 0.0136
+  },
+  {
+   "code": "GARAN",
+   "weight": 0.0129
+  },
+  {
+   "code": "PEKGY",
+   "weight": 0.0078
+  },
+  {
+   "code": "PGSUS",
+   "weight": 0.0076
+  },
+  {
+   "code": "ALKLC",
+   "weight": 0.0064
+  },
+  {
+   "code": "DAPGM",
+   "weight": 0.006
+  },
+  {
+   "code": "BRSAN",
+   "weight": 0.0043
+  },
+  {
+   "code": "AKSEN",
+   "weight": 0.0042
+  },
+  {
+   "code": "ENKAI",
+   "weight": 0.0039
+  },
+  {
+   "code": "IZENR",
+   "weight": 0.0037
+  },
+  {
+   "code": "IZFAS",
+   "weight": 0.0037
+  },
+  {
+   "code": "TAVHL",
+   "weight": 0.0035
+  },
+  {
+   "code": "TERA",
+   "weight": 0.0028
+  },
+  {
+   "code": "ALVES",
+   "weight": 0.0019
+  },
+  {
+   "code": "TRHOL",
+   "weight": 0.0013
+  },
+  {
+   "code": "MOPAS",
+   "weight": 0.0008
+  },
+  {
+   "code": "EREGL",
+   "weight": 0.0005
+  },
+  {
+   "code": "BETAE",
+   "weight": 0.0004
+  },
+  {
+   "code": "TRMET",
+   "weight": 0.0004
+  },
+  {
+   "code": "GUBRF",
+   "weight": 0.0003
+  }
+ ]
+}

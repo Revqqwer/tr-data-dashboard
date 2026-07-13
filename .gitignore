@@ -20,3 +20,5 @@ data/portfolio_overrides.json
 data/custom_funds.json
 data/market_reports/
 logs/
+
+data/bist_live.json
