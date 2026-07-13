@@ -44,6 +44,8 @@ def _unique_tickers() -> list:
     seen, out = set(), []
     for fund, holds in data.items():
         for h in holds:
+            if h.get("type") == "byf":
+                continue  # BYF/fon TradingView'da yok; endpoint TEFAS fund_daily'den bakar
             c = str(h.get("code", "")).strip().upper()
             if c and c not in seen:
                 seen.add(c)
