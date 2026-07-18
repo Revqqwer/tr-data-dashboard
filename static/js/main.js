@@ -204,7 +204,7 @@ function switchPage(page) {
   document.querySelectorAll('.page-content').forEach(el => el.classList.add('hidden'));
 
   // GridStack — iframe sayfalarını atla, henüz yoksa init et
-  const _iframePages = ['tefas','kripto','bist','bist-endeks-getiri','bist-endeks-karisim','global','market-briefs'];
+  const _iframePages = ['tefas','kripto','bist','bist-endeks-getiri','bist-endeks-karisim','global','market-briefs','usa-endeks'];
   if (!grids[page] && !_iframePages.includes(page)) {
     grids[page] = GridStack.init({
       column: window.innerWidth <= 768 ? 1 : 12,
@@ -278,6 +278,8 @@ function switchPage(page) {
     document.getElementById('page-bist-endeks-karisim').classList.remove('hidden');
   } else if (page === 'global') {
     document.getElementById('page-global').classList.remove('hidden');
+  } else if (page === 'usa-endeks') {
+    document.getElementById('page-usa-endeks').classList.remove('hidden');
   } else if (page === 'market-briefs') {
     document.getElementById('page-market-briefs').classList.remove('hidden');
     mbLoad();

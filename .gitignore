@@ -22,3 +22,7 @@ data/market_reports/
 logs/
 
 data/bist_live.json
+data/usa_cache.db
+data/usa_cache_building.db
+data/usa_cache.db-shm
+data/usa_cache.db-wal

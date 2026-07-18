@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ABD Endeksleri Karşılaştırma</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:#f5f6f8; --surface:#ffffff; --border:#e0e3e8; --text:#1a1d23;
+    --muted:#6b7280; --accent:#2563eb; --green:#16a34a; --red:#dc2626;
+  }
+  html, body { height: 100%; min-height: 100%; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; overflow: hidden; }
+
+  header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  header h1 { font-size: 1rem; font-weight: 700; color: var(--accent); }
+  .period-bar { display: flex; gap: 4px; margin-left: 16px; }
+  .period-btn { padding: 4px 11px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--muted); font-size: 0.75rem; cursor: pointer; transition: all .15s; }
+  .period-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .period-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 700; }
+  .last-update { margin-left: auto; font-size: 0.7rem; color: var(--muted); }
+
+  .body-wrap { display: grid; grid-template-columns: 250px 1fr; height: calc(100vh - 53px); min-height: 420px; overflow: hidden; }
+  .sidebar { border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+  .sidebar-hdr { padding: 10px 14px; font-size: 0.72rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+  .sidebar-list { overflow-y: auto; flex: 1; }
+  .idx-item { display: flex; align-items: center; gap: 8px; padding: 7px 12px; cursor: pointer; border-left: 3px solid transparent; transition: background .12s; font-size: 0.8rem; }
+  .idx-item:hover { background: rgba(0,0,0,.04); }
+  .idx-item.dim { opacity: .3; }
+  .idx-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; cursor: pointer; transition: transform .1s; }
+  .idx-dot:hover { transform: scale(1.35); }
+  .idx-name { flex: 1; line-height: 1.3; }
+  .idx-pct { font-size: 0.75rem; font-weight: 700; font-variant-numeric: tabular-nums; min-width: 54px; text-align: right; }
+  .pos { color: var(--green); } .neg { color: var(--red); }
+
+  .right-col { display: flex; flex-direction: column; overflow: hidden; }
+  .chart-wrap { flex: 1; position: relative; min-height: 0; padding: 10px 14px 6px; }
+  canvas { display: block; }
+  .spinner-overlay { display: none; position: absolute; inset: 0; background: rgba(245,246,248,.85); z-index: 10; align-items: center; justify-content: center; flex-direction: column; gap: 10px; font-size: 0.82rem; color: var(--muted); }
+  .spinner-overlay.show { display: flex; }
+  .spin { width: 26px; height: 26px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: rot .8s linear infinite; }
+  @keyframes rot { to { transform: rotate(360deg); } }
+
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  @media (max-width: 768px) {
+    header { padding: 8px 12px; gap: 6px; }
+    header h1 { font-size: 0.82rem; }
+    .period-bar { margin-left: 0; gap: 3px; flex-wrap: wrap; }
+    .period-btn { padding: 3px 7px; font-size: 0.68rem; }
+    .last-update { font-size: 0.62rem; margin-left: 0; width: 100%; }
+    .body-wrap { grid-template-columns: 1fr !important; grid-template-rows: 190px 1fr !important; height: calc(100vh - 48px) !important; }
+    .sidebar { border-right: none; border-bottom: 1px solid var(--border); }
+    .idx-item { padding: 5px 10px; font-size: 0.75rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🇺🇸 ABD Endeksleri Karşılaştırma</h1>
+  <div class="period-bar" id="periodBar">
+    <button class="period-btn" data-p="1h">1H</button>
+    <button class="period-btn" data-p="1a">1A</button>
+    <button class="period-btn" data-p="3a">3A</button>
+    <button class="period-btn" data-p="6a">6A</button>
+    <button class="period-btn active" data-p="1y">1Y</button>
+    <button class="period-btn" data-p="3y">3Y</button>
+    <button class="period-btn" data-p="5y">5Y</button>
+  </div>
+  <div class="last-update" id="lastUpdate">Yükleniyor…</div>
+</header>
+
+<div class="body-wrap">
+  <aside class="sidebar">
+    <div class="sidebar-hdr">Endeksler <span id="visCount" style="font-weight:400"></span></div>
+    <div class="sidebar-list" id="sidebarList"></div>
+  </aside>
+  <div class="right-col">
+    <div class="chart-wrap">
+      <canvas id="mainChart"></canvas>
+      <div class="spinner-overlay" id="spinner"><div class="spin"></div><span>Veriler çekiliyor…</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const PALETTE = [
+  '#2563eb','#16a34a','#dc2626','#d29922','#a371f7','#ea580c','#0891b2','#db2777',
+  '#26c6da','#f97316','#7c3aed','#059669','#e11d48','#0ea5e9','#84cc16','#f43f5e',
+  '#14b8a6','#eab308','#8b5cf6','#22c55e','#ef4444','#06b6d4','#ec4899',
+];
+
+let period   = '1y';
+let histData = {};
+let hidden   = new Set();
+let chart    = null;
+let colorMap = {};
+
+const ctx = document.getElementById('mainChart').getContext('2d');
+
+function buildChart(data) {
+  const names = Object.keys(data);
+  names.forEach((n, i) => { if (!colorMap[n]) colorMap[n] = PALETTE[i % PALETTE.length]; });
+  const allDates = [...new Set(names.flatMap(n => data[n].dates))].sort();
+  const datasets = names.map(name => {
+    const d = data[name], map = {};
+    d.dates.forEach((dt, i) => map[dt] = d.values[i]);
+    const major = ['S&P 500','Nasdaq 100','Dow Jones'].includes(name);
+    return {
+      label: name,
+      data: allDates.map(dt => ({ x: dt, y: map[dt] ?? null })),
+      borderColor: colorMap[name],
+      backgroundColor: colorMap[name] + '18',
+      borderWidth: major ? 3 : 1.6,
+      pointRadius: 0, pointHoverRadius: 3, tension: 0.2,
+      hidden: hidden.has(name), spanGaps: true, order: major ? 0 : 1,
+    };
+  });
+  if (chart) chart.destroy();
+  chart = new Chart(ctx, {
+    type: 'line', data: { datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          display: true, position: 'bottom',
+          onClick: (_e, li) => toggleIdx(chart.data.datasets[li.datasetIndex].label),
+          labels: {
+            boxWidth: 10, boxHeight: 10, padding: 9, font: { size: 9 }, color: '#6b7280',
+            generateLabels: (ch) => ch.data.datasets.map((ds, i) => ({
+              text: ds.label.replace('Sektör: ', ''), fillStyle: ds.borderColor,
+              strokeStyle: ds.borderColor, lineWidth: 2, hidden: !!ds.hidden, datasetIndex: i,
+            })),
+          },
+        },
+        tooltip: {
+          itemSort: (a, b) => (b.raw?.y ?? -Infinity) - (a.raw?.y ?? -Infinity),
+          callbacks: { label: c => {
+            const v = c.raw?.y; if (v == null) return null;
+            const p = (v - 100).toFixed(2);
+            return ` ${c.dataset.label}: ${p >= 0 ? '+' : ''}${p}%`;
+          } }
+        }
+      },
+      scales: {
+        x: { type: 'time', time: { tooltipFormat: 'dd MMM yyyy' },
+             ticks: { color: '#8b949e', maxTicksLimit: 10, font: { size: 10 } },
+             grid: { color: 'rgba(0,0,0,.08)' } },
+        y: { ticks: { color: '#6b7280', font: { size: 10 }, callback: v => (v - 100).toFixed(0) + '%' },
+             grid: { color: 'rgba(0,0,0,.08)' } }
+      }
+    }
+  });
+}
+
+function renderSidebar(data) {
+  const names = Object.keys(data).sort((a, b) => (data[b].pct ?? -9999) - (data[a].pct ?? -9999));
+  const list = document.getElementById('sidebarList');
+  list.innerHTML = names.map(name => {
+    const d = data[name], pct = d.pct;
+    const sign = pct >= 0 ? '+' : '', cls = pct >= 0 ? 'pos' : 'neg';
+    const dim = hidden.has(name) ? 'dim' : '', col = colorMap[name] || '#6b7280';
+    return `<div class="idx-item ${dim}" data-name="${name}">
+      <span class="idx-dot" data-dot="${name}" style="background:${col}" title="Grafikte göster/gizle"></span>
+      <span class="idx-name">${name}</span>
+      <span class="idx-pct ${cls}">${sign}${pct != null ? pct.toFixed(2) : '—'}%</span>
+    </div>`;
+  }).join('');
+  list.querySelectorAll('.idx-item').forEach(el => {
+    el.addEventListener('click', () => toggleIdx(el.dataset.name));
+  });
+  const total = Object.keys(data).length;
+  document.getElementById('visCount').textContent = `${total - hidden.size}/${total}`;
+}
+
+function toggleIdx(name) {
+  if (hidden.has(name)) hidden.delete(name); else hidden.add(name);
+  if (chart) {
+    const ds = chart.data.datasets.find(d => d.label === name);
+    if (ds) { ds.hidden = hidden.has(name); chart.update(); }
+  }
+  renderSidebar(histData);
+}
+
+async function loadHistory(p) {
+  document.getElementById('spinner').classList.add('show');
+  try {
+    const res = await fetch(`/usa/api/history?period=${p}`);
+    const json = await res.json();
+    if (json._loading) {
+      document.getElementById('spinner').classList.remove('show');
+      document.getElementById('lastUpdate').textContent = '⚠ Veriler henüz hazır değil';
+      document.getElementById('sidebarList').innerHTML =
+        '<div style="padding:16px;font-size:0.78rem;color:#6b7280;line-height:1.6">' +
+        'Veriler hazırlanıyor…<br>PA\'da <code>collect_usa.py</code> çalıştırın.</div>';
+      return;
+    }
+    histData = json;
+    buildChart(histData);
+    renderSidebar(histData);
+    document.getElementById('lastUpdate').textContent = 'Güncelleme: ' + new Date().toLocaleTimeString('tr-TR');
+  } catch (e) { console.error(e); }
+  finally { document.getElementById('spinner').classList.remove('show'); }
+}
+
+document.getElementById('periodBar').addEventListener('click', e => {
+  const btn = e.target.closest('.period-btn');
+  if (!btn) return;
+  document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  period = btn.dataset.p;
+  loadHistory(period);
+});
+
+loadHistory(period);
+</script>
+</body>
+</html>
