@@ -21,7 +21,18 @@
   .period-btn { padding: 4px 11px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--muted); font-size: 0.75rem; cursor: pointer; transition: all .15s; }
   .period-btn:hover { border-color: var(--accent); color: var(--accent); }
   .period-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 700; }
+  .period-btn.custom-active { background: #7c3aed; color: #fff; border-color: #7c3aed; font-weight: 700; }
   .last-update { margin-left: auto; font-size: 0.7rem; color: var(--muted); }
+
+  .custom-bar { display: none; align-items: center; gap: 8px; flex-wrap: wrap; padding: 7px 20px; border-bottom: 1px solid var(--border); background: #f8f9fc; flex-shrink: 0; }
+  .custom-bar.show { display: flex; }
+  .custom-bar label { font-size: 0.72rem; color: var(--muted); font-weight: 600; }
+  .custom-bar input[type=date] { padding: 4px 9px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.78rem; background: #fff; color: var(--text); outline: none; cursor: pointer; }
+  .custom-bar input[type=date]:focus { border-color: var(--accent); }
+  .custom-bar .apply-btn { padding: 4px 14px; border-radius: 6px; border: none; background: #7c3aed; color: #fff; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
+  .custom-bar .apply-btn:hover { background: #6d28d9; }
+  .custom-bar .sep { color: var(--muted); font-size: 0.8rem; }
+  .body-wrap.with-custom { height: calc(100vh - 53px - 42px); }
 
   .body-wrap { display: grid; grid-template-columns: 250px 1fr; height: calc(100vh - 53px); min-height: 420px; overflow: hidden; }
   .sidebar { border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
@@ -71,9 +82,20 @@
     <button class="period-btn active" data-p="1y">1Y</button>
     <button class="period-btn" data-p="3y">3Y</button>
     <button class="period-btn" data-p="5y">5Y</button>
+    <button class="period-btn" data-p="custom" id="customBtn">Özel</button>
   </div>
   <div class="last-update" id="lastUpdate">Yükleniyor…</div>
 </header>
+
+<div class="custom-bar" id="customBar">
+  <label>Başlangıç</label>
+  <input type="date" id="customStart" />
+  <span class="sep">→</span>
+  <label>Bitiş</label>
+  <input type="date" id="customEnd" />
+  <button class="apply-btn" onclick="applyCustom()">Uygula</button>
+  <span id="customMsg" style="font-size:0.72rem;color:var(--muted);margin-left:4px;"></span>
+</div>
 
 <div class="body-wrap">
   <aside class="sidebar">
@@ -100,6 +122,7 @@ let histData = {};
 let hidden   = new Set();
 let chart    = null;
 let colorMap = {};
+let isCustomMode = false, customStartDate = '', customEndDate = '';
 
 const ctx = document.getElementById('mainChart').getContext('2d');
 
@@ -212,10 +235,59 @@ async function loadHistory(p) {
 document.getElementById('periodBar').addEventListener('click', e => {
   const btn = e.target.closest('.period-btn');
   if (!btn) return;
-  document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  period = btn.dataset.p;
-  loadHistory(period);
+  const isCustom = btn.dataset.p === 'custom';
+  document.querySelectorAll('.period-btn').forEach(b => { b.classList.remove('active'); b.classList.remove('custom-active'); });
+  const customBar = document.getElementById('customBar');
+  const bodyWrap  = document.querySelector('.body-wrap');
+  if (isCustom) {
+    btn.classList.add('custom-active');
+    customBar.classList.add('show');
+    bodyWrap.classList.add('with-custom');
+    if (!document.getElementById('customStart').value) {
+      const today = new Date(), ago90 = new Date(); ago90.setDate(today.getDate() - 90);
+      document.getElementById('customEnd').value   = today.toISOString().slice(0, 10);
+      document.getElementById('customStart').value = ago90.toISOString().slice(0, 10);
+    }
+  } else {
+    btn.classList.add('active');
+    customBar.classList.remove('show');
+    bodyWrap.classList.remove('with-custom');
+    isCustomMode = false; customStartDate = ''; customEndDate = '';
+    period = btn.dataset.p;
+    loadHistory(period);
+  }
+});
+
+function applyCustom() {
+  const start = document.getElementById('customStart').value;
+  const end   = document.getElementById('customEnd').value;
+  const msg   = document.getElementById('customMsg');
+  if (!start || !end) { msg.textContent = '⚠ Tarih seçin'; return; }
+  if (start >= end)   { msg.textContent = '⚠ Başlangıç, bitişten önce olmalı'; return; }
+  msg.textContent = '';
+  isCustomMode = true; customStartDate = start; customEndDate = end;
+  loadHistoryCustom(start, end);
+}
+
+async function loadHistoryCustom(start, end) {
+  document.getElementById('spinner').classList.add('show');
+  try {
+    const res = await fetch(`/usa/api/history/custom?start=${start}&end=${end}`);
+    const json = await res.json();
+    if (json._loading) { document.getElementById('lastUpdate').textContent = '⚠ Veriler henüz hazır değil'; return; }
+    if (json._empty)   { document.getElementById('customMsg').textContent = '⚠ Bu aralıkta veri yok'; return; }
+    if (json.error)    { document.getElementById('customMsg').textContent = '⚠ ' + json.error; return; }
+    histData = json;
+    buildChart(histData);
+    renderSidebar(histData);
+    document.getElementById('lastUpdate').textContent = `${start} → ${end}`;
+    document.getElementById('customMsg').textContent = '';
+  } catch (e) { document.getElementById('customMsg').textContent = '⚠ ' + e.message; }
+  finally { document.getElementById('spinner').classList.remove('show'); }
+}
+
+['customStart', 'customEnd'].forEach(id => {
+  document.getElementById(id).addEventListener('keydown', e => { if (e.key === 'Enter') applyCustom(); });
 });
 
 loadHistory(period);
