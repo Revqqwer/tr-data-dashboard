@@ -372,8 +372,8 @@ def custom_funds_flow():
             fq = fq.where(FundFlow.trade_date >= s, FundFlow.trade_date <= e)  # type: ignore
         flows = db.exec(fq.order_by(FundFlow.trade_date)).all()
 
-        # Fiyat satırları (getiri için)
-        pq = select(FundDaily.code, FundDaily.trade_date, FundDaily.price).where(
+        # Fiyat + yatırımcı sayısı satırları
+        pq = select(FundDaily.code, FundDaily.trade_date, FundDaily.price, FundDaily.investors).where(
             FundDaily.code.in_(codes), FundDaily.price.isnot(None)  # type: ignore
         )
         if s and e:
@@ -405,11 +405,14 @@ def custom_funds_flow():
         row["GUNLUK"]  = round(gunluk, 0)   # o günkü toplam net akış (bar için)
         flow_series.append(row)
 
-    # ── Getiri serisi (başlangıç = 100) ──
+    # ── Getiri serisi (başlangıç = 100) + yatırımcı sayısı serisi ──
     price_map: dict = {}
-    for code, td, px in prices:
+    inv_map: dict = {}
+    for code, td, px, inv in prices:
         if px:
             price_map.setdefault(td, {})[code] = px
+        if inv is not None:
+            inv_map.setdefault(td, {})[code] = inv
     ret_dates = sorted(price_map.keys())
     ret_series = []
     base: dict = {}
@@ -425,8 +428,22 @@ def custom_funds_flow():
                 row[c] = round(last[c] / base[c] * 100, 2)
         ret_series.append(row)
 
+    # Yatırımcı sayısı serisi (ham adet, son bilinen değeri taşı)
+    inv_dates = sorted(inv_map.keys())
+    inv_series = []
+    inv_last: dict = {}
+    for d in inv_dates:
+        row = {"date": d.isoformat()}
+        for c in codes:
+            v = inv_map[d].get(c)
+            if v is not None:
+                inv_last[c] = v
+            if c in inv_last:
+                row[c] = inv_last[c]
+        inv_series.append(row)
+
     funds = [{"code": c, "name": names.get(c) or c} for c in codes]
-    return jsonify({"funds": funds, "flow": flow_series, "ret": ret_series})
+    return jsonify({"funds": funds, "flow": flow_series, "ret": ret_series, "inv": inv_series})
 
 
 # ---------------------------------------------------------------------------
