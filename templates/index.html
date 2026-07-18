@@ -199,6 +199,14 @@
       </a>
     </div>
 
+    <!-- ── 6. ABD Endeksleri ── -->
+    <div class="nav-section">
+      <a href="#" class="nav-item nav-section-title" data-page="usa-endeks" style="text-transform:uppercase;font-size:10px;letter-spacing:0.08em;font-weight:700;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="15 7 21 7 21 13"/></svg>
+        ABD Endeksleri
+      </a>
+    </div>
+
   </nav>
 
   <script>
@@ -1476,6 +1484,24 @@
     <iframe
       src="/bist/karsilastirma"
       id="bist-endeks-karisim-iframe"
+      style="width:100%;height:calc(100vh - 56px);border:none;display:block;"
+      loading="lazy"
+    ></iframe>
+  </div>
+
+  <!-- ── ABD ENDEKSLERİ TOPBAR ── -->
+  <header class="topbar hidden" id="topbar-usa-endeks">
+    <div class="topbar-title">
+      <h1>🇺🇸 ABD Endeksleri Karşılaştırma</h1>
+      <span class="topbar-sub">Ana endeksler & sektörler · Normalize Getiri · TradingView</span>
+    </div>
+  </header>
+
+  <!-- ── ABD ENDEKSLERİ iframe ── -->
+  <div class="page-content hidden" id="page-usa-endeks" style="padding:0;overflow:hidden;">
+    <iframe
+      src="/usa/"
+      id="usa-endeks-iframe"
       style="width:100%;height:calc(100vh - 56px);border:none;display:block;"
       loading="lazy"
     ></iframe>
