@@ -434,12 +434,15 @@ def custom_funds_flow():
     inv_last: dict = {}
     for d in inv_dates:
         row = {"date": d.isoformat()}
+        tot = 0
         for c in codes:
             v = inv_map[d].get(c)
             if v is not None:
                 inv_last[c] = v
             if c in inv_last:
                 row[c] = inv_last[c]
+                tot += inv_last[c]
+        row["TOPLAM"] = tot
         inv_series.append(row)
 
     funds = [{"code": c, "name": names.get(c) or c} for c in codes]
