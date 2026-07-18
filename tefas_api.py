@@ -716,7 +716,7 @@ def stats_beat_bist():
         excluded_list.sort(key=lambda x: x["code"])
 
         rows = db.exec(
-            select(FundDaily.code, FundDaily.trade_date, FundDaily.price).where(
+            select(FundDaily.code, FundDaily.trade_date, FundDaily.price, FundDaily.investors).where(
                 FundDaily.code.in_(list(codes)),      # type: ignore
                 FundDaily.price.isnot(None),          # type: ignore
                 FundDaily.trade_date >= s, FundDaily.trade_date <= e,
@@ -767,8 +767,14 @@ def stats_beat_bist():
     pf_dates: dict = {}
     pf_px: dict = {}
     tmp: dict = defaultdict(list)
-    for code, td, px in rows:
+    inv_first: dict = {}   # kod → dönem başındaki yatırımcı sayısı
+    inv_last: dict = {}    # kod → dönem sonundaki yatırımcı sayısı
+    for code, td, px, inv in rows:
         tmp[code].append((td, px))
+        if inv is not None:
+            if code not in inv_first:
+                inv_first[code] = inv
+            inv_last[code] = inv
     for code, lst in tmp.items():
         lst.sort(key=lambda x: x[0])
         pf_dates[code] = [x[0] for x in lst]
@@ -819,10 +825,14 @@ def stats_beat_bist():
         if px is None:
             continue
         fr = px / b - 1.0
+        inv_ch = None
+        if code in inv_first and code in inv_last:
+            inv_ch = int(inv_last[code] - inv_first[code])
         beat_list.append({"code": code, "name": names.get(code) or code,
                           "fund_ret": round(fr * 100, 2),
                           "diff": round((fr - bist_ret_end) * 100, 2),
                           "net_flow": round(net_flow_by_code.get(code, 0.0), 0),
+                          "inv_change": inv_ch,
                           "beat": fr > bist_ret_end})
     beat_list.sort(key=lambda x: -x["fund_ret"])
     beat_count = sum(1 for x in beat_list if x["beat"])
