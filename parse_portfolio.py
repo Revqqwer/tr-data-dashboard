@@ -13,7 +13,16 @@ PDF_PATH  = os.path.join(os.path.dirname(__file__), '..', '..', 'Downloads', 'Ek
 OUT_PATH  = os.path.join(os.path.dirname(__file__), 'data', 'portfolio.json')
 
 # GENKMH is a rights-derived lot, treat as same stock GENKM
-TICKER_NORM = {'GENKMH': 'GENKM'}
+TICKER_NORM = {'GENKMH': 'GENKM', 'GOLDAH': 'GOLDA', 'SOHOEH': 'SOHOE'}
+
+# Halka arz tahsisatıyla gelen (normal "Alis" satırı olmayan) hisseler — maliyet
+# ekstrede "AHMET EMİN TAHTACI - ŞİRKET ..." teslim satırında (qty ekstrede yok/kesik).
+# Sadece bu ekstrede satışı olup alışı olmayan tickerlara uygulanır (gate: process()).
+IPO_ALLOCATIONS = [
+    {'ticker': 'EKIM',  'date': '2026-07-01', 'qty': 143, 'price': 30.26, 'amount': 4327.18},
+    {'ticker': 'ORZAX', 'date': '2026-06-30', 'qty': 35,  'price': 69.00, 'amount': 2415.00},
+    {'ticker': 'SSAAT', 'date': '2026-07-07', 'qty': 26,  'price': 56.00, 'amount': 1456.00},
+]
 
 
 def tr_float(s: str) -> float:
@@ -146,6 +155,24 @@ def process(rows):
                 'type':        ttype,
                 'amount':      amount,
                 'is_rights':   False,
+            })
+
+    # Halka arz tahsisatı: satışı olup alışı olmayan hisselere maliyet ekle
+    _has_buy = {t['ticker'] for t in trades if t['type'] == 'alis'}
+    _has_sell = {t['ticker'] for t in trades if t['type'] == 'satis'}
+    for ipo in IPO_ALLOCATIONS:
+        tk = ipo['ticker']
+        if tk in _has_sell and tk not in _has_buy:
+            trades.append({
+                'date':        ipo['date'],
+                'settle_date': ipo['date'],
+                'ticker':      tk,
+                'qty':         ipo['qty'],
+                'price':       ipo['price'],
+                'type':        'alis',
+                'amount':      ipo['amount'],
+                'is_rights':   False,
+                'is_ipo':      True,
             })
 
     # NSP position history: running units at each transaction date
@@ -410,8 +437,8 @@ def fetch_stock_prices(tickers: list, start_date: date, end_date: date) -> dict:
     TV_FALLBACK = {
         'DMLKTG': 'DMLKT',   # Damlakent GMS → BIST:DMLKT
         'ALTINS': 'ALTIN',   # Altın Sertifikası → BIST:ALTIN
-        'SOHOEH': 'SOHOE',   # Rüçhan/"H" kodu → BIST:SOHOE
-        'GOLDAH': 'GOLDA',   # Rüçhan/"H" kodu → BIST:GOLDA
+        'SOHOE':  'SOHOE',   # normalize sonrası base kod → BIST:SOHOE
+        'GOLDA':  'GOLDA',   # normalize sonrası base kod → BIST:GOLDA
     }
 
     try:

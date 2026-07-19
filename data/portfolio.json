@@ -4,7 +4,7 @@
   "account_no": "73285",
   "broker": "PUSULA Yatırım",
   "summary": {
-    "total_realized_pnl": 34938.86,
+    "total_realized_pnl": 24228.68,
     "total_dividends": 472.31,
     "total_commission": 2714.51
   },
@@ -982,7 +982,7 @@
     {
       "date": "2026-07-01",
       "settle_date": "2026-07-03",
-      "ticker": "SOHOEH",
+      "ticker": "SOHOE",
       "qty": 100,
       "price": 15.0,
       "type": "alis",
@@ -992,7 +992,7 @@
     {
       "date": "2026-07-02",
       "settle_date": "2026-07-06",
-      "ticker": "GOLDAH",
+      "ticker": "GOLDA",
       "qty": 110,
       "price": 9.2,
       "type": "alis",
@@ -1118,6 +1118,39 @@
       "type": "satis",
       "amount": 1236.56,
       "is_rights": false
+    },
+    {
+      "date": "2026-07-01",
+      "settle_date": "2026-07-01",
+      "ticker": "EKIM",
+      "qty": 143,
+      "price": 30.26,
+      "type": "alis",
+      "amount": 4327.18,
+      "is_rights": false,
+      "is_ipo": true
+    },
+    {
+      "date": "2026-06-30",
+      "settle_date": "2026-06-30",
+      "ticker": "ORZAX",
+      "qty": 35,
+      "price": 69.0,
+      "type": "alis",
+      "amount": 2415.0,
+      "is_rights": false,
+      "is_ipo": true
+    },
+    {
+      "date": "2026-07-07",
+      "settle_date": "2026-07-07",
+      "ticker": "SSAAT",
+      "qty": 26,
+      "price": 56.0,
+      "type": "alis",
+      "amount": 1456.0,
+      "is_rights": false,
+      "is_ipo": true
     }
   ],
   "nsp_trades": [
@@ -3051,104 +3084,104 @@
     },
     {
       "date": "2026-06-29",
-      "stock_value": 67614.74,
+      "stock_value": 64354.74,
       "nsp_value": 69204.75,
       "cash_value": 2099.78,
-      "total_value": 138919.28
+      "total_value": 135659.28
     },
     {
       "date": "2026-06-30",
-      "stock_value": 67046.34,
+      "stock_value": 63786.34,
       "nsp_value": 69204.75,
       "cash_value": 2261.34,
-      "total_value": 138512.43
+      "total_value": 135252.43
     },
     {
       "date": "2026-07-01",
-      "stock_value": 67726.29,
+      "stock_value": 64466.29,
       "nsp_value": 69204.75,
       "cash_value": 2422.89,
-      "total_value": 139353.94
+      "total_value": 136093.94
     },
     {
       "date": "2026-07-02",
-      "stock_value": 67807.31,
+      "stock_value": 64547.31,
       "nsp_value": 69204.75,
       "cash_value": 2584.45,
-      "total_value": 139596.51
+      "total_value": 136336.51
     },
     {
       "date": "2026-07-03",
-      "stock_value": 66778.43,
+      "stock_value": 63518.43,
       "nsp_value": 69204.75,
       "cash_value": 2746.01,
-      "total_value": 138729.19
+      "total_value": 135469.19
     },
     {
       "date": "2026-07-06",
-      "stock_value": 66155.23,
+      "stock_value": 62895.23,
       "nsp_value": 69204.75,
       "cash_value": 2907.56,
-      "total_value": 138267.54
+      "total_value": 135007.54
     },
     {
       "date": "2026-07-07",
-      "stock_value": 66184.24,
+      "stock_value": 62924.24,
       "nsp_value": 69204.75,
       "cash_value": 3069.11,
-      "total_value": 138458.11
+      "total_value": 135198.11
     },
     {
       "date": "2026-07-08",
-      "stock_value": 64824.26,
+      "stock_value": 61564.26,
       "nsp_value": 69204.75,
       "cash_value": 3230.67,
-      "total_value": 137259.68
+      "total_value": 133999.68
     },
     {
       "date": "2026-07-09",
-      "stock_value": 64614.06,
+      "stock_value": 61354.06,
       "nsp_value": 69204.75,
       "cash_value": 3392.23,
-      "total_value": 137211.04
+      "total_value": 133951.04
     },
     {
       "date": "2026-07-10",
-      "stock_value": 64757.82,
+      "stock_value": 61497.82,
       "nsp_value": 69204.75,
       "cash_value": 3553.78,
-      "total_value": 137516.35
+      "total_value": 134256.35
     },
     {
       "date": "2026-07-13",
-      "stock_value": 64211.58,
+      "stock_value": 60951.58,
       "nsp_value": 69204.75,
       "cash_value": 3715.34,
-      "total_value": 137131.67
+      "total_value": 133871.67
     },
     {
       "date": "2026-07-14",
-      "stock_value": 64263.02,
+      "stock_value": 61003.02,
       "nsp_value": 69204.75,
       "cash_value": 3876.89,
-      "total_value": 137344.66
+      "total_value": 134084.66
     },
     {
       "date": "2026-07-16",
-      "stock_value": 64680.44,
+      "stock_value": 61420.44,
       "nsp_value": 69204.75,
       "cash_value": 4038.44,
-      "total_value": 137923.64
+      "total_value": 134663.64
     },
     {
       "date": "2026-07-17",
-      "stock_value": 64217.41,
+      "stock_value": 60957.41,
       "nsp_value": 69204.75,
       "cash_value": 4200.0,
-      "total_value": 137622.16
+      "total_value": 134362.16
     }
   ],
-  "portfolio_current_value": 137622.16,
+  "portfolio_current_value": 134362.16,
   "pnl_timeline": [
     {
       "date": "2025-11-13",
@@ -3369,56 +3402,56 @@
     {
       "date": "2026-07-09",
       "ticker": "SOHOE",
-      "pnl": 1589.0,
-      "cumulative_pnl": 24981.3
+      "pnl": 89.0,
+      "cumulative_pnl": 23481.3
     },
     {
       "date": "2026-07-10",
       "ticker": "BETAE",
       "pnl": 861.0,
-      "cumulative_pnl": 25842.3
+      "cumulative_pnl": 24342.3
     },
     {
       "date": "2026-07-13",
       "ticker": "GLRMK",
       "pnl": -168.0,
-      "cumulative_pnl": 25674.3
+      "cumulative_pnl": 24174.3
     },
     {
       "date": "2026-07-13",
       "ticker": "ORZAX",
-      "pnl": 2929.5,
-      "cumulative_pnl": 28603.8
+      "pnl": 514.5,
+      "cumulative_pnl": 24688.8
     },
     {
       "date": "2026-07-13",
       "ticker": "SISE",
       "pnl": -543.64,
-      "cumulative_pnl": 28060.16
+      "cumulative_pnl": 24145.16
     },
     {
       "date": "2026-07-16",
       "ticker": "EKIM",
-      "pnl": 3775.2,
-      "cumulative_pnl": 31835.36
+      "pnl": -551.98,
+      "cumulative_pnl": 23593.18
     },
     {
       "date": "2026-07-20",
       "ticker": "GOLDA",
-      "pnl": 1790.8,
-      "cumulative_pnl": 33626.16
+      "pnl": 778.8,
+      "cumulative_pnl": 24371.98
     },
     {
       "date": "2026-07-21",
       "ticker": "ISVEA",
       "pnl": 76.14,
-      "cumulative_pnl": 33702.3
+      "cumulative_pnl": 24448.12
     },
     {
       "date": "2026-07-21",
       "ticker": "SSAAT",
-      "pnl": 1236.56,
-      "cumulative_pnl": 34938.86
+      "pnl": -219.44,
+      "cumulative_pnl": 24228.68
     }
   ],
   "balance_history": [
@@ -4071,14 +4104,14 @@
       "pnl_pct": -2.67
     },
     "EKIM": {
-      "buy_qty": 0,
-      "buy_amount": 0.0,
+      "buy_qty": 143,
+      "buy_amount": 4327.18,
       "sell_qty": 143,
       "sell_amount": 3775.2,
-      "realized_pnl": 3775.2,
-      "avg_buy": 0,
+      "realized_pnl": -551.98,
+      "avg_buy": 30.26,
       "avg_sell": 26.4,
-      "pnl_pct": 0
+      "pnl_pct": -12.76
     },
     "ENJSA": {
       "buy_qty": 223,
@@ -4141,24 +4174,14 @@
       "pnl_pct": 30.8
     },
     "GOLDA": {
-      "buy_qty": 0,
-      "buy_amount": 0.0,
-      "sell_qty": 110,
-      "sell_amount": 1790.8,
-      "realized_pnl": 1790.8,
-      "avg_buy": 0,
-      "avg_sell": 16.28,
-      "pnl_pct": 0
-    },
-    "GOLDAH": {
       "buy_qty": 110,
       "buy_amount": 1012.0,
-      "sell_qty": 0,
-      "sell_amount": 0.0,
-      "realized_pnl": 0.0,
+      "sell_qty": 110,
+      "sell_amount": 1790.8,
+      "realized_pnl": 778.8,
       "avg_buy": 9.2,
-      "avg_sell": 0,
-      "pnl_pct": 0.0
+      "avg_sell": 16.28,
+      "pnl_pct": 76.96
     },
     "GRSEL": {
       "buy_qty": 29,
@@ -4231,14 +4254,14 @@
       "pnl_pct": 76.96
     },
     "ORZAX": {
-      "buy_qty": 0,
-      "buy_amount": 0.0,
+      "buy_qty": 35,
+      "buy_amount": 2415.0,
       "sell_qty": 35,
       "sell_amount": 2929.5,
-      "realized_pnl": 2929.5,
-      "avg_buy": 0,
+      "realized_pnl": 514.5,
+      "avg_buy": 69.0,
       "avg_sell": 83.7,
-      "pnl_pct": 0
+      "pnl_pct": 21.3
     },
     "RYSAS": {
       "buy_qty": 262,
@@ -4271,34 +4294,24 @@
       "pnl_pct": -9.89
     },
     "SOHOE": {
-      "buy_qty": 0,
-      "buy_amount": 0.0,
-      "sell_qty": 100,
-      "sell_amount": 1589.0,
-      "realized_pnl": 1589.0,
-      "avg_buy": 0,
-      "avg_sell": 15.89,
-      "pnl_pct": 0
-    },
-    "SOHOEH": {
       "buy_qty": 100,
       "buy_amount": 1500.0,
-      "sell_qty": 0,
-      "sell_amount": 0.0,
-      "realized_pnl": 0.0,
+      "sell_qty": 100,
+      "sell_amount": 1589.0,
+      "realized_pnl": 89.0,
       "avg_buy": 15.0,
-      "avg_sell": 0,
-      "pnl_pct": 0.0
+      "avg_sell": 15.89,
+      "pnl_pct": 5.93
     },
     "SSAAT": {
-      "buy_qty": 0,
-      "buy_amount": 0.0,
+      "buy_qty": 26,
+      "buy_amount": 1456.0,
       "sell_qty": 26,
       "sell_amount": 1236.56,
-      "realized_pnl": 1236.56,
-      "avg_buy": 0,
+      "realized_pnl": -219.44,
+      "avg_buy": 56.0,
       "avg_sell": 47.56,
-      "pnl_pct": 0
+      "pnl_pct": -15.07
     },
     "SVGYO": {
       "buy_qty": 175,
@@ -4431,16 +4444,6 @@
       "qty": 32,
       "avg_cost": 140.2531,
       "cost_basis": 4488.1
-    },
-    "SOHOEH": {
-      "qty": 100,
-      "avg_cost": 15.0,
-      "cost_basis": 1500.0
-    },
-    "GOLDAH": {
-      "qty": 110,
-      "avg_cost": 9.2,
-      "cost_basis": 1012.0
     }
   },
   "last_prices": {
@@ -4464,7 +4467,6 @@
     "GATEG": 310.0,
     "GENKM": 12.63,
     "GLRMK": 161.0,
-    "GOLDA": 17.9,
     "GRSEL": 315.75,
     "HALKB": 38.22,
     "ISVEA": 27.52,
@@ -4476,7 +4478,6 @@
     "RYSAS": 20.8,
     "SELEC": 261.0,
     "SISE": 44.2,
-    "SOHOE": 12.91,
     "SSAAT": 45.36,
     "SVGYO": 12.72,
     "TKFEN": 145.0,
@@ -4488,8 +4489,8 @@
     "YKBNK": 33.22,
     "ALTINS": 66.94,
     "DMLKTG": 6.03,
-    "GOLDAH": 17.9,
-    "SOHOEH": 12.91
+    "GOLDA": 17.9,
+    "SOHOE": 12.91
   },
   "benchmark_prices": {
     "xu100": {
