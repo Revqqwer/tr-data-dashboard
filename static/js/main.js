@@ -3235,6 +3235,7 @@ function _mbRender(reports) {
       </div>
       <div class="mb-body" style="display:${expanded?'block':'none'};padding:0 24px 24px;">
         <div style="height:1px;background:var(--border);margin-bottom:20px;"></div>
+        ${_mbPositionsTable(r.positions)}
         ${_mbTwoCol(r.content || '')}
       </div>
     </div>`;
@@ -3446,6 +3447,66 @@ function _mbExtractRisks(sections) {
 
 function _mbEsc(s) {
   return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/* ── Tematik Fırsat Getirisi tablosu ──
+   pos = {avg, count, themes:[{theme, avg, rows:[{ticker,entry,entry_date,current,ret}]}], computed_at} */
+function _mbPositionsTable(pos) {
+  if (!pos || !pos.themes || !pos.themes.length) return '';
+  const col = r => r > 0 ? '#10b981' : r < 0 ? '#ef4444' : 'var(--text-muted)';
+  const fmt = r => (r > 0 ? '+' : '') + r.toFixed(2) + '%';
+
+  // Giriş tarihi (tüm satırlarda aynı ilk işlem günü) — bilgi notu için
+  let entryDate = '';
+  for (const th of pos.themes) for (const r of th.rows) { entryDate = r.entry_date; break; }
+
+  const avg = pos.avg;
+  const avgBadge = (avg != null)
+    ? `<span style="font-size:20px;font-weight:800;color:${col(avg)};">${fmt(avg)}</span>
+       <span style="font-size:11px;color:var(--text-muted);margin-left:6px;">eşit ağırlıklı ortalama · ${pos.count} pozisyon</span>`
+    : '';
+
+  const themesHtml = pos.themes.map(th => {
+    const rows = th.rows.map(r => `
+      <tr style="border-top:1px solid var(--border);">
+        <td style="padding:7px 10px;font-weight:700;color:var(--text);">${_mbEsc(r.ticker)}</td>
+        <td style="padding:7px 10px;text-align:right;color:var(--text-secondary);font-variant-numeric:tabular-nums;">${r.entry.toLocaleString('tr-TR')}</td>
+        <td style="padding:7px 10px;text-align:right;color:var(--text-secondary);font-variant-numeric:tabular-nums;">${r.current.toLocaleString('tr-TR')}</td>
+        <td style="padding:7px 10px;text-align:right;font-weight:700;font-variant-numeric:tabular-nums;color:${col(r.ret)};">${fmt(r.ret)}</td>
+      </tr>`).join('');
+    return `
+      <tr style="background:rgba(59,130,246,.06);">
+        <td colspan="3" style="padding:8px 10px;font-size:12px;font-weight:700;color:var(--text);">${_mbEsc(th.theme)}</td>
+        <td style="padding:8px 10px;text-align:right;font-weight:800;font-variant-numeric:tabular-nums;color:${col(th.avg)};">${fmt(th.avg)}</td>
+      </tr>${rows}`;
+  }).join('');
+
+  return `
+  <div style="margin-bottom:22px;border:1px solid rgba(16,185,129,.28);border-radius:12px;overflow:hidden;background:var(--surface);">
+    <div style="padding:14px 18px;background:linear-gradient(135deg,rgba(16,185,129,.10),rgba(16,185,129,.02));border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:200px;">
+        <div style="font-size:14px;font-weight:800;color:var(--text);">🎯 Yatırım Fırsatlarının Getirisi</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Her temanın tüm fırsatlarına, raporun çıktığı günün açılış fiyatından long girilseydi${entryDate ? ` (giriş ${entryDate})` : ''} bugünkü getiri</div>
+      </div>
+      <div style="text-align:right;">${avgBadge}</div>
+    </div>
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:13.5px;min-width:340px;">
+        <thead>
+          <tr style="background:var(--surface2);">
+            <th style="padding:7px 10px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.04em;">TEMA / TICKER</th>
+            <th style="padding:7px 10px;text-align:right;font-size:11px;font-weight:700;color:var(--text-muted);">GİRİŞ</th>
+            <th style="padding:7px 10px;text-align:right;font-size:11px;font-weight:700;color:var(--text-muted);">GÜNCEL</th>
+            <th style="padding:7px 10px;text-align:right;font-size:11px;font-weight:700;color:var(--text-muted);">GETİRİ</th>
+          </tr>
+        </thead>
+        <tbody>${themesHtml}</tbody>
+      </table>
+    </div>
+    <div style="padding:8px 14px;font-size:10.5px;color:var(--text-muted);border-top:1px solid var(--border);">
+      Fiyatlar TradingView · yalnızca long · yatırım tavsiyesi değildir
+    </div>
+  </div>`;
 }
 
 /* ── Rapor içeriğini 2 sütuna böl (bölüm başlıklarında kır) ── */

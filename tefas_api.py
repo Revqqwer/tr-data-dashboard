@@ -1225,7 +1225,22 @@ def market_briefs():
     limit = int(request.args.get("limit", 10))
     try:
         from tefas_backend.market_agent.reports import get_reports
-        return jsonify({"ok": True, "reports": get_reports(report_type, limit)})
+        reports = get_reports(report_type, limit)
+        # Ön hesaplanmış tematik fırsat getirileri (compute_brief_positions.py) varsa iliştir
+        try:
+            import json, os
+            _root = os.path.dirname(os.path.abspath(__file__))
+            _pp = os.path.join(_root, "data", "brief_positions.json")
+            if os.path.exists(_pp):
+                with open(_pp, encoding="utf-8") as _f:
+                    _pos = json.load(_f)
+                for _r in reports:
+                    _p = _pos.get(_r.get("id"))
+                    if _p:
+                        _r["positions"] = _p
+        except Exception:
+            pass
+        return jsonify({"ok": True, "reports": reports})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
