@@ -230,6 +230,14 @@ def run():
     log.info('Güncellenecek/yeniden hesaplanacak %d işlem günü (%s sonrası)',
              len(xu100_dates), recompute_from_str)
 
+    # Yeni pozisyon override'ı yoksa nakit override'ını günlere göre lineer RAMP ile
+    # uygula (aksi halde cash_added boş kalır → override uygulanmaz, nakit anchor'da takılır)
+    cash_ramp = None
+    if cash_override is not None and not new_pos_dates and xu100_dates:
+        _n = len(xu100_dates)
+        cash_ramp = {ds: last_cash + (cash_target - last_cash) * (i + 1) / _n
+                     for i, ds in enumerate(xu100_dates)}
+
     # 5. Her yeni gün için portfolio_daily_value girdisi
     new_entries = []
     # Mevcut last_prices'ı başlangıç noktası yap — TV fetch başarısız olan ticker'lar
@@ -254,7 +262,10 @@ def run():
         # O güne kadar alımı yapılmış yeni pozisyonlar → fonlamayı kademeli düş
         started = [t for t in new_pos_dates if d_str >= new_pos_dates[t]]
         nsp_u  = nsp_units_base - sum(nsp_units_removed.get(t, 0.0) for t in started)
-        cash_d = cash_base_abs  + sum(cash_added.get(t, 0.0)        for t in started)
+        if cash_ramp is not None:
+            cash_d = cash_ramp[d_str]
+        else:
+            cash_d = cash_base_abs + sum(cash_added.get(t, 0.0) for t in started)
         nsp_p = nsp_prices.get(d_str)
         if nsp_p:
             last_nsp_price_known = nsp_p

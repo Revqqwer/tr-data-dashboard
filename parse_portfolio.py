@@ -543,6 +543,7 @@ def build_portfolio_daily_value(trades: list, nsp_trades: list, nsp_daily_value:
     sorted_trades = sorted(trades, key=lambda x: x['date'])
     inventory: dict = defaultdict(int)
     trade_idx = 0
+    last_known_price: dict = {}   # fiyatı olmayan günlerde son bilineni taşı (dip önler)
 
     # ── Theoretical cash ────────────────────────────────────────────────────
     # Tracks all cash inflows (sells) and outflows (buys) by trade date.
@@ -594,13 +595,17 @@ def build_portfolio_daily_value(trades: list, nsp_trades: list, nsp_daily_value:
                 inventory[t['ticker']] -= t['qty']
             trade_idx += 1
 
-        # Stock value on this date
+        # Stock value on this date — fiyatı olmayan günlerde son bilinen fiyatı taşı
         stock_val = 0.0
         for ticker, qty in inventory.items():
-            if qty > 0 and ticker in stock_prices:
-                price = stock_prices[ticker].get(d_str)
-                if price:
-                    stock_val += qty * price
+            if qty <= 0:
+                continue
+            price = stock_prices.get(ticker, {}).get(d_str)
+            if price:
+                last_known_price[ticker] = price
+            p = last_known_price.get(ticker)
+            if p:
+                stock_val += qty * p
 
         nsp_val  = nsp_value_at(d_str)
         th_cash  = theoretical_cash_at(d_str)
