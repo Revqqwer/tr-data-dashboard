@@ -226,8 +226,9 @@ def run_daily() -> str:
                          _rep.get("id") if _rep else None,
                          _rep.get("title") if _rep else None)
 
-    # Telegram sesli özet
-    _report_to_telegram(report)
+    # Telegram sesli özet — kullanıcı isteğiyle KAPATILDI (2026-07-19).
+    # Tekrar açmak için alttaki satırın yorumunu kaldır.
+    # _report_to_telegram(report)
 
     return report
 
