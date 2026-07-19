@@ -1151,6 +1151,17 @@
       "amount": 1456.0,
       "is_rights": false,
       "is_ipo": true
+    },
+    {
+      "date": "2026-07-09",
+      "settle_date": "2026-07-09",
+      "ticker": "SARAE",
+      "qty": 70,
+      "price": 70.0,
+      "type": "alis",
+      "amount": 4900.0,
+      "is_rights": false,
+      "is_ipo": true
     }
   ],
   "nsp_trades": [
@@ -3084,104 +3095,104 @@
     },
     {
       "date": "2026-06-29",
-      "stock_value": 64354.74,
+      "stock_value": 69744.74,
       "nsp_value": 69204.75,
       "cash_value": 2099.78,
-      "total_value": 135659.28
+      "total_value": 141049.28
     },
     {
       "date": "2026-06-30",
-      "stock_value": 63786.34,
+      "stock_value": 69176.34,
       "nsp_value": 69204.75,
       "cash_value": 2261.34,
-      "total_value": 135252.43
+      "total_value": 140642.43
     },
     {
       "date": "2026-07-01",
-      "stock_value": 64466.29,
+      "stock_value": 69856.29,
       "nsp_value": 69204.75,
       "cash_value": 2422.89,
-      "total_value": 136093.94
+      "total_value": 141483.94
     },
     {
       "date": "2026-07-02",
-      "stock_value": 64547.31,
+      "stock_value": 69937.31,
       "nsp_value": 69204.75,
       "cash_value": 2584.45,
-      "total_value": 136336.51
+      "total_value": 141726.51
     },
     {
       "date": "2026-07-03",
-      "stock_value": 63518.43,
+      "stock_value": 68908.43,
       "nsp_value": 69204.75,
       "cash_value": 2746.01,
-      "total_value": 135469.19
+      "total_value": 140859.19
     },
     {
       "date": "2026-07-06",
-      "stock_value": 62895.23,
+      "stock_value": 68285.23,
       "nsp_value": 69204.75,
       "cash_value": 2907.56,
-      "total_value": 135007.54
+      "total_value": 140397.54
     },
     {
       "date": "2026-07-07",
-      "stock_value": 62924.24,
+      "stock_value": 68314.24,
       "nsp_value": 69204.75,
       "cash_value": 3069.11,
-      "total_value": 135198.11
+      "total_value": 140588.11
     },
     {
       "date": "2026-07-08",
-      "stock_value": 61564.26,
+      "stock_value": 66954.26,
       "nsp_value": 69204.75,
       "cash_value": 3230.67,
-      "total_value": 133999.68
+      "total_value": 139389.68
     },
     {
       "date": "2026-07-09",
-      "stock_value": 61354.06,
+      "stock_value": 66744.06,
       "nsp_value": 69204.75,
       "cash_value": 3392.23,
-      "total_value": 133951.04
+      "total_value": 139341.04
     },
     {
       "date": "2026-07-10",
-      "stock_value": 61497.82,
+      "stock_value": 66887.82,
       "nsp_value": 69204.75,
       "cash_value": 3553.78,
-      "total_value": 134256.35
+      "total_value": 139646.35
     },
     {
       "date": "2026-07-13",
-      "stock_value": 60951.58,
+      "stock_value": 66341.58,
       "nsp_value": 69204.75,
       "cash_value": 3715.34,
-      "total_value": 133871.67
+      "total_value": 139261.67
     },
     {
       "date": "2026-07-14",
-      "stock_value": 61003.02,
+      "stock_value": 66393.02,
       "nsp_value": 69204.75,
       "cash_value": 3876.89,
-      "total_value": 134084.66
+      "total_value": 139474.66
     },
     {
       "date": "2026-07-16",
-      "stock_value": 61420.44,
+      "stock_value": 66810.44,
       "nsp_value": 69204.75,
       "cash_value": 4038.44,
-      "total_value": 134663.64
+      "total_value": 140053.64
     },
     {
       "date": "2026-07-17",
-      "stock_value": 60957.41,
+      "stock_value": 66347.41,
       "nsp_value": 69204.75,
       "cash_value": 4200.0,
-      "total_value": 134362.16
+      "total_value": 139752.16
     }
   ],
-  "portfolio_current_value": 134362.16,
+  "portfolio_current_value": 139752.16,
   "pnl_timeline": [
     {
       "date": "2025-11-13",
@@ -4273,6 +4284,16 @@
       "avg_sell": 20.8,
       "pnl_pct": 9.13
     },
+    "SARAE": {
+      "buy_qty": 70,
+      "buy_amount": 4900.0,
+      "sell_qty": 0,
+      "sell_amount": 0.0,
+      "realized_pnl": 0.0,
+      "avg_buy": 70.0,
+      "avg_sell": 0,
+      "pnl_pct": 0.0
+    },
     "SELEC": {
       "buy_qty": 144,
       "buy_amount": 11595.6,
@@ -4444,6 +4465,11 @@
       "qty": 32,
       "avg_cost": 140.2531,
       "cost_basis": 4488.1
+    },
+    "SARAE": {
+      "qty": 70,
+      "avg_cost": 70.0,
+      "cost_basis": 4900.0
     }
   },
   "last_prices": {
@@ -4490,6 +4516,7 @@
     "ALTINS": 66.94,
     "DMLKTG": 6.03,
     "GOLDA": 17.9,
+    "SARAE": 77.0,
     "SOHOE": 12.91
   },
   "benchmark_prices": {
