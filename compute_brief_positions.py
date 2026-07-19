@@ -44,8 +44,10 @@ def _now():
 
 
 def main(stale_hours: float = 6.0):
-    reports = get_reports(limit=1000)
-    print(f"{len(reports)} rapor bulundu.")
+    all_reports = get_reports(limit=1000)
+    # Haftalık raporlar günlüklerin özeti — pozisyon tablosu üretme
+    reports = [r for r in all_reports if r.get("type") != "weekly"]
+    print(f"{len(all_reports)} rapor ({len(reports)} günlük, haftalıklar atlandı).")
 
     # Tüm raporlardaki benzersiz ticker'lar
     tickers = []
