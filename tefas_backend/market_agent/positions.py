@@ -126,10 +126,18 @@ def all_tickers(content: str) -> list:
 
 
 def _entry(bars: dict, report_date: str):
-    """Rapor gününde (ya da sonraki ilk işlem gününde) açılış fiyatı → (date, open)."""
-    for d in sorted(bars):
+    """Giriş fiyatı → (date, price).
+    - Rapor günü (ya da sonraki ilk işlem günü) bir bar varsa: o günün AÇILIŞI.
+    - Rapor günü hafta sonu/gelecekse ve o güne/sonrasına ait bar yoksa (ör. Cumartesi
+      raporu): son işlem gününün KAPANIŞI (Cuma kapanışı). Pazartesi verisi gelince
+      otomatik olarak Pazartesi açılışına geçer."""
+    keys = sorted(bars)
+    for d in keys:
         if d >= report_date:
             return d, bars[d]['o']
+    if keys:
+        d = keys[-1]
+        return d, bars[d]['c']
     return None, None
 
 
