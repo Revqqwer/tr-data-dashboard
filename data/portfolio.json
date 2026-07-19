@@ -3086,69 +3086,69 @@
     },
     {
       "date": "2026-07-06",
-      "stock_value": 69663.97,
+      "stock_value": 71313.97,
       "nsp_value": 58539.46,
       "cash_value": 9417.69,
-      "total_value": 137621.12
+      "total_value": 139271.12
     },
     {
       "date": "2026-07-07",
-      "stock_value": 71298.32,
+      "stock_value": 72783.32,
       "nsp_value": 58539.46,
       "cash_value": 9519.49,
-      "total_value": 139357.27
+      "total_value": 140842.27
     },
     {
       "date": "2026-07-08",
-      "stock_value": 67872.02,
+      "stock_value": 70322.22,
       "nsp_value": 53647.32,
       "cash_value": 16518.7,
-      "total_value": 138038.04
+      "total_value": 140488.24
     },
     {
       "date": "2026-07-09",
-      "stock_value": 60462.31,
+      "stock_value": 62971.61,
       "nsp_value": 53647.32,
       "cash_value": 26655.4,
-      "total_value": 140765.03
+      "total_value": 143274.33
     },
     {
       "date": "2026-07-10",
-      "stock_value": 62577.88,
+      "stock_value": 65260.28,
       "nsp_value": 53647.32,
       "cash_value": 25767.4,
-      "total_value": 141992.6
+      "total_value": 144675.0
     },
     {
       "date": "2026-07-13",
-      "stock_value": 62138.8,
+      "stock_value": 65004.4,
       "nsp_value": 53647.32,
       "cash_value": 29542.6,
-      "total_value": 145328.72
+      "total_value": 148194.32
     },
     {
       "date": "2026-07-14",
-      "stock_value": 62308.68,
+      "stock_value": 65265.68,
       "nsp_value": 53647.32,
       "cash_value": 29542.6,
-      "total_value": 145498.6
+      "total_value": 148455.6
     },
     {
       "date": "2026-07-16",
-      "stock_value": 62596.38,
+      "stock_value": 65711.18,
       "nsp_value": 69204.75,
       "cash_value": 16237.93,
-      "total_value": 148039.06
+      "total_value": 151153.86
     },
     {
       "date": "2026-07-17",
-      "stock_value": 60957.41,
+      "stock_value": 64217.41,
       "nsp_value": 69204.75,
-      "cash_value": 18532.93,
-      "total_value": 148695.09
+      "cash_value": 4200.0,
+      "total_value": 137622.16
     }
   ],
-  "portfolio_current_value": 148695.09,
+  "portfolio_current_value": 137622.16,
   "pnl_timeline": [
     {
       "date": "2025-11-13",
@@ -4487,7 +4487,9 @@
     "YEOTK": 91.8,
     "YKBNK": 33.22,
     "ALTINS": 66.94,
-    "DMLKTG": 6.03
+    "DMLKTG": 6.03,
+    "GOLDAH": 17.9,
+    "SOHOEH": 12.91
   },
   "benchmark_prices": {
     "xu100": {

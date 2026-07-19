@@ -410,6 +410,8 @@ def fetch_stock_prices(tickers: list, start_date: date, end_date: date) -> dict:
     TV_FALLBACK = {
         'DMLKTG': 'DMLKT',   # Damlakent GMS → BIST:DMLKT
         'ALTINS': 'ALTIN',   # Altın Sertifikası → BIST:ALTIN
+        'SOHOEH': 'SOHOE',   # Rüçhan/"H" kodu → BIST:SOHOE
+        'GOLDAH': 'GOLDA',   # Rüçhan/"H" kodu → BIST:GOLDA
     }
 
     try:
