@@ -22,6 +22,7 @@ IPO_ALLOCATIONS = [
     {'ticker': 'EKIM',  'date': '2026-07-01', 'qty': 143, 'price': 30.26, 'amount': 4327.18},
     {'ticker': 'ORZAX', 'date': '2026-06-30', 'qty': 35,  'price': 69.00, 'amount': 2415.00},
     {'ticker': 'SSAAT', 'date': '2026-07-07', 'qty': 26,  'price': 56.00, 'amount': 1456.00},
+    {'ticker': 'SARAE', 'date': '2026-07-09', 'qty': 70,  'price': 70.00, 'amount': 4900.00},  # hâlâ elde
 ]
 
 
@@ -157,12 +158,11 @@ def process(rows):
                 'is_rights':   False,
             })
 
-    # Halka arz tahsisatı: satışı olup alışı olmayan hisselere maliyet ekle
+    # Halka arz tahsisatı: alışı olmayan hisselere maliyet ekle (satılmış ya da hâlâ elde)
     _has_buy = {t['ticker'] for t in trades if t['type'] == 'alis'}
-    _has_sell = {t['ticker'] for t in trades if t['type'] == 'satis'}
     for ipo in IPO_ALLOCATIONS:
         tk = ipo['ticker']
-        if tk in _has_sell and tk not in _has_buy:
+        if tk not in _has_buy:
             trades.append({
                 'date':        ipo['date'],
                 'settle_date': ipo['date'],
@@ -439,6 +439,7 @@ def fetch_stock_prices(tickers: list, start_date: date, end_date: date) -> dict:
         'ALTINS': 'ALTIN',   # Altın Sertifikası → BIST:ALTIN
         'SOHOE':  'SOHOE',   # normalize sonrası base kod → BIST:SOHOE
         'GOLDA':  'GOLDA',   # normalize sonrası base kod → BIST:GOLDA
+        'SARAE':  'SARAE',   # SA-RA Enerji (halka arz) → BIST:SARAE
     }
 
     try:
