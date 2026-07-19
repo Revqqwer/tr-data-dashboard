@@ -1394,8 +1394,11 @@
     .mb-layout{display:grid;grid-template-columns:280px minmax(0,1fr) 380px;gap:28px;
       padding:28px 40px;align-items:start;}
     .mb-center{max-width:1700px;margin:0 auto;width:100%;}
-    .mb-rail{position:sticky;top:20px;display:flex;flex-direction:column;gap:18px;
-      max-height:calc(100vh - 40px);overflow-y:auto;overscroll-behavior:contain;}
+    .mb-rail{position:sticky;top:88px;display:flex;flex-direction:column;gap:18px;
+      max-height:calc(100vh - 108px);overflow-y:auto;overscroll-behavior:contain;}
+    /* flex çocukları büzülmesin — yoksa paneller max-height'e sıkışıp overflow:hidden ile
+       kırpılıyor ve ray hiç kaydırılamıyordu */
+    .mb-rail > *{flex-shrink:0;}
     .mb-rail::-webkit-scrollbar{width:8px;}
     .mb-rail::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
     .mb-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
