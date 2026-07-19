@@ -3310,17 +3310,47 @@ function _mbRenderRightRail(report) {
 
   let html = '';
 
-  // 1. Bu Haftanın / Günün Temaları
-  const themes = _mbExtractThemes(sections);
-  if (themes.length) {
-    const isWeekly = report.type === 'weekly';
+  // 1. Bu Haftanın / Günün Temaları (getirilerle birlikte, hesaplanmışsa)
+  const isWeekly = report.type === 'weekly';
+  const pos = report.positions;
+  if (pos && pos.themes && pos.themes.length) {
+    const col = r => r > 0 ? '#10b981' : r < 0 ? '#ef4444' : 'var(--text-muted)';
+    const fmt = r => (r > 0 ? '+' : '') + r.toFixed(2) + '%';
+    let entryDate = '';
+    for (const th of pos.themes) for (const r of th.rows) { entryDate = r.entry_date; break; }
+    const avgBadge = (pos.avg != null)
+      ? `<span style="margin-left:auto;font-size:13px;font-weight:800;text-transform:none;letter-spacing:0;color:${col(pos.avg)};">${fmt(pos.avg)}</span>`
+      : '';
+    const items = pos.themes.map(th => {
+      const rows = th.rows.map(r => `
+        <div style="display:flex;justify-content:space-between;gap:8px;padding:3px 0;font-size:12.5px;">
+          <span style="font-weight:700;color:var(--text);">${_mbEsc(r.ticker)}</span>
+          <span title="giriş ${r.entry} → güncel ${r.current}" style="font-weight:700;font-variant-numeric:tabular-nums;color:${col(r.ret)};">${fmt(r.ret)}</span>
+        </div>`).join('');
+      return `<div class="mb-item">
+        <div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline;">
+          <div class="h" style="margin-bottom:0;">${_mbEsc(th.theme)}</div>
+          <span style="font-weight:800;font-size:13px;font-variant-numeric:tabular-nums;flex-shrink:0;color:${col(th.avg)};">${fmt(th.avg)}</span>
+        </div>
+        <div style="margin-top:6px;">${rows}</div>
+      </div>`;
+    }).join('');
     html += `<div class="mb-panel">
-      <div class="mb-panel-h"><span class="dot"></span>${isWeekly ? 'Bu Haftanın Temaları' : 'Günün Temaları'}</div>
-      ${themes.map(t => `<div class="mb-item">
-        <div class="h">${_mbEsc(t.title)}</div>
-        ${t.tickers ? `<div class="tk">${_mbEsc(t.tickers)}</div>` : ''}
-      </div>`).join('')}
+      <div class="mb-panel-h"><span class="dot" style="background:#10b981"></span>Günün Temaları & Getirisi${avgBadge}</div>
+      <div style="padding:9px 18px 3px;font-size:10px;color:var(--text-muted);line-height:1.35;">Her temanın tüm long fırsatına raporun günü açılışından${entryDate ? ` (${entryDate})` : ''} bugüne getiri · TradingView</div>
+      ${items}
     </div>`;
+  } else {
+    const themes = _mbExtractThemes(sections);
+    if (themes.length) {
+      html += `<div class="mb-panel">
+        <div class="mb-panel-h"><span class="dot"></span>${isWeekly ? 'Bu Haftanın Temaları' : 'Günün Temaları'}</div>
+        ${themes.map(t => `<div class="mb-item">
+          <div class="h">${_mbEsc(t.title)}</div>
+          ${t.tickers ? `<div class="tk">${_mbEsc(t.tickers)}</div>` : ''}
+        </div>`).join('')}
+      </div>`;
+    }
   }
 
   // 2. Earnings Takvimi
@@ -3344,9 +3374,6 @@ function _mbRenderRightRail(report) {
       ${risks.map(r => `<div class="mb-risk"><span class="ic">⚠</span><span>${_mbEsc(r)}</span></div>`).join('')}
     </div>`;
   }
-
-  // 4. Yatırım Fırsatlarının Getirisi (Risk Radarı'nın altında)
-  html += _mbPositionsRail(report.positions);
 
   right.innerHTML = html;
 }
@@ -3449,46 +3476,6 @@ function _mbExtractRisks(sections) {
 
 function _mbEsc(s) {
   return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
-/* ── Tematik Fırsat Getirisi — sağ ray paneli (kompakt tablo) ──
-   pos = {avg, count, themes:[{theme, avg, rows:[{ticker,entry,entry_date,current,ret}]}], computed_at} */
-function _mbPositionsRail(pos) {
-  if (!pos || !pos.themes || !pos.themes.length) return '';
-  const col = r => r > 0 ? '#10b981' : r < 0 ? '#ef4444' : 'var(--text-muted)';
-  const fmt = r => (r > 0 ? '+' : '') + r.toFixed(2) + '%';
-
-  let entryDate = '';
-  for (const th of pos.themes) for (const r of th.rows) { entryDate = r.entry_date; break; }
-
-  const avg = pos.avg;
-  const avgHtml = (avg != null)
-    ? `<span style="font-size:15px;font-weight:800;color:${col(avg)};">${fmt(avg)}</span>
-       <span style="font-size:10px;color:var(--text-muted);"> ort · ${pos.count} poz.</span>`
-    : '';
-
-  const body = pos.themes.map(th => {
-    const rows = th.rows.map(r => `
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:3px 0;font-size:12.5px;">
-        <span style="font-weight:700;color:var(--text);">${_mbEsc(r.ticker)}</span>
-        <span title="giriş ${r.entry} → ${r.current}" style="font-weight:700;font-variant-numeric:tabular-nums;color:${col(r.ret)};">${fmt(r.ret)}</span>
-      </div>`).join('');
-    return `
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px 0 2px;padding-bottom:3px;border-bottom:1px solid var(--border);">
-        <span style="font-size:10.5px;font-weight:700;color:var(--text-secondary);line-height:1.3;">${_mbEsc(th.theme)}</span>
-        <span style="font-size:11.5px;font-weight:800;font-variant-numeric:tabular-nums;color:${col(th.avg)};flex-shrink:0;">${fmt(th.avg)}</span>
-      </div>${rows}`;
-  }).join('');
-
-  return `<div class="mb-panel">
-    <div class="mb-panel-h"><span class="dot" style="background:#10b981"></span>Fırsat Getirisi</div>
-    <div style="padding:12px 18px 14px;">
-      <div style="display:flex;align-items:baseline;gap:6px;margin:0 0 4px;">${avgHtml}</div>
-      <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;line-height:1.35;">Her temanın tüm long fırsatına raporun günü açılışından${entryDate ? ` (${entryDate})` : ''} bugüne</div>
-      ${body}
-      <div style="font-size:9.5px;color:var(--text-muted);margin-top:10px;">TradingView · yalnızca long · tavsiye değildir</div>
-    </div>
-  </div>`;
 }
 
 /* ── Rapor içeriğini 2 sütuna böl (bölüm başlıklarında kır) ── */
