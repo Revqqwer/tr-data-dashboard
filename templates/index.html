@@ -2,6 +2,13 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8" />
+  <script>
+    /* Tema: yanıp sönmeyi (flash) önlemek için body'den önce uygula.
+       localStorage.theme yoksa cihazın sistem temasını kullan. */
+    (function(){try{var t=localStorage.getItem('theme');
+      if(t!=='dark'&&t!=='light'){t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}
+      document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+  </script>
   <meta name="google-site-verification" content="9cL8WjxmjHSca8-bXfc8_llyqO3TtOs4O3q0FX5XFtY" />
   <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
   <link rel="canonical" href="https://www.3nfinans.com/dashboard">
@@ -220,6 +227,33 @@
       this.classList.toggle('collapsed');
       document.getElementById('section-items-bist-endeks').classList.toggle('collapsed');
     });
+  </script>
+  <div class="sb-theme-row">
+    <button class="sb-theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Açık / koyu tema" aria-label="Tema değiştir">
+      <span class="sb-theme-ic" id="themeIcon">🌙</span>
+      <span class="sb-theme-label" id="themeLabel">Koyu tema</span>
+    </button>
+  </div>
+  <script>
+    function _applyThemeUI(t){
+      var ic=document.getElementById('themeIcon'), lb=document.getElementById('themeLabel');
+      if(ic) ic.textContent = (t==='dark') ? '☀️' : '🌙';
+      if(lb) lb.textContent = (t==='dark') ? 'Açık tema' : 'Koyu tema';
+    }
+    function _propagateTheme(t){
+      document.querySelectorAll('iframe').forEach(function(f){
+        try{ f.contentWindow.postMessage({type:'set-theme', theme:t}, '*'); }catch(e){}
+      });
+    }
+    function toggleTheme(){
+      var cur = document.documentElement.getAttribute('data-theme')==='dark' ? 'dark' : 'light';
+      var next = (cur==='dark') ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      try{ localStorage.setItem('theme', next); }catch(e){}
+      _applyThemeUI(next);
+      _propagateTheme(next);
+    }
+    _applyThemeUI(document.documentElement.getAttribute('data-theme')||'light');
   </script>
   {% if logged_in %}
   <div class="sidebar-footer">
