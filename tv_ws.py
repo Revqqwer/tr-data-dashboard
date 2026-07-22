@@ -10,6 +10,22 @@ stdlib + websocket-client kullanır; hem tefas_api (İstatistikler) hem app.py
 """
 import json
 
+# Fon/holding kodu → BIST sembolü eşlemesi.
+# Bazı enstrümanlar portföy dağılımında farklı kodla geçer ama borsada başka
+# sembolle işlem görür (TEFAS'ta hiç bulunmazlar). Hem fetch_bist_prices.py hem
+# tefas_api.py buradan okur.
+#   TPKGYF1 = Aura (eski TERA) Portföy Konut Alfa Katılım Gayrimenkul Yatırım Fonu
+#             → BIST'te TPKGY olarak işlem görür.
+BIST_ALIASES = {
+    "TPKGYF1": "TPKGY",
+}
+
+
+def resolve_bist_symbol(code: str) -> str:
+    """Holding kodunu TradingView'da aranacak BIST sembolüne çevirir."""
+    c = (code or "").strip().upper()
+    return BIST_ALIASES.get(c, c)
+
 
 def fetch_ohlc(symbol: str, exchange: str = '', n_bars: int = 250) -> dict:
     """
