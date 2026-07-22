@@ -22,7 +22,7 @@ import datetime
 BASE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BASE)
 
-from tv_ws import _fetch_tv_ws
+from tv_ws import _fetch_tv_ws, resolve_bist_symbol
 
 HOLDINGS_FILE = os.path.join(BASE, "data", "fund_holdings.json")
 OUT_FILE = os.path.join(BASE, "data", "bist_live.json")
@@ -39,17 +39,25 @@ def _fetch_timeout(ticker, timeout=10.0):
 
 
 def _unique_tickers() -> list:
+    """(holding_kodu, bist_sembolu) ciftlerini dondurur.
+
+    BYF/fon tipleri normalde TradingView'da yok (endpoint TEFAS fund_daily'den bakar),
+    AMA BIST_ALIASES'ta karsiligi olanlar borsada islem goruyor (or. TPKGYF1 -> TPKGY)
+    ve TEFAS'ta hic bulunmuyor; onlari da cekiyoruz.
+    """
     with open(HOLDINGS_FILE, encoding="utf-8") as f:
         data = json.load(f)
     seen, out = set(), []
     for fund, holds in data.items():
         for h in holds:
-            if h.get("type") == "byf":
-                continue  # BYF/fon TradingView'da yok; endpoint TEFAS fund_daily'den bakar
             c = str(h.get("code", "")).strip().upper()
-            if c and c not in seen:
-                seen.add(c)
-                out.append(c)
+            if not c or c in seen:
+                continue
+            sym = resolve_bist_symbol(c)
+            if h.get("type") == "byf" and sym == c:
+                continue  # gercek BYF/fon → TEFAS fund_daily'den
+            seen.add(c)
+            out.append((c, sym))
     return out
 
 
@@ -58,22 +66,24 @@ def main():
     print(f"{len(tickers)} tekil ticker cekiliyor (TradingView BIST)...")
     prices = {}
     not_found = []
-    for i, t in enumerate(tickers, 1):
+    for i, (key, sym) in enumerate(tickers, 1):
+        label = key if key == sym else f"{key}->{sym}"
         try:
-            r = _fetch_timeout(t)
+            r = _fetch_timeout(sym)
         except Exception as ex:
             r = {}
-            print(f"  {t}: HATA {ex}")
+            print(f"  {label}: HATA {ex}")
         if not r or len(r) < 1:
-            not_found.append(t)
-            print(f"  [{i}/{len(tickers)}] {t}: fiyat yok")
+            not_found.append(key)
+            print(f"  [{i}/{len(tickers)}] {label}: fiyat yok")
             continue
         ds = sorted(r.keys())
         last = r[ds[-1]]
         prev = r[ds[-2]] if len(ds) >= 2 else None
         change = round((last / prev - 1.0) * 100, 2) if prev else None
-        prices[t] = {"price": last, "prev_close": prev, "change_pct": change}
-        print(f"  [{i}/{len(tickers)}] {t}: {last} ({'+' if (change or 0) >= 0 else ''}{change}%)")
+        # holding kodu ile sakla → endpoint dogrudan bulur
+        prices[key] = {"price": last, "prev_close": prev, "change_pct": change}
+        print(f"  [{i}/{len(tickers)}] {label}: {last} ({'+' if (change or 0) >= 0 else ''}{change}%)")
 
     out = {
         "updated_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),

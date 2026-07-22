@@ -507,13 +507,14 @@ def custom_fund_holdings(code: str):
         c = str(h.get("code", "")).upper()
         w = float(h.get("weight", 0.0))
         typ = h.get("type", "hisse")
-        if typ == "byf":
+        info = prices.get(c)
+        chg = info.get("change_pct") if info else None
+        px = info.get("price") if info else None
+        if typ == "byf" and chg is None:
+            # Borsada işlem görmeyen gerçek BYF/fon → TEFAS fund_daily'den (T+1 gecikmeli).
+            # (BIST_ALIASES'taki fonlar — ör. TPKGYF1→TPKGY — yukarıdaki canlı fiyattan gelir.)
             chg = byf_change.get(c)
             px = byf_price.get(c)
-        else:
-            info = prices.get(c)
-            chg = info.get("change_pct") if info else None
-            px = info.get("price") if info else None
         if chg is None:
             unpriced.append(c)
             out.append({"code": c, "weight": round(w, 4), "type": typ,
