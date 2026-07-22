@@ -2,6 +2,16 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
+<script>
+(function(){try{var t=localStorage.getItem('theme');
+ if(t!=='dark'&&t!=='light'){t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}
+ document.documentElement.setAttribute('data-theme',t);}catch(e){}
+ function ch(t){var cur=document.documentElement.getAttribute('data-theme')||'light';
+  if((t==='dark'||t==='light')&&t!==cur){try{localStorage.setItem('theme',t)}catch(e){}location.reload();}}
+ window.addEventListener('message',function(e){if(e&&e.data&&e.data.type==='set-theme')ch(e.data.theme);});
+ window.addEventListener('storage',function(e){if(e.key==='theme'&&e.newValue)ch(e.newValue);});
+})();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ABD Endeksleri Karşılaştırma</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -24,10 +34,10 @@
   .period-btn.custom-active { background: #7c3aed; color: #fff; border-color: #7c3aed; font-weight: 700; }
   .last-update { margin-left: auto; font-size: 0.7rem; color: var(--muted); }
 
-  .custom-bar { display: none; align-items: center; gap: 8px; flex-wrap: wrap; padding: 7px 20px; border-bottom: 1px solid var(--border); background: #f8f9fc; flex-shrink: 0; }
+  .custom-bar { display: none; align-items: center; gap: 8px; flex-wrap: wrap; padding: 7px 20px; border-bottom: 1px solid var(--border); background: var(--surface2); flex-shrink: 0; }
   .custom-bar.show { display: flex; }
   .custom-bar label { font-size: 0.72rem; color: var(--muted); font-weight: 600; }
-  .custom-bar input[type=date] { padding: 4px 9px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.78rem; background: #fff; color: var(--text); outline: none; cursor: pointer; }
+  .custom-bar input[type=date] { padding: 4px 9px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.78rem; background: var(--surface); color: var(--text); outline: none; cursor: pointer; }
   .custom-bar input[type=date]:focus { border-color: var(--accent); }
   .custom-bar .apply-btn { padding: 4px 14px; border-radius: 6px; border: none; background: #7c3aed; color: #fff; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
   .custom-bar .apply-btn:hover { background: #6d28d9; }
@@ -67,6 +77,14 @@
     .body-wrap { grid-template-columns: 1fr !important; grid-template-rows: 190px 1fr !important; height: calc(100vh - 48px) !important; }
     .sidebar { border-right: none; border-bottom: 1px solid var(--border); }
     .idx-item { padding: 5px 10px; font-size: 0.75rem; }
+  }
+</style>
+<style>
+  :root { --surface2: #f8f9fc; }
+  :root[data-theme="dark"] {
+    --bg:#0b0f17; --surface:#141a24; --surface2:#1b222e; --border:#2a3340;
+    --text:#e6edf5; --muted:#7f8b9c; --accent:#5b8cff; --green:#34d399; --red:#f87171;
+    color-scheme: dark;
   }
 </style>
 </head>

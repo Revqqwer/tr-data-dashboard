@@ -4,20 +4,29 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TEFAS Fon Akış Takibi</title>
+    <script>
+      /* Tema: parent ile aynı origin → localStorage paylaşımlı. Flash'ı önlemek için erken uygula. */
+      (function(){try{var t=localStorage.getItem('theme');
+        if(t!=='dark'&&t!=='light'){t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}
+        document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
       * { box-sizing: border-box; margin: 0; padding: 0; }
+      html { color-scheme: light; }
       body {
         font-family: 'Inter', system-ui, sans-serif;
         background: #eef2f7;
         color: #1a2535;
         -webkit-font-smoothing: antialiased;
       }
+      html[data-theme="dark"] { color-scheme: dark; }
+      html[data-theme="dark"] body { background: #0b0f17; color: #e6edf5; }
       button { font-family: inherit; }
       input  { font-family: inherit; }
     </style>
-    <script type="module" crossorigin src="/tefas/assets/index-CvScvkoe.js"></script>
+    <script type="module" crossorigin src="/tefas/assets/index-auZj2Rnf.js"></script>
     <link rel="stylesheet" crossorigin href="/tefas/assets/index-Bi6qIzMN.css">
   </head>
   <body>
