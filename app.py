@@ -94,6 +94,26 @@ app.register_blueprint(bist_bp)
 from usa_api import usa_bp
 app.register_blueprint(usa_bp)
 
+# ── PWA: service worker + manifest ─────────────────────────
+@app.route('/sw.js')
+def service_worker():
+    """Service worker KÖK kapsamdan sunulmalı — /static/sw.js olsaydı yalnızca
+    /static/* isteklerini kontrol edebilirdi. Ayrıca hiç cache'lenmemeli, yoksa
+    güncel sürüm kullanıcılara ulaşmaz."""
+    resp = send_from_directory(os.path.join(app.root_path, 'static'), 'sw.js')
+    resp.headers['Service-Worker-Allowed'] = '/'
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    resp.headers['Content-Type'] = 'application/javascript; charset=utf-8'
+    return resp
+
+
+@app.route('/manifest.json')
+def web_manifest():
+    resp = send_from_directory(os.path.join(app.root_path, 'static'), 'manifest.json')
+    resp.headers['Content-Type'] = 'application/manifest+json; charset=utf-8'
+    return resp
+
+
 # ── TEFAS React SPA static dosyalar ────────────────────────
 _TEFAS_BUILD = os.path.join(os.path.dirname(__file__), 'tefas_build')
 

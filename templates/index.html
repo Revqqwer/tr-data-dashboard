@@ -11,6 +11,15 @@
   </script>
   <meta name="google-site-verification" content="9cL8WjxmjHSca8-bXfc8_llyqO3TtOs4O3q0FX5XFtY" />
   <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <!-- ── PWA (ana ekrana eklenebilir uygulama) ── -->
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="3N Finans">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#eef2f8" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0b0f17" media="(prefers-color-scheme: dark)">
   <link rel="canonical" href="https://www.3nfinans.com/dashboard">
   <meta name="robots" content="noindex, follow">
   <meta property="og:type"        content="website">
@@ -1579,6 +1588,16 @@ document.querySelectorAll('.nav-item[data-page]').forEach(function(el) {
     if (window.innerWidth <= 768) closeMobileSidebar();
   });
 });
+</script>
+
+<script>
+/* PWA: service worker kaydı — sadece HTTPS (veya localhost) üzerinde çalışır */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('/sw.js', { scope: '/' })
+      .catch(function (e) { console.warn('SW kayıt edilemedi:', e); });
+  });
+}
 </script>
 
 </body>
