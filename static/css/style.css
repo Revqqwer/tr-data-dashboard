@@ -1,5 +1,15 @@
 ﻿*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* iOS Safari, genis metin bloklarindaki yazilari otomatik buyutur
+   ("text autosizing"). Bu, rapor gibi uzun metinlerde duzeni ekrandan
+   genis yapip yatay tasmaya ve sagin kesilmesine yol aciyordu.
+   %100 = tarayici olceklendirmeyi degistirmesin. */
+html {
+  -webkit-text-size-adjust: 100%;
+  -moz-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 :root {
   --bg: #eef2f8;
   --surface: #ffffff;
