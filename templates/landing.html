@@ -237,6 +237,40 @@ section.page-section{padding:100px 48px;max-width:1200px;margin:0 auto}
 }
 .cta-btn:hover{opacity:.85;transform:translateY(-1px);box-shadow:0 6px 20px rgba(255,255,255,.08)}
 
+/* ── Uygulama olarak ekle (PWA) ── */
+.cta-btn-alt{
+  background:transparent;color:var(--gold);border:1px solid var(--gold);
+  margin-left:12px;cursor:pointer;font-family:inherit;
+}
+.cta-btn-alt:hover{background:var(--gold);color:var(--dark);box-shadow:0 6px 20px rgba(201,169,110,.18)}
+@media(max-width:600px){ .cta-btn-alt{margin-left:0;margin-top:12px} }
+
+.pwa-modal{
+  position:fixed;inset:0;z-index:9999;display:none;
+  align-items:center;justify-content:center;padding:20px;
+  background:rgba(0,0,0,.75);backdrop-filter:blur(4px);
+}
+.pwa-modal.show{display:flex}
+.pwa-card{
+  background:#111;border:1px solid #2a2a2a;max-width:400px;width:100%;
+  padding:28px 26px;color:var(--white);
+}
+.pwa-card h3{font-family:'Playfair Display',serif;font-size:22px;font-weight:600;margin-bottom:6px}
+.pwa-card .sub{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:20px}
+.pwa-step{display:flex;gap:12px;align-items:flex-start;margin-bottom:14px;font-size:14px;line-height:1.55;color:var(--off)}
+.pwa-step .n{
+  flex-shrink:0;width:22px;height:22px;border-radius:50%;
+  background:var(--gold);color:var(--dark);font-size:12px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;margin-top:1px;
+}
+.pwa-step svg{vertical-align:-3px;margin:0 2px}
+.pwa-close{
+  width:100%;margin-top:20px;padding:12px;background:transparent;
+  border:1px solid #2a2a2a;color:var(--muted);font-family:inherit;
+  font-size:13px;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;transition:.15s;
+}
+.pwa-close:hover{border-color:var(--gold);color:var(--gold)}
+
 /* ── FOOTER ── */
 footer{
   border-top:1px solid #1a1a1a;padding:32px 48px;
@@ -616,6 +650,10 @@ footer a:hover{color:#999}
         Panele Gir
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
       </a>
+      <button id="pwa-install-btn" class="cta-btn cta-btn-alt" style="display:none;">
+        Uygulama Olarak Ekle
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
+      </button>
     </div>
   </div>
 </section>
@@ -821,6 +859,33 @@ window.addEventListener('scroll',_runAll,{passive:true,once:true});
   window.addEventListener('beforeunload',flush);
 })();
 </script>
+<!-- iOS talimat penceresi: Apple "Ana Ekrana Ekle"yi programatik tetiklemeye izin vermiyor -->
+<div class="pwa-modal" id="pwa-modal">
+  <div class="pwa-card">
+    <h3>Ana ekrana ekle</h3>
+    <p class="sub">iPhone/iPad'de Safari bu adımı otomatik yapamıyor — birkaç saniyelik işlem:</p>
+
+    <div class="pwa-step">
+      <span class="n">1</span>
+      <span>Ekranın altındaki <b>Paylaş</b> ikonuna dokun
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 16V4M8 8l4-4 4 4M4 16v3a2 2 0 002 2h12a2 2 0 002-2v-3"/></svg>
+        <br><span style="color:var(--muted);font-size:12.5px">Görünmüyorsa sayfayı en yukarı kaydır, çubuk geri gelir.</span>
+      </span>
+    </div>
+    <div class="pwa-step">
+      <span class="n">2</span><span>Açılan listeyi <b>aşağı kaydır</b></span>
+    </div>
+    <div class="pwa-step">
+      <span class="n">3</span><span><b>"Ana Ekrana Ekle"</b>ye dokun</span>
+    </div>
+    <div class="pwa-step">
+      <span class="n">4</span><span>Sağ üstten <b>Ekle</b> — hazır.</span>
+    </div>
+
+    <button class="pwa-close" id="pwa-modal-close">Anladım</button>
+  </div>
+</div>
+
 <script>
 /* PWA: service worker kaydı — sadece HTTPS (veya localhost) üzerinde çalışır */
 if ('serviceWorker' in navigator) {
@@ -829,6 +894,54 @@ if ('serviceWorker' in navigator) {
       .catch(function (e) { console.warn('SW kayıt edilemedi:', e); });
   });
 }
+
+/* "Uygulama Olarak Ekle"
+   - Android / masaüstü Chrome-Edge: beforeinstallprompt ile GERÇEK tek tık kurulum
+   - iOS Safari: Apple programatik kuruluma izin vermiyor → talimat penceresi
+   - Zaten uygulama olarak açılmışsa buton hiç görünmez */
+(function () {
+  var btn = document.getElementById('pwa-install-btn');
+  var modal = document.getElementById('pwa-modal');
+  if (!btn) return;
+
+  var standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
+                   || window.navigator.standalone === true;
+  if (standalone) return;
+
+  var deferred = null;
+  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();
+    deferred = e;
+    btn.style.display = 'inline-flex';
+  });
+
+  if (isIOS) btn.style.display = 'inline-flex';
+
+  btn.addEventListener('click', function () {
+    if (deferred) {
+      deferred.prompt();
+      deferred.userChoice.then(function (r) {
+        if (r && r.outcome === 'accepted') btn.style.display = 'none';
+        deferred = null;
+      });
+    } else if (modal) {
+      modal.classList.add('show');
+    }
+  });
+
+  window.addEventListener('appinstalled', function () {
+    btn.style.display = 'none';
+    if (modal) modal.classList.remove('show');
+  });
+
+  if (modal) {
+    modal.addEventListener('click', function (e) {
+      if (e.target === modal || e.target.id === 'pwa-modal-close') modal.classList.remove('show');
+    });
+  }
+})();
 </script>
 </body>
 </html>
