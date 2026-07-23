@@ -1783,6 +1783,56 @@ if ('serviceWorker' in navigator) {
 })();
 </script>
 
+<script>
+/* GECICI TESHIS — sadece ?diag=1 ile acilir. Mobil tasma sorununu cihazda
+   olcmek icin. Sorun cozulunce bu blok silinecek. */
+if (location.search.indexOf('diag=1') > -1) {
+  window.addEventListener('load', function () {
+    setTimeout(function () {
+      var W = window.innerWidth, de = document.documentElement, out = [];
+      function add(k, v) { out.push(k + ': ' + v); }
+      add('innerWidth', W);
+      add('doc.scrollWidth', de.scrollWidth);
+      add('body.scrollWidth', document.body.scrollWidth);
+      add('screen.width', screen.width);
+      add('devicePixelRatio', window.devicePixelRatio);
+      if (window.visualViewport) {
+        add('visualVP.width', Math.round(visualViewport.width));
+        add('visualVP.scale', visualViewport.scale);
+      }
+      add('mq<=768', window.matchMedia('(max-width: 768px)').matches);
+      var main = document.querySelector('.main');
+      if (main) { add('.main marginLeft', getComputedStyle(main).marginLeft);
+                  add('.main width', Math.round(main.getBoundingClientRect().width)); }
+      var lay = document.querySelector('.mb-layout');
+      if (lay) { add('.mb-layout width', Math.round(lay.getBoundingClientRect().width));
+                 add('.mb-layout cols', getComputedStyle(lay).gridTemplateColumns); }
+      var over = [];
+      document.querySelectorAll('*').forEach(function (el) {
+        var cs = getComputedStyle(el);
+        if (cs.display === 'none' || cs.visibility === 'hidden') return;
+        var r = el.getBoundingClientRect();
+        if (r.width === 0) return;
+        if (r.right > W + 1) over.push({ e: el, right: Math.round(r.right), w: Math.round(r.width) });
+      });
+      over.sort(function (a, b) { return b.right - a.right; });
+      add('TASAN ELEMAN', over.length);
+      over.slice(0, 5).forEach(function (o, i) {
+        var el = o.e;
+        add(' ' + (i + 1) + ') ' + el.tagName + (el.id ? '#' + el.id : '') +
+            (el.className ? '.' + String(el.className).split(' ')[0] : ''),
+            'right=' + o.right + ' w=' + o.w);
+      });
+      var box = document.createElement('div');
+      box.style.cssText = 'position:fixed;left:0;top:0;right:0;z-index:99999;background:#000;color:#0f0;' +
+        'font:12px/1.45 monospace;padding:10px;white-space:pre-wrap;word-break:break-all;' +
+        'max-height:70vh;overflow:auto;border-bottom:2px solid #0f0;';
+      box.textContent = out.join('\n');
+      document.body.appendChild(box);
+    }, 1200);
+  });
+}
+</script>
 </body>
 </html>
 
