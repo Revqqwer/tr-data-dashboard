@@ -243,6 +243,11 @@
       <span class="sb-theme-ic">📲</span>
       <span class="sb-theme-label">Uygulama Olarak Ekle</span>
     </button>
+    <button class="sb-theme-toggle" id="pushBtn" style="display:none;margin-bottom:8px;"
+            title="Bildirimleri aç" aria-label="Bildirimleri aç">
+      <span class="sb-theme-ic" id="pushIc">🔔</span>
+      <span class="sb-theme-label" id="pushLabel">Bildirimleri Aç</span>
+    </button>
     <button class="sb-theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Açık / koyu tema" aria-label="Tema değiştir">
       <span class="sb-theme-ic" id="themeIcon">🌙</span>
       <span class="sb-theme-label" id="themeLabel">Koyu tema</span>
@@ -1705,6 +1710,76 @@ if ('serviceWorker' in navigator) {
       if (e.target === modal || e.target.id === 'pwaModalClose') modal.style.display = 'none';
     });
   }
+})();
+
+/* ── Bildirimler ──────────────────────────────────────────────────────────
+   iOS'ta push SADECE ana ekrana eklenmiş uygulamada çalışır (iOS 16.4+).
+   İzin penceresi tarayıcı kuralı gereği kullanıcı tıklamasıyla açılmalı. */
+(function () {
+  var btn = document.getElementById('pushBtn');
+  if (!btn) return;
+  if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return;
+
+  var lbl = document.getElementById('pushLabel');
+  var ic  = document.getElementById('pushIc');
+  var standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
+                   || window.navigator.standalone === true;
+  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+  // iOS'ta ana ekrana eklenmemişse push imkansız → butonu hiç gösterme
+  if (isIOS && !standalone) return;
+
+  function paint(state) {
+    if (state === 'on')       { ic.textContent = '🔔'; lbl.textContent = 'Bildirimler Açık'; btn.style.opacity = '.7'; }
+    else if (state === 'off') { ic.textContent = '🔕'; lbl.textContent = 'Bildirimler Kapalı'; btn.style.opacity = '.7'; }
+    else                      { ic.textContent = '🔔'; lbl.textContent = 'Bildirimleri Aç';   btn.style.opacity = ''; }
+  }
+
+  function b64ToU8(s) {
+    var pad = '='.repeat((4 - s.length % 4) % 4);
+    var raw = atob((s + pad).replace(/-/g, '+').replace(/_/g, '/'));
+    return Uint8Array.from(raw, function (c) { return c.charCodeAt(0); });
+  }
+
+  navigator.serviceWorker.ready.then(function (reg) {
+    return reg.pushManager.getSubscription().then(function (sub) {
+      btn.style.display = 'flex';
+      if (Notification.permission === 'denied') paint('off');
+      else paint(sub ? 'on' : 'idle');
+    });
+  }).catch(function () {});
+
+  btn.addEventListener('click', async function () {
+    if (Notification.permission === 'denied') {
+      alert('Bildirim izni daha önce reddedilmiş.\n\nTarayıcı/site ayarlarından "Bildirimler" iznini "İzin ver" yapman gerekiyor.');
+      return;
+    }
+    lbl.textContent = 'Bağlanıyor...';
+    try {
+      var perm = await Notification.requestPermission();
+      if (perm !== 'granted') { paint(perm === 'denied' ? 'off' : 'idle'); return; }
+
+      var reg = await navigator.serviceWorker.ready;
+      var sub = await reg.pushManager.getSubscription();
+      if (!sub) {
+        var key = (await (await fetch('/api/push/public-key')).json()).key;
+        if (!key) { alert('Sunucuda VAPID anahtarı tanımlı değil.'); paint('idle'); return; }
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: b64ToU8(key),
+        });
+      }
+      var r = await fetch('/api/push/subscribe', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sub),
+      });
+      paint(r.ok ? 'on' : 'idle');
+      if (r.ok) new Notification('3N Finans', { body: 'Bildirimler açıldı ✓', icon: '/static/icons/icon-192.png' });
+    } catch (e) {
+      console.warn('push hatası:', e);
+      paint('idle');
+    }
+  });
 })();
 </script>
 
