@@ -1167,18 +1167,35 @@ function runDiag(){
   var l=document.querySelector('.mb-layout');
   if(l){ add('.mb-layout width', Math.round(l.getBoundingClientRect().width));
          add('.mb-layout cols', getComputedStyle(l).gridTemplateColumns); }
-  var over=[];
+  // Tasan YAPRAK elemanlar (cocugu olmayan) — gercek suclu bunlar
+  var leaves=[];
   document.querySelectorAll('*').forEach(function(el){
     var cs=getComputedStyle(el);
     if(cs.display==='none'||cs.visibility==='hidden') return;
+    if(el.children.length>0) return;               // sadece yapraklar
     var r=el.getBoundingClientRect(); if(r.width===0) return;
-    if(r.right>W+1) over.push({e:el,right:Math.round(r.right),w:Math.round(r.width)});
+    leaves.push({e:el, w:Math.round(r.width), right:Math.round(r.right)});
   });
-  over.sort(function(a,b){return b.right-a.right;});
-  add('TASAN ELEMAN', over.length);
-  over.slice(0,6).forEach(function(o,i){ var el=o.e;
+  leaves.sort(function(a,b){return b.w-a.w;});
+  add('--- EN GENIS YAPRAKLAR ---','');
+  leaves.slice(0,8).forEach(function(o,i){ var el=o.e;
+    add(' '+(i+1)+') '+el.tagName+(el.className?'.'+String(el.className).split(' ')[0]:''),
+        'w='+o.w+' ws='+getComputedStyle(el).whiteSpace+' "'+(el.textContent||'').trim().slice(0,26)+'"');
+  });
+  // Kendi icerigi tasan (scrollWidth > clientWidth) elemanlar
+  var self=[];
+  document.querySelectorAll('*').forEach(function(el){
+    var cs=getComputedStyle(el);
+    if(cs.display==='none') return;
+    if(el.scrollWidth > el.clientWidth+1 && el.clientWidth>0)
+      self.push({e:el, sw:el.scrollWidth, cw:el.clientWidth});
+  });
+  self.sort(function(a,b){return (b.sw-b.cw)-(a.sw-a.cw);});
+  add('--- KENDI ICINDE TASAN ---','');
+  self.slice(0,6).forEach(function(o,i){ var el=o.e;
     add(' '+(i+1)+') '+el.tagName+(el.id?'#'+el.id:'')+(el.className?'.'+String(el.className).split(' ')[0]:''),
-        'right='+o.right+' w='+o.w); });
+        'scrollW='+o.sw+' clientW='+o.cw);
+  });
   var b=document.getElementById('diagBox');
   if(!b){ b=document.createElement('div'); b.id='diagBox';
     b.style.cssText='position:fixed;left:0;top:0;right:0;z-index:99999;background:#000;color:#0f0;'+
