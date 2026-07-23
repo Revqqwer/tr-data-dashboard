@@ -1483,12 +1483,17 @@
     @media(max-width:1400px){.mb-layout{grid-template-columns:minmax(0,1fr) 300px;}.mb-rail-left{display:none;}}
     @media(max-width:1024px){.mb-layout{grid-template-columns:minmax(0,1fr);}.mb-rail{display:none;}}
     @media(max-width:768px){
-      .mb-layout{grid-template-columns:1fr;padding:14px 12px;gap:16px;}
+      /* minmax(0,1fr) SART: duz 1fr'de grid ogesi min-width:auto tasir ve
+         icerigin min-content genisliginin altina inemez; tek bir nowrap
+         baslik bile sutunu ekrandan genis yapar. Ust kirilim noktalari
+         zaten minmax(0,1fr) kullaniyor, burada atlanmis. */
+      .mb-layout{grid-template-columns:minmax(0,1fr);padding:14px 12px;gap:16px;}
+      .mb-center,.mb-rail{min-width:0;}
       /* rail'ler gizlenmesin — içeriğin altına yığılsın, sticky kapalı */
       .mb-rail{display:flex !important;position:static;top:auto;max-height:none;overflow:visible;}
       .mb-center{order:1;} .mb-rail-right{order:2;} .mb-rail-left{order:3;}
       /* rapor iki kolonu telefonda tek kolon */
-      .mb-report-cols{grid-template-columns:1fr !important;gap:0 !important;}
+      .mb-report-cols{grid-template-columns:minmax(0,1fr) !important;gap:0 !important;}
       /* bolum basliklarindaki tam-genislik negatif kenar boslugu telefonda
          24px yatay tasma yapiyordu (masaustunde kart dolgusuyla hizalaniyor) */
       .mb-sec{margin-left:0 !important;margin-right:0 !important;padding-left:14px !important;padding-right:14px !important;}
