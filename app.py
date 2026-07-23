@@ -12,14 +12,29 @@ load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env'), ov
 MAIL_USERNAME = os.environ.get('MAIL_USERNAME', '')
 MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD', '')
 
-def send_email(to_addr: str, subject: str, body: str) -> bool:
-    """Gmail SMTP ile email gönder."""
+# Görünen gönderen: kendi alan adına geçince MAIL_FROM'u ayarlaman yeterli
+# (ör. MAIL_FROM="3N Finans <bulten@3nfinans.com>"). Boşsa Gmail hesabı kullanılır.
+MAIL_FROM      = os.environ.get('MAIL_FROM', '')
+MAIL_REPLY_TO  = os.environ.get('MAIL_REPLY_TO', '')
+
+
+def _html_to_text(html: str) -> str:
+    """HTML gövdeden kaba düz metin üretir (spam filtreleri düz metin alternatifi bekler)."""
+    import re as _re
+    t = _re.sub(r'(?is)<(script|style).*?</\1>', ' ', html or '')
+    t = _re.sub(r'(?i)<br\s*/?>|</p>|</div>|</tr>', '\n', t)
+    t = _re.sub(r'(?s)<[^>]+>', '', t)
+    t = (t.replace('&nbsp;', ' ').replace('&amp;', '&')
+           .replace('&lt;', '<').replace('&gt;', '>').replace('&#39;', "'"))
+    t = _re.sub(r'\n{3,}', '\n\n', t)
+    return '\n'.join(line.strip() for line in t.splitlines()).strip()
+
+
+def send_email(to_addr: str, subject: str, body: str,
+               text_body: str = None, unsubscribe_url: str = None) -> bool:
+    """Gmail SMTP ile email gönder (multipart/alternative + teslimat başlıkları)."""
     try:
-        msg = MIMEMultipart()
-        msg['From']    = MAIL_USERNAME
-        msg['To']      = to_addr
-        msg['Subject'] = subject
-        msg.attach(MIMEText(body, 'html', 'utf-8'))
+        msg = _build_message(to_addr, subject, body, text_body, unsubscribe_url)
         with smtplib.SMTP_SSL('smtp.gmail.com', 465, timeout=15) as s:
             s.login(MAIL_USERNAME, MAIL_PASSWORD)
             s.sendmail(MAIL_USERNAME, to_addr, msg.as_string())
@@ -27,6 +42,26 @@ def send_email(to_addr: str, subject: str, body: str) -> bool:
     except Exception as e:
         print(f'Email gönderilemedi: {e}')
         return False
+
+
+def _build_message(to_addr: str, subject: str, html_body: str,
+                   text_body: str = None, unsubscribe_url: str = None):
+    """Teslimat dostu mesaj: düz metin + HTML, Reply-To, List-Unsubscribe."""
+    from email.utils import formatdate, make_msgid, formataddr
+    msg = MIMEMultipart('alternative')          # 'mixed' değil → doğru yapı
+    msg['From']     = MAIL_FROM or formataddr(('3N Finans', MAIL_USERNAME))
+    msg['To']       = to_addr
+    msg['Subject']  = subject
+    msg['Date']     = formatdate(localtime=True)
+    msg['Message-ID'] = make_msgid(domain='3nfinans.com')
+    msg['Reply-To'] = MAIL_REPLY_TO or MAIL_USERNAME
+    if unsubscribe_url:
+        # Gmail/Yahoo toplu gönderim şartı: tek tıkla abonelikten çıkma
+        msg['List-Unsubscribe'] = f'<{unsubscribe_url}>'
+        msg['List-Unsubscribe-Post'] = 'List-Unsubscribe=One-Click'
+    msg.attach(MIMEText(text_body or _html_to_text(html_body), 'plain', 'utf-8'))
+    msg.attach(MIMEText(html_body, 'html', 'utf-8'))   # HTML son sırada olmalı
+    return msg
 
 # ── Discord OAuth2 ───────────────────────────────────────────
 DISCORD_CLIENT_ID     = os.environ.get('DISCORD_CLIENT_ID',     '1505961330732044308')

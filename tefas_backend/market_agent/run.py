@@ -61,7 +61,19 @@ def _send_to_subscribers(report_text: str, report_type: str, report_id: str = No
     html_body = '<pre style="font-family:monospace;white-space:pre-wrap;font-size:13px;line-height:1.7">' + \
                 report_text.replace('<','&lt;').replace('>','&gt;') + '</pre>'
 
+    from email.utils import formatdate as _fmtdate, make_msgid as _mkmsgid, formataddr as _fmtaddr
+    mail_from = _os.environ.get('MAIL_FROM', '') or _fmtaddr(('3N Finans', mail_user))
+    reply_to  = _os.environ.get('MAIL_REPLY_TO', '') or mail_user
+
     sent = 0
+    # Tek SMTP oturumu: her alıcı için yeniden login olmak hem yavaş hem şüpheli
+    try:
+        smtp = _smtp.SMTP_SSL('smtp.gmail.com', 465, timeout=30)
+        smtp.login(mail_user, mail_pass)
+    except Exception as e:
+        print(f"⚠️  SMTP baglantisi kurulamadi: {e}")
+        return
+
     for email, token in rows:
         unsub = f"https://www.3nfinans.com/unsubscribe/{token}"
         # Açılma takibi pixel'i (rapor + aboneye özel)
@@ -82,18 +94,34 @@ def _send_to_subscribers(report_text: str, report_type: str, report_id: str = No
             </div>
           </div>
         </div>{pixel}"""
+        # Düz metin alternatifi: rapor zaten düz metin — HTML-only mail spam'e düşürür
+        text_body = (f"3N Finans — {label} Piyasa Raporu\n\n"
+                     f"{report_text}\n\n"
+                     f"Panele git: https://www.3nfinans.com/dashboard\n"
+                     f"Abonelikten çık: {unsub}\n")
         try:
-            msg = _MIMEMultipart()
-            msg['From']    = mail_user
+            msg = _MIMEMultipart('alternative')
+            msg['From']    = mail_from
             msg['To']      = email
             msg['Subject'] = subject
+            msg['Date']    = _fmtdate(localtime=True)
+            msg['Message-ID'] = _mkmsgid(domain='3nfinans.com')
+            msg['Reply-To'] = reply_to
+            # Gmail/Yahoo toplu gönderim şartı: tek tıkla abonelikten çıkma
+            msg['List-Unsubscribe'] = f'<{unsub}>'
+            msg['List-Unsubscribe-Post'] = 'List-Unsubscribe=One-Click'
+            msg['Precedence'] = 'bulk'
+            msg.attach(_MIMEText(text_body, 'plain', 'utf-8'))
             msg.attach(_MIMEText(body, 'html', 'utf-8'))
-            with _smtp.SMTP_SSL('smtp.gmail.com', 465, timeout=15) as s:
-                s.login(mail_user, mail_pass)
-                s.sendmail(mail_user, email, msg.as_string())
+            smtp.sendmail(mail_user, email, msg.as_string())
             sent += 1
         except Exception as e:
             print(f"  ✗ {email}: {e}")
+
+    try:
+        smtp.quit()
+    except Exception:
+        pass
 
     # Gönderim kaydı (açılma oranı paydası)
     if report_id:
