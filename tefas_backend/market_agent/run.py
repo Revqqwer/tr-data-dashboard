@@ -261,6 +261,20 @@ def run_daily() -> str:
     # Tekrar açmak için alttaki satırın yorumunu kaldır.
     # _report_to_telegram(report)
 
+    # Push bildirimi (uygulamayı kurup izin veren kullanıcılara)
+    try:
+        import sys as _s
+        _s.path.insert(0, str(_ROOT))
+        import push as _push
+        _r = _push.send_push(
+            '📊 Günlük piyasa özeti yayında',
+            'Dün gece global piyasalarda neler oldu — özet hazır.',
+            url='/dashboard#market-briefs', tag='daily-brief',
+        )
+        print(f"🔔 Push: {_r}")
+    except Exception as e:
+        print(f"⚠️  Push gönderilemedi: {e}")
+
     return report
 
 
