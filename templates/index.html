@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="tr">
 <head>
   <meta charset="UTF-8" />
@@ -1598,10 +1598,8 @@ document.querySelectorAll('.nav-item[data-page]').forEach(function(el) {
 <!-- iOS talimat penceresi: Apple "Ana Ekrana Ekle"yi programatik tetiklemeye izin vermiyor -->
 <div id="pwaModal" style="display:none;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);">
   <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;max-width:380px;width:100%;padding:24px;color:var(--text);">
-    <div style="font-size:17px;font-weight:700;margin-bottom:4px;">Ana ekrana ekle</div>
-    <div style="font-size:12.5px;color:var(--text-muted);line-height:1.6;margin-bottom:18px;">
-      iPhone/iPad'de Safari bu adımı otomatik yapamıyor — birkaç saniyelik işlem:
-    </div>
+    <div id="pwaTitle" style="font-size:17px;font-weight:700;margin-bottom:4px;">Ana ekrana ekle</div>
+    <div id="pwaSub" style="font-size:12.5px;color:var(--text-muted);line-height:1.6;margin-bottom:18px;"></div>
     <div id="pwaSteps" style="font-size:13.5px;line-height:1.6;"></div>
     <button id="pwaModalClose"
             style="width:100%;margin-top:18px;padding:11px;border-radius:9px;background:var(--surface2);
@@ -1634,14 +1632,42 @@ if ('serviceWorker' in navigator) {
   if (standalone) return;
 
   var deferred = null;
-  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
-  var steps = [
-    'Ekranın altındaki <b>Paylaş</b> ikonuna dokun<br><span style="color:var(--text-muted);font-size:12px">Görünmüyorsa sayfayı en yukarı kaydır, çubuk geri gelir.</span>',
-    'Açılan listeyi <b>aşağı kaydır</b>',
-    '<b>"Ana Ekrana Ekle"</b>ye dokun',
-    'Sağ üstten <b>Ekle</b> — hazır.'
-  ];
+  /* Platforma göre talimat. beforeinstallprompt yalnızca Chrome/Edge'de gelir;
+     Firefox, masaüstü Safari, Opera vb. hiç göndermez — o yüzden buton her zaman
+     görünür ve olay yoksa elle kurulum anlatılır. */
+  function guide() {
+    var ua = navigator.userAgent;
+    if (/iPad|iPhone|iPod/.test(ua)) return {
+      title: 'Ana ekrana ekle',
+      sub: 'iPhone/iPad’de Safari bu adımı otomatik yapamıyor — birkaç saniyelik işlem:',
+      steps: ['Ekranın altındaki <b>Paylaş</b> ikonuna dokun<br><span style="color:var(--text-muted);font-size:12px">Görünmüyorsa sayfayı en yukarı kaydır, çubuk geri gelir.</span>',
+              'Açılan listeyi <b>aşağı kaydır</b>',
+              '<b>“Ana Ekrana Ekle”</b>ye dokun',
+              'Sağ üstten <b>Ekle</b> — hazır.']
+    };
+    if (/Android/.test(ua)) return {
+      title: 'Ana ekrana ekle',
+      sub: 'Chrome menüsünden birkaç saniyede eklenir:',
+      steps: ['Sağ üstteki <b>üç nokta</b> menüsüne dokun',
+              '<b>“Uygulamayı yükle”</b> ya da <b>“Ana ekrana ekle”</b>yi seç',
+              'Onayla — hazır.']
+    };
+    return {
+      title: 'Uygulama olarak yükle',
+      sub: 'Tarayıcından uygulama olarak kurabilirsin:',
+      steps: ['Adres çubuğunun sağındaki <b>yükle</b> ikonuna tıkla',
+              'Ya da tarayıcı menüsünden <b>“Yükle”</b> / <b>“Uygulama olarak yükle”</b>',
+              '<span style="color:var(--text-muted);font-size:12px">Firefox ve masaüstü Safari bu özelliği desteklemiyor — Chrome veya Edge kullan.</span>']
+    };
+  }
+
+  var g = guide();
+  var titleEl = document.getElementById('pwaTitle');
+  if (titleEl && g.title) titleEl.textContent = g.title;
+  var subEl = document.getElementById('pwaSub');
+  if (subEl) subEl.innerHTML = g.sub;
+  var steps = g.steps;
   var el = document.getElementById('pwaSteps');
   if (el) el.innerHTML = steps.map(function (s, i) {
     return '<div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:12px;">' +
@@ -1653,10 +1679,9 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('beforeinstallprompt', function (e) {
     e.preventDefault();
     deferred = e;
-    btn.style.display = 'flex';
   });
 
-  if (isIOS) btn.style.display = 'flex';
+  btn.style.display = 'flex';   // her zaman göster (kurulu değilse)
 
   btn.addEventListener('click', function () {
     if (deferred) {
