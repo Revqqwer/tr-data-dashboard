@@ -1196,6 +1196,34 @@ function runDiag(){
     add(' '+(i+1)+') '+el.tagName+(el.id?'#'+el.id:'')+(el.className?'.'+String(el.className).split(' ')[0]:''),
         'scrollW='+o.sw+' clientW='+o.cw);
   });
+  // SUCLU BULUCU: her elemani sirayla gizle, tasma kayboluyor mu bak
+  var target = 390;                       // cihaz genisligi civari
+  var base = document.documentElement.scrollWidth;
+  add('--- SUCLU BULUCU ---', 'baslangic scrollWidth=' + base);
+  var found = [];
+  var cands = document.querySelectorAll('.main *');
+  for (var i = 0; i < cands.length; i++) {
+    var el = cands[i];
+    if (!el.parentNode) continue;
+    var prev = el.style.display;
+    el.style.display = 'none';
+    var now = document.documentElement.scrollWidth;
+    el.style.display = prev;
+    if (now < base - 40) {                // gizleyince tasma belirgin azaldi
+      found.push({ e: el, drop: base - now, depth: (function(n){var d=0;while(n.parentNode){d++;n=n.parentNode;}return d;})(el) });
+    }
+  }
+  // en DERIN olan gercek suclu (dis kaplar da ayni dusuşu verir)
+  found.sort(function(a, b){ return b.depth - a.depth; });
+  add('etkileyen eleman', found.length);
+  found.slice(0, 6).forEach(function(o, i){
+    var el = o.e, cs = getComputedStyle(el);
+    add(' ' + (i+1) + ') d' + o.depth + ' ' + el.tagName + (el.id ? '#' + el.id : '') +
+        (el.className ? '.' + String(el.className).split(' ')[0] : ''),
+        'dusus=' + o.drop + ' w=' + Math.round(el.getBoundingClientRect().width) +
+        ' disp=' + cs.display + ' ws=' + cs.whiteSpace +
+        ' "' + (el.textContent || '').trim().slice(0, 22) + '"');
+  });
   var b=document.getElementById('diagBox');
   if(!b){ b=document.createElement('div'); b.id='diagBox';
     b.style.cssText='position:fixed;left:0;top:0;right:0;z-index:99999;background:#000;color:#0f0;'+
