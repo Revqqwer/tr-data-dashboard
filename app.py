@@ -963,6 +963,10 @@ def _update_last_seen():
 _PUBLIC_EXACT = {
     '/', '/login', '/register', '/logout', '/forgot-password', '/reset-password',
     '/sitemap.xml', '/robots.txt',
+    # PWA: giriş yapmamış ziyaretçi de kurabilmeli. Bunlar login'e yönlendirilirse
+    # tarayıcı manifest yerine HTML alır, site "kurulabilir" sayılmaz ve service
+    # worker hiç kaydolmaz.
+    '/sw.js', '/manifest.json',
     '/api/subscribe', '/api/track', '/api/subscribers/count',
     '/auth/discord', '/auth/discord/callback', '/auth/discord/setup',
 }
