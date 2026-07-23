@@ -8,7 +8,7 @@
  *
  * Sürümü değiştirmek eski cache'i temizler.
  */
-const VERSION = 'v2';
+const VERSION = 'v3';
 const STATIC_CACHE = `3nf-static-${VERSION}`;
 const PAGE_CACHE = `3nf-pages-${VERSION}`;
 
@@ -92,19 +92,31 @@ self.addEventListener('fetch', (event) => {
     return; // tarayıcının normal ağ davranışına bırak
   }
 
-  // Statik varlıklar: cache-first, arkada tazele
-  if (url.pathname.startsWith('/static/') || url.pathname.startsWith('/tefas/assets/')) {
+  // Değişmez varlıklar (ikonlar, hash'li build dosyaları): cache-first güvenli
+  if (url.pathname.startsWith('/static/icons/') || url.pathname.startsWith('/tefas/assets/')) {
     event.respondWith(
-      caches.match(req).then((hit) => {
-        const net = fetch(req).then((res) => {
-          if (res && res.ok) {
-            const copy = res.clone();
-            caches.open(STATIC_CACHE).then((c) => c.put(req, copy));
-          }
-          return res;
-        }).catch(() => hit);
-        return hit || net;
-      })
+      caches.match(req).then((hit) => hit || fetch(req).then((res) => {
+        if (res && res.ok) {
+          const copy = res.clone();
+          caches.open(STATIC_CACHE).then((c) => c.put(req, copy));
+        }
+        return res;
+      }))
+    );
+    return;
+  }
+
+  // CSS/JS SÜRÜMSÜZ (style.css, main.js) → cache-first olursa kullanıcı eski
+  // arayüzde kilitli kalır. Bu yüzden ağ önce, çevrimdışıysa cache.
+  if (url.pathname.startsWith('/static/')) {
+    event.respondWith(
+      fetch(req).then((res) => {
+        if (res && res.ok) {
+          const copy = res.clone();
+          caches.open(STATIC_CACHE).then((c) => c.put(req, copy));
+        }
+        return res;
+      }).catch(() => caches.match(req))
     );
     return;
   }
