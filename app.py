@@ -114,6 +114,56 @@ def web_manifest():
     return resp
 
 
+# ── Web Push ───────────────────────────────────────────────
+@app.route('/api/push/public-key')
+def push_public_key():
+    """Tarayıcının applicationServerKey olarak kullanacağı VAPID açık anahtarı."""
+    import push
+    return jsonify({'key': push.VAPID_PUBLIC_KEY})
+
+
+@app.route('/api/push/subscribe', methods=['POST'])
+def push_subscribe():
+    import push
+    sub = request.get_json(silent=True) or {}
+    ok = push.save_subscription(sub,
+                                username=session.get('username'),
+                                ua=request.headers.get('User-Agent'))
+    return (jsonify({'ok': True}), 200) if ok else (jsonify({'ok': False, 'error': 'geçersiz abonelik'}), 400)
+
+
+@app.route('/api/push/unsubscribe', methods=['POST'])
+def push_unsubscribe():
+    import push
+    ep = (request.get_json(silent=True) or {}).get('endpoint')
+    if ep:
+        push.delete_subscription(ep)
+    return jsonify({'ok': True})
+
+
+@app.route('/admin/<secret>/push/send', methods=['POST'])
+def admin_push_send(secret):
+    """Kendi yazdığın bildirimi tüm abonelere gönder."""
+    if secret != ADMIN_SECRET:
+        return jsonify({'error': 'forbidden'}), 403
+    import push
+    d = request.get_json(silent=True) or request.form
+    title = (d.get('title') or '').strip()
+    body = (d.get('body') or '').strip()
+    if not title or not body:
+        return jsonify({'ok': False, 'error': 'title ve body zorunlu'}), 400
+    res = push.send_push(title, body, url=d.get('url') or '/', tag=d.get('tag') or 'custom')
+    return jsonify(res)
+
+
+@app.route('/admin/<secret>/push/count')
+def admin_push_count(secret):
+    if secret != ADMIN_SECRET:
+        return jsonify({'error': 'forbidden'}), 403
+    import push
+    return jsonify({'subscribers': push.count()})
+
+
 # ── TEFAS React SPA static dosyalar ────────────────────────
 _TEFAS_BUILD = os.path.join(os.path.dirname(__file__), 'tefas_build')
 

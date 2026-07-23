@@ -8,7 +8,7 @@
  *
  * Sürümü değiştirmek eski cache'i temizler.
  */
-const VERSION = 'v1';
+const VERSION = 'v2';
 const STATIC_CACHE = `3nf-static-${VERSION}`;
 const PAGE_CACHE = `3nf-pages-${VERSION}`;
 
@@ -38,6 +38,41 @@ self.addEventListener('activate', (event) => {
             .map((k) => caches.delete(k))
       ))
       .then(() => self.clients.claim())
+  );
+});
+
+/* ── Web Push ─────────────────────────────────────────────────────────────
+ * Sunucu push.py üzerinden {title, body, url, tag, icon} JSON'u yollar. */
+self.addEventListener('push', (event) => {
+  let d = {};
+  try { d = event.data ? event.data.json() : {}; } catch (e) { d = {}; }
+  const title = d.title || '3N Finans';
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body: d.body || '',
+      icon: d.icon || '/static/icons/icon-192.png',
+      badge: '/static/icons/icon-192.png',
+      tag: d.tag || 'genel',
+      data: { url: d.url || '/' },
+      renotify: true,
+    })
+  );
+});
+
+/* Bildirime tıklayınca: açık sekme varsa ona odaklan, yoksa yeni aç */
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const target = (event.notification.data && event.notification.data.url) || '/';
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+      for (const c of list) {
+        if (c.url.indexOf(self.location.origin) === 0 && 'focus' in c) {
+          c.navigate(target);
+          return c.focus();
+        }
+      }
+      return self.clients.openWindow(target);
+    })
   );
 });
 
