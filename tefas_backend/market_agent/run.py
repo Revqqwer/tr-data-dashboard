@@ -61,15 +61,18 @@ def _send_to_subscribers(report_text: str, report_type: str, report_id: str = No
     html_body = '<pre style="font-family:monospace;white-space:pre-wrap;font-size:13px;line-height:1.7">' + \
                 report_text.replace('<','&lt;').replace('>','&gt;') + '</pre>'
 
-    from email.utils import formatdate as _fmtdate, make_msgid as _mkmsgid, formataddr as _fmtaddr
-    mail_from = _os.environ.get('MAIL_FROM', '') or _fmtaddr(('3N Finans', mail_user))
-    reply_to  = _os.environ.get('MAIL_REPLY_TO', '') or mail_user
+    from email.utils import formatdate as _fmtdate, make_msgid as _mkmsgid
+    import sys as _sys
+    _sys.path.insert(0, str(_ROOT))
+    import mailer as _mailer
+    mail_from = _mailer.from_header()
+    reply_to  = _mailer.reply_to()
+    envelope  = _mailer.envelope_sender()
 
     sent = 0
     # Tek SMTP oturumu: her alıcı için yeniden login olmak hem yavaş hem şüpheli
     try:
-        smtp = _smtp.SMTP_SSL('smtp.gmail.com', 465, timeout=30)
-        smtp.login(mail_user, mail_pass)
+        smtp = _mailer.smtp_connect(timeout=30)
     except Exception as e:
         print(f"⚠️  SMTP baglantisi kurulamadi: {e}")
         return
@@ -113,7 +116,7 @@ def _send_to_subscribers(report_text: str, report_type: str, report_id: str = No
             msg['Precedence'] = 'bulk'
             msg.attach(_MIMEText(text_body, 'plain', 'utf-8'))
             msg.attach(_MIMEText(body, 'html', 'utf-8'))
-            smtp.sendmail(mail_user, email, msg.as_string())
+            smtp.sendmail(envelope, email, msg.as_string())
             sent += 1
         except Exception as e:
             print(f"  ✗ {email}: {e}")

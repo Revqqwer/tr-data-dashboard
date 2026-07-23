@@ -32,12 +32,16 @@ def _html_to_text(html: str) -> str:
 
 def send_email(to_addr: str, subject: str, body: str,
                text_body: str = None, unsubscribe_url: str = None) -> bool:
-    """Gmail SMTP ile email gönder (multipart/alternative + teslimat başlıkları)."""
+    """Email gönder (SMTP sağlayıcısı mailer.py'den — env ile değiştirilebilir)."""
     try:
+        import mailer
         msg = _build_message(to_addr, subject, body, text_body, unsubscribe_url)
-        with smtplib.SMTP_SSL('smtp.gmail.com', 465, timeout=15) as s:
-            s.login(MAIL_USERNAME, MAIL_PASSWORD)
-            s.sendmail(MAIL_USERNAME, to_addr, msg.as_string())
+        s = mailer.smtp_connect(timeout=20)
+        try:
+            s.sendmail(mailer.envelope_sender(), to_addr, msg.as_string())
+        finally:
+            try: s.quit()
+            except Exception: pass
         return True
     except Exception as e:
         print(f'Email gönderilemedi: {e}')
@@ -47,14 +51,15 @@ def send_email(to_addr: str, subject: str, body: str,
 def _build_message(to_addr: str, subject: str, html_body: str,
                    text_body: str = None, unsubscribe_url: str = None):
     """Teslimat dostu mesaj: düz metin + HTML, Reply-To, List-Unsubscribe."""
-    from email.utils import formatdate, make_msgid, formataddr
+    from email.utils import formatdate, make_msgid
+    import mailer
     msg = MIMEMultipart('alternative')          # 'mixed' değil → doğru yapı
-    msg['From']     = MAIL_FROM or formataddr(('3N Finans', MAIL_USERNAME))
+    msg['From']     = mailer.from_header()
     msg['To']       = to_addr
     msg['Subject']  = subject
     msg['Date']     = formatdate(localtime=True)
     msg['Message-ID'] = make_msgid(domain='3nfinans.com')
-    msg['Reply-To'] = MAIL_REPLY_TO or MAIL_USERNAME
+    msg['Reply-To'] = mailer.reply_to()
     if unsubscribe_url:
         # Gmail/Yahoo toplu gönderim şartı: tek tıkla abonelikten çıkma
         msg['List-Unsubscribe'] = f'<{unsubscribe_url}>'
