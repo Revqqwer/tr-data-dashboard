@@ -149,7 +149,11 @@ body.sidebar-collapsed .sb-toggle-btn svg { transform: rotate(180deg); }
 .sb-theme-ic { font-size: 14px; line-height: 1; }
 
 /* ── Main ── */
-.main { margin-left: var(--sidebar-w); flex: 1; display: flex; flex-direction: column; min-height: 100vh; transition: margin-left 0.25s ease; }
+/* min-width:0 SART: body flex kabi, .main flex ogesi. Varsayilan min-width:auto
+   ile .main icerigin min-content genisliginin altina inemez; iceride tek bir
+   white-space:nowrap baslik bile sayfayi ekrandan genis yapip yatay tasmaya
+   yol acar (iOS Safari'de bu zincir kirilmiyor). */
+.main { margin-left: var(--sidebar-w); flex: 1; min-width: 0; display: flex; flex-direction: column; min-height: 100vh; transition: margin-left 0.25s ease; }
 
 /* ── Topbar (light) ── */
 .topbar {
@@ -727,6 +731,9 @@ body.sidebar-collapsed .sb-toggle-btn svg { transform: rotate(180deg); }
       .mb-center{order:1;} .mb-rail-right{order:2;} .mb-rail-left{order:3;}
       /* rapor iki kolonu telefonda tek kolon */
       .mb-report-cols{grid-template-columns:1fr !important;gap:0 !important;}
+      /* bolum basliklarindaki tam-genislik negatif kenar boslugu telefonda
+         24px yatay tasma yapiyordu (masaustunde kart dolgusuyla hizalaniyor) */
+      .mb-sec{margin-left:0 !important;margin-right:0 !important;padding-left:14px !important;padding-right:14px !important;}
       .mb-panel-h{font-size:11.5px;}
       .mb-item .h{font-size:14px;} .mb-erow,.mb-risk{font-size:13.5px;}
     }
@@ -883,7 +890,7 @@ function _mbFormat(raw) {
     if (/^━+/.test(t)) {
       const label = t.replace(/━+/g,'').trim();
       if (label) {
-        html += `<div style="margin:22px -24px 12px;padding:8px 24px;background:rgba(59,130,246,.07);border-top:1px solid rgba(59,130,246,.18);border-bottom:1px solid rgba(59,130,246,.18);">
+        html += `<div class="mb-sec" style="margin:22px -24px 12px;padding:8px 24px;background:rgba(59,130,246,.07);border-top:1px solid rgba(59,130,246,.18);border-bottom:1px solid rgba(59,130,246,.18);">
           <div style="display:flex;align-items:center;gap:9px;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text);">
             <span style="display:block;width:3px;height:15px;background:var(--blue);border-radius:2px;flex-shrink:0;"></span>
             ${esc(label)}
@@ -1150,88 +1157,4 @@ function _mbExtractRisks(sections) {
   }
   return out;
 }
-try{ window._mbReports=[{"type": "daily", "title": "23 Temmuz 2026 Global Piyasa \u00d6zeti \u2014 D\u00fcn Neler Oldu?", "created_at": "2026-07-23T03:03:00", "date": "2026-07-23", "content": "\ud83d\udcca G\u00dcNL\u00dcK P\u0130YASA B\u00dcLTEN\u0130 \u2014 23 Temmuz 2026\n\n\u2501\u2501\u2501 P\u0130YASALAR \u2501\u2501\u2501\n30 y\u0131ll\u0131k Hazine getirisi %5'in \u00fczerinde 19 y\u0131ld\u0131r en y\u00fcksek seviyede. Tech hisselerinde sat\u0131\u015f bask\u0131s\u0131 devam ederken, mega-cap rotasyonuna i\u015faret eden sinyal g\u00fc\u00e7leniyor. DXY jeopolitik risk primiyle destekleniyor.\n\n\u2501\u2501\u2501 BUG\u00dcNK\u00dc EARNINGS \u2501\u2501\u2501\n\ud83d\udfe2 **Alphabet (GOOGL)**: Cloud segment b\u00fcy\u00fcmesi g\u00fc\u00e7l\u00fc, rehber $195B-$205B'ye y\u00fckseltildi \u2014 hisse pozitif tepki ald\u0131\n\ud83d\udd34 **Tesla (TSLA)**: Q4 karlar\u0131 beklentilerin alt\u0131nda kald\u0131\n\n\u2501\u2501\u2501 \ud83c\udfaf TEMAT\u0130K FIRSATLAR \u2501\u2501\u2501\n**\ud83c\udff7\ufe0f FED POL\u0130T\u0130KA DE\u011e\u0130\u015e\u0130M\u0130 \u2014 Higher-for-Longer Rejimi**\n\u250c\u2500 POZ\u0130SYON FIRSATLARI \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\u2502 LONG: Finansallar (JPM, BAC, GS), De\u011fer hisseleri\n\u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\n\u2501\u2501\u2501 \u26a0\ufe0f R\u0130SK RADARI \u2501\u2501\u2501\n\u2022 Fed'in \u015fahin duru\u015fu b\u00fcy\u00fcme hisselerinde d\u00fczeltme riskini art\u0131r\u0131yor\n"}]; _mbRender(window._mbReports); _mbRenderSubscribeBox(); }catch(e){ var d=document.createElement("pre"); d.style.cssText="color:#f66;padding:10px;white-space:pre-wrap";d.textContent="RENDER HATASI: "+e; document.body.appendChild(d); }</script>
-<script>
-function runDiag(){
-  var W=window.innerWidth, de=document.documentElement, out=[];
-  function add(k,v){ out.push(k+': '+v); }
-  add('innerWidth', W); add('doc.scrollWidth', de.scrollWidth);
-  add('body.scrollWidth', document.body.scrollWidth);
-  add('screen.width', screen.width); add('dpr', window.devicePixelRatio);
-  if(window.visualViewport){ add('visualVP.width', Math.round(visualViewport.width));
-    add('visualVP.scale', visualViewport.scale); }
-  add('mq<=768', window.matchMedia('(max-width: 768px)').matches);
-  var m=document.querySelector('.main');
-  if(m){ add('.main marginLeft', getComputedStyle(m).marginLeft);
-         add('.main width', Math.round(m.getBoundingClientRect().width)); }
-  var l=document.querySelector('.mb-layout');
-  if(l){ add('.mb-layout width', Math.round(l.getBoundingClientRect().width));
-         add('.mb-layout cols', getComputedStyle(l).gridTemplateColumns); }
-  // Tasan YAPRAK elemanlar (cocugu olmayan) — gercek suclu bunlar
-  var leaves=[];
-  document.querySelectorAll('*').forEach(function(el){
-    var cs=getComputedStyle(el);
-    if(cs.display==='none'||cs.visibility==='hidden') return;
-    if(el.children.length>0) return;               // sadece yapraklar
-    var r=el.getBoundingClientRect(); if(r.width===0) return;
-    leaves.push({e:el, w:Math.round(r.width), right:Math.round(r.right)});
-  });
-  leaves.sort(function(a,b){return b.w-a.w;});
-  add('--- EN GENIS YAPRAKLAR ---','');
-  leaves.slice(0,8).forEach(function(o,i){ var el=o.e;
-    add(' '+(i+1)+') '+el.tagName+(el.className?'.'+String(el.className).split(' ')[0]:''),
-        'w='+o.w+' ws='+getComputedStyle(el).whiteSpace+' "'+(el.textContent||'').trim().slice(0,26)+'"');
-  });
-  // Kendi icerigi tasan (scrollWidth > clientWidth) elemanlar
-  var self=[];
-  document.querySelectorAll('*').forEach(function(el){
-    var cs=getComputedStyle(el);
-    if(cs.display==='none') return;
-    if(el.scrollWidth > el.clientWidth+1 && el.clientWidth>0)
-      self.push({e:el, sw:el.scrollWidth, cw:el.clientWidth});
-  });
-  self.sort(function(a,b){return (b.sw-b.cw)-(a.sw-a.cw);});
-  add('--- KENDI ICINDE TASAN ---','');
-  self.slice(0,6).forEach(function(o,i){ var el=o.e;
-    add(' '+(i+1)+') '+el.tagName+(el.id?'#'+el.id:'')+(el.className?'.'+String(el.className).split(' ')[0]:''),
-        'scrollW='+o.sw+' clientW='+o.cw);
-  });
-  // SUCLU BULUCU: her elemani sirayla gizle, tasma kayboluyor mu bak
-  var target = 390;                       // cihaz genisligi civari
-  var base = document.documentElement.scrollWidth;
-  add('--- SUCLU BULUCU ---', 'baslangic scrollWidth=' + base);
-  var found = [];
-  var cands = document.querySelectorAll('.main *');
-  for (var i = 0; i < cands.length; i++) {
-    var el = cands[i];
-    if (!el.parentNode) continue;
-    var prev = el.style.display;
-    el.style.display = 'none';
-    var now = document.documentElement.scrollWidth;
-    el.style.display = prev;
-    if (now < base - 40) {                // gizleyince tasma belirgin azaldi
-      found.push({ e: el, drop: base - now, depth: (function(n){var d=0;while(n.parentNode){d++;n=n.parentNode;}return d;})(el) });
-    }
-  }
-  // en DERIN olan gercek suclu (dis kaplar da ayni dusuşu verir)
-  found.sort(function(a, b){ return b.depth - a.depth; });
-  add('etkileyen eleman', found.length);
-  found.slice(0, 6).forEach(function(o, i){
-    var el = o.e, cs = getComputedStyle(el);
-    add(' ' + (i+1) + ') d' + o.depth + ' ' + el.tagName + (el.id ? '#' + el.id : '') +
-        (el.className ? '.' + String(el.className).split(' ')[0] : ''),
-        'dusus=' + o.drop + ' w=' + Math.round(el.getBoundingClientRect().width) +
-        ' disp=' + cs.display + ' ws=' + cs.whiteSpace +
-        ' "' + (el.textContent || '').trim().slice(0, 22) + '"');
-  });
-  var b=document.getElementById('diagBox');
-  if(!b){ b=document.createElement('div'); b.id='diagBox';
-    b.style.cssText='position:fixed;left:0;top:0;right:0;z-index:99999;background:#000;color:#0f0;'+
-      'font:12px/1.45 monospace;padding:10px;white-space:pre-wrap;word-break:break-all;'+
-      'max-height:72vh;overflow:auto;border-bottom:2px solid #0f0;';
-    document.body.appendChild(b); }
-  b.textContent=out.join(String.fromCharCode(10));
-}
-setTimeout(runDiag, 800);
-window.addEventListener('load', function(){ setTimeout(runDiag, 1500); });
-</script></body></html>
+try{window._mbReports=[{"type": "daily", "title": "23 Temmuz 2026 Global Piyasa \u00d6zeti \u2014 D\u00fcn Neler Oldu?", "created_at": "2026-07-23T03:03:00", "date": "2026-07-23", "content": "\ud83d\udcca G\u00dcNL\u00dcK P\u0130YASA B\u00dcLTEN\u0130 \u2014 23 Temmuz 2026\n\n\u2501\u2501\u2501 P\u0130YASALAR \u2501\u2501\u2501\n30 y\u0131ll\u0131k Hazine getirisi %5'in \u00fczerinde 19 y\u0131ld\u0131r en y\u00fcksek seviyede. Tech hisselerinde sat\u0131\u015f bask\u0131s\u0131 devam ediyor.\n\n\u2501\u2501\u2501 BUG\u00dcNK\u00dc EARNINGS \u2501\u2501\u2501\n\ud83d\udfe2 **Alphabet (GOOGL)**: Cloud segment b\u00fcy\u00fcmesi g\u00fc\u00e7l\u00fc\n\n\u2501\u2501\u2501 \ud83c\udfaf TEMAT\u0130K FIRSATLAR \u2501\u2501\u2501\n**\ud83c\udff7\ufe0f FED POL\u0130T\u0130KA DE\u011e\u0130\u015e\u0130M\u0130 \u2014 Higher-for-Longer Rejimi**\n\u250c\u2500 POZ\u0130SYON FIRSATLARI \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\u2502 LONG: Finansallar (JPM, BAC, GS), De\u011fer hisseleri\n\u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n"}];_mbRender(window._mbReports);_mbRenderSubscribeBox();}catch(e){var d=document.createElement("pre");d.style.cssText="color:#f66;padding:10px";d.textContent="RENDER HATASI: "+e;document.body.appendChild(d);}</script><script>function runDiag(){var W=window.innerWidth,de=document.documentElement,out=[];function add(k,v){out.push(k+": "+v);}add("innerWidth",W);add("doc.scrollWidth",de.scrollWidth);add("screen.width",screen.width);if(window.visualViewport){add("visualVP.scale",visualViewport.scale);}add("mq<=768",window.matchMedia("(max-width: 768px)").matches);var m=document.querySelector(".main");if(m){add(".main marginLeft",getComputedStyle(m).marginLeft);add(".main minWidth",getComputedStyle(m).minWidth);add(".main width",Math.round(m.getBoundingClientRect().width));}var l=document.querySelector(".mb-layout");if(l){add(".mb-layout width",Math.round(l.getBoundingClientRect().width));}add("TASMA VAR MI", de.scrollWidth>W+1 ? ("EVET +"+(de.scrollWidth-W)) : "HAYIR");var b=document.getElementById("diagBox");if(!b){b=document.createElement("div");b.id="diagBox";b.style.cssText="position:fixed;left:0;top:0;right:0;z-index:99999;background:#000;color:#0f0;font:13px/1.5 monospace;padding:10px;white-space:pre-wrap;max-height:60vh;overflow:auto;border-bottom:2px solid #0f0;";document.body.appendChild(b);}b.textContent=out.join(String.fromCharCode(10));}setTimeout(runDiag,800);window.addEventListener("load",function(){setTimeout(runDiag,1500);});</script></body></html>

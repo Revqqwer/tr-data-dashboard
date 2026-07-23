@@ -3555,7 +3555,7 @@ function _mbFormat(raw) {
     if (/^━+/.test(t)) {
       const label = t.replace(/━+/g,'').trim();
       if (label) {
-        html += `<div style="margin:22px -24px 12px;padding:8px 24px;background:rgba(59,130,246,.07);border-top:1px solid rgba(59,130,246,.18);border-bottom:1px solid rgba(59,130,246,.18);">
+        html += `<div class="mb-sec" style="margin:22px -24px 12px;padding:8px 24px;background:rgba(59,130,246,.07);border-top:1px solid rgba(59,130,246,.18);border-bottom:1px solid rgba(59,130,246,.18);">
           <div style="display:flex;align-items:center;gap:9px;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text);">
             <span style="display:block;width:3px;height:15px;background:var(--blue);border-radius:2px;flex-shrink:0;"></span>
             ${esc(label)}
