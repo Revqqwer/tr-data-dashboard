@@ -126,17 +126,27 @@
       -webkit-overflow-scrolling: touch;   /* iOS'ta akici yatay kaydirma */
     }
     table { font-size: 0.7rem; margin-top: 10px; width: auto; }
-    thead th { padding: 5px 8px; font-size: 0.62rem; min-width: 0 !important; }
+    /* Donem sutunlarini sikistir ki ekrana daha fazlasi sigsin */
+    thead th { padding: 5px 6px; font-size: 0.62rem; min-width: 0 !important; }
+    td { padding: 6px 6px !important; }
 
     /* Endeks adi sutunu sabit kalsin: 7 donem sutunu ekrana sigmiyor, yatay
-       kaydirirken hangi endekse baktigin kaybolmasin */
+       kaydirirken hangi endekse baktigin kaybolmasin.
+       AYRICA genisligi sinirla — "BIST KIMYA PETROL PLASTIK" gibi uzun adlar
+       tek satirda sigmak icin sutunu ekranin yarisindan fazlasina cikariyordu;
+       artik 2 satira sariyor. */
     thead th:first-child,
     tbody td:first-child {
       position: sticky;
       left: 0;
       z-index: 3;
       background: var(--surface);
-      min-width: 130px !important;
+      width: 116px !important;
+      min-width: 116px !important;
+      max-width: 116px !important;
+      white-space: normal !important;
+      word-break: break-word;
+      line-height: 1.25;
       box-shadow: 1px 0 0 var(--border);
     }
     thead th:first-child { z-index: 4; }
