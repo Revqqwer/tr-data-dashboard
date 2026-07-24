@@ -184,34 +184,42 @@
     .custom-bar input[type=date] { padding: 3px 7px; font-size: 0.72rem; }
     .custom-bar .apply-btn { padding: 3px 10px; font-size: 0.7rem; }
 
-    /* Stack: index list on top, chart+stocks below */
-    .body-wrap {
-      grid-template-columns: 1fr !important;
-      grid-template-rows: 170px 1fr !important;
-      height: calc(100vh - 48px) !important;
-      overflow: hidden;
-    }
+    /* Mobilde 100vh'e kilitlemek yerine sayfa dikey kaysin.
+       Onceden: liste 170px'e sikisiyor (~5 endeks), grafik ve hisse paneli
+       kalan yeri paylasinca grafik okunmaz hale geliyordu. */
+    .body-wrap,
     .body-wrap.with-custom {
-      height: calc(100vh - 48px - 40px) !important;
+      grid-template-columns: 1fr !important;
+      grid-template-rows: auto auto !important;
+      height: auto !important;
+      min-height: 0 !important;
+      overflow: visible !important;
     }
 
-    /* Sidebar becomes a compact list (left column → top row) */
+    /* Endeks listesi: ust satirda, kendi icinde kayar */
     .sidebar {
       border-right: none;
       border-bottom: 1px solid var(--border);
-      height: 170px;
+      height: 240px;
     }
     .sidebar-hdr { padding: 6px 10px; font-size: 0.65rem; }
     .idx-item { padding: 5px 10px; font-size: 0.75rem; }
     .idx-pct { font-size: 0.7rem; min-width: 46px; }
     .idx-dot { width: 8px; height: 8px; }
 
-    /* Right column */
-    .right-col { overflow: hidden; }
-    .chart-wrap { padding: 6px 8px 4px; }
+    /* Sag kolon: grafige sabit okunur yukseklik ver (flex:1 ile eziliyordu) */
+    .right-col { overflow: visible; }
+    .chart-wrap {
+      padding: 6px 8px 4px;
+      flex: none;
+      height: 320px;
+      min-height: 320px;
+    }
 
-    /* Stocks panel smaller */
-    .stocks-panel { height: 200px; }
+    /* Hisse paneli: bos placeholder 200px yer kaplamasin */
+    .stocks-panel { height: auto; max-height: 340px; }
+    .stocks-body { max-height: 280px; }
+    .placeholder { height: 90px; }
     .stocks-hdr { padding: 6px 10px; font-size: 0.75rem; }
     table { font-size: 0.72rem; }
     td { padding: 4px 8px; }
