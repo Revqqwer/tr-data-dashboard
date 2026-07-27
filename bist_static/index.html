@@ -369,7 +369,10 @@ function buildChart(data) {
       interaction: { mode: 'index', intersect: false },
       plugins: {
         legend: {
-          display:  true,
+          /* Mobilde grafik altindaki legend ~20 satira sariyor ve sol listeyi
+             (ayni renkli endeks adlari + tikla-ac/kapa) tekrar ediyor.
+             Bu yuzden dar ekranda gizle; grafige daha fazla yer kalir. */
+          display:  window.innerWidth > 768,
           position: 'bottom',
           onClick: (_e, legendItem) => {
             const name = chart.data.datasets[legendItem.datasetIndex].label;
