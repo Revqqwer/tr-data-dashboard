@@ -185,7 +185,8 @@ function buildChart(data) {
       interaction: { mode: 'index', intersect: false },
       plugins: {
         legend: {
-          display: true, position: 'bottom',
+          /* Mobilde legend'i gizle — sol liste zaten ayni renkli endeksleri gosteriyor */
+          display: window.innerWidth > 768, position: 'bottom',
           onClick: (_e, li) => toggleIdx(chart.data.datasets[li.datasetIndex].label),
           labels: {
             boxWidth: 10, boxHeight: 10, padding: 9, font: { size: 9 }, color: '#6b7280',
