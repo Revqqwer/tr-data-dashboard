@@ -490,14 +490,20 @@ def custom_fund_holdings(code: str):
     if byf_codes:
         with Session(engine) as db:
             for bc in byf_codes:
+                # price > 0 ŞART: TEFAS bazı günler fiyatı 0 kaydediyor; "IS NOT NULL"
+                # ile 0 geçince (0/dünkü − 1) = -%100 çıkıp tahmini bozuyordu
+                # (ör. PCS, PKZ). Sıfırları atlayıp son 2 GEÇERLİ fiyatı al.
                 r2 = db.exec(
                     select(FundDaily.trade_date, FundDaily.price).where(
-                        FundDaily.code == bc, FundDaily.price.isnot(None)  # type: ignore
+                        FundDaily.code == bc, FundDaily.price > 0  # type: ignore
                     ).order_by(FundDaily.trade_date.desc()).limit(2)
                 ).all()
                 if len(r2) >= 2 and r2[1][1]:
-                    byf_change[bc] = round((r2[0][1] / r2[1][1] - 1.0) * 100, 2)
-                    byf_price[bc] = r2[0][1]
+                    chg = round((r2[0][1] / r2[1][1] - 1.0) * 100, 2)
+                    # NAV fonu bir günde %90+ oynayamaz → bu bir veri hatasıdır, atla
+                    if abs(chg) < 90:
+                        byf_change[bc] = chg
+                        byf_price[bc] = r2[0][1]
 
     out = []
     total = 0.0
@@ -515,6 +521,10 @@ def custom_fund_holdings(code: str):
             # (BIST_ALIASES'taki fonlar — ör. TPKGYF1→TPKGY — yukarıdaki canlı fiyattan gelir.)
             chg = byf_change.get(c)
             px = byf_price.get(c)
+        # Saçma değişim (kaynak ne olursa olsun) = veri hatası; fiyatsız say.
+        # -100% (sıfır fiyat) tek başına tahmini bozuyordu.
+        if chg is not None and (chg <= -99 or chg >= 900):
+            chg = None
         if chg is None:
             unpriced.append(c)
             out.append({"code": c, "weight": round(w, 4), "type": typ,
