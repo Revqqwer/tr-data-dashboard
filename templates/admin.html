@@ -332,6 +332,31 @@
   </table>
 </div>
 
+<!-- ── Push Bildirimi ── -->
+<h2 style="font-size:14px;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:8px;margin-top:32px;">🔔 Push Bildirimi</h2>
+<p style="font-size:12px;color:#475569;margin-bottom:14px;">
+  Uygulamayı kurup bildirim izni veren kullanıcılara anında bildirim gönderir. Şu an <b id="pushCount" style="color:#94a3b8;">…</b> abone var.
+  Bağlantı alanına YouTube linki koyarsan bildirime dokununca yayın açılır.
+</p>
+<div class="add-card" style="flex-direction:column;align-items:stretch;gap:14px;">
+  <div>
+    <label>Başlık</label>
+    <input type="text" id="pushTitle" placeholder="🔴 Canlı yayın başladı" maxlength="80" style="width:100%;">
+  </div>
+  <div>
+    <label>Mesaj</label>
+    <input type="text" id="pushBody" placeholder="Piyasa değerlendirmesi — izlemek için dokun" maxlength="160" style="width:100%;">
+  </div>
+  <div>
+    <label>Bağlantı (opsiyonel — tıklayınca açılır)</label>
+    <input type="text" id="pushUrl" placeholder="https://youtu.be/VIDEO_ID  (boşsa panel açılır)" style="width:100%;">
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <button class="btn btn-muted" onclick="pushPreset()">🔴 Yayın şablonu doldur</button>
+    <button class="btn btn-gold" id="pushSendBtn" onclick="sendPush()">📤 Gönder</button>
+  </div>
+</div>
+
 <!-- Kullanıcı tablosu (tıklayınca açılır) -->
 <h2 onclick="toggleUsers()" style="font-size:14px;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:14px;cursor:pointer;user-select:none;display:flex;align-items:center;gap:10px;">
   <span id="usersChevron" style="display:inline-block;transition:transform .2s;font-size:11px;">▶</span>
@@ -615,7 +640,42 @@ async function removeCustomFund(code){
   }catch(e){ toast(e.message, false); }
 }
 
-window.addEventListener('DOMContentLoaded', () => { loadSubscribers(); loadPageviews(); loadEmailStats(); loadCustomFunds(); });
+// ── Push Bildirimi ──
+async function loadPushCount(){
+  try{
+    const r = await fetch(`/admin/${SECRET}/push/count`);
+    const d = await r.json();
+    document.getElementById('pushCount').textContent = (d.subscribers ?? '?');
+  }catch(e){ document.getElementById('pushCount').textContent = '?'; }
+}
+function pushPreset(){
+  document.getElementById('pushTitle').value = '🔴 Canlı yayın başladı';
+  document.getElementById('pushBody').value  = 'Piyasa değerlendirmesi — izlemek için dokun';
+  document.getElementById('pushUrl').focus();
+}
+async function sendPush(){
+  const title = document.getElementById('pushTitle').value.trim();
+  const body  = document.getElementById('pushBody').value.trim();
+  const url   = document.getElementById('pushUrl').value.trim();
+  if(!title || !body){ toast('Başlık ve mesaj zorunlu', false); return; }
+  if(!confirm(`Bu bildirim TÜM abonelere gönderilsin mi?\n\n${title}\n${body}${url ? '\n\n↗ '+url : ''}`)) return;
+  const btn = document.getElementById('pushSendBtn');
+  const old = btn.textContent; btn.disabled = true; btn.textContent = 'Gönderiliyor…';
+  try{
+    const r = await fetch(`/admin/${SECRET}/push/send`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ title, body, url: url || '/', tag: 'admin' })
+    });
+    const d = await r.json();
+    if(d.ok){
+      toast(`Gönderildi ✓ ${d.sent} kişi${d.pruned ? ` · ${d.pruned} ölü abonelik temizlendi` : ''}${d.failed ? ` · ${d.failed} başarısız` : ''}`);
+      loadPushCount();
+    } else toast(d.error || 'Hata', false);
+  }catch(e){ toast(e.message, false); }
+  finally{ btn.disabled = false; btn.textContent = old; }
+}
+
+window.addEventListener('DOMContentLoaded', () => { loadSubscribers(); loadPageviews(); loadEmailStats(); loadCustomFunds(); loadPushCount(); });
 
 function toast(msg, ok=true) {
   const el = document.getElementById('toast');
