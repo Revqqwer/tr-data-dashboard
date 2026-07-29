@@ -8,7 +8,7 @@
  *
  * Sürümü değiştirmek eski cache'i temizler.
  */
-const VERSION = 'v3';
+const VERSION = 'v4';
 const STATIC_CACHE = `3nf-static-${VERSION}`;
 const PAGE_CACHE = `3nf-pages-${VERSION}`;
 
@@ -63,17 +63,25 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const target = (event.notification.data && event.notification.data.url) || '/';
-  event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
-      for (const c of list) {
-        if (c.url.indexOf(self.location.origin) === 0 && 'focus' in c) {
-          c.navigate(target);
-          return c.focus();
-        }
+
+  // Dış link mi (ör. youtube.com)? Kendi origin'imizde değilse HER ZAMAN yeni
+  // pencerede aç — yoksa açık uygulamayı o adrese götürüp kullanıcıyı
+  // uygulamadan atardık. İç yollarda ise açık uygulama varsa ona odaklan.
+  let external = false;
+  try { external = new URL(target, self.location.origin).origin !== self.location.origin; }
+  catch (e) { external = false; }
+
+  event.waitUntil((async () => {
+    if (external) return self.clients.openWindow(target);
+    const list = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const c of list) {
+      if (c.url.indexOf(self.location.origin) === 0 && 'focus' in c) {
+        c.navigate(target);
+        return c.focus();
       }
-      return self.clients.openWindow(target);
-    })
-  );
+    }
+    return self.clients.openWindow(target);
+  })());
 });
 
 self.addEventListener('fetch', (event) => {
