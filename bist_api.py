@@ -76,6 +76,7 @@ PERIOD_TV = {
     '1y': (252,  '1D'),   # 1 Yıl   — ~252 iş günü
     '3y': (156,  '1W'),   # 3 Yıl   — 3 × 52 hafta
     '5y': (260,  '1W'),   # 5 Yıl   — 5 × 52 hafta
+    '10y': (520, '1W'),   # 10 Yıl  — 10 × 52 hafta
 }
 
 
@@ -493,9 +494,9 @@ def api_history_custom():
     if not start or not end or start >= end:
         return jsonify({'error': 'Geçerli start ve end tarihi gerekli (YYYY-MM-DD)'}), 400
 
-    # Önce günlük veri (1y) dene — daha sonra haftalık (5y) fallback
+    # Aralığı kapsayan EN KISA dönemi seç: 1y (günlük, en detaylı) → 5y → 10y (haftalık)
     data = None
-    for period_key in ('1y', '5y', '3y'):
+    for period_key in ('1y', '5y', '10y', '3y'):
         d, _ = db_get_history(period_key)
         if not d:
             continue
@@ -506,7 +507,7 @@ def api_history_custom():
             break
     if data is None:
         # en uzun elimizde ne varsa kullan
-        for period_key in ('5y', '3y', '1y', '6a'):
+        for period_key in ('10y', '5y', '3y', '1y', '6a'):
             d, _ = db_get_history(period_key)
             if d:
                 data = d
