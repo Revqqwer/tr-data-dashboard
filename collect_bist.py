@@ -75,10 +75,10 @@ ENDEKSLER = {
 DAILY_N      = 252
 DAILY_SLICES = {'1a': 22, '3a': 65, '6a': 130, '1y': 252}
 
-# 1 TV isteğiyle tüm haftalık dönemleri karşıla: 260 haftalık bar çek, slice et
-# 1 yıl ≈ 52 haftalık bar → 3y=156, 5y=260
-WEEKLY_N      = 260
-WEEKLY_SLICES = {'3y': 156, '5y': 260}
+# 1 TV isteğiyle tüm haftalık dönemleri karşıla: 520 haftalık bar çek, slice et
+# 1 yıl ≈ 52 haftalık bar → 3y=156, 5y=260, 10y=520
+WEEKLY_N      = 520
+WEEKLY_SLICES = {'3y': 156, '5y': 260, '10y': 520}
 
 
 # ── TradingView WebSocket ──────────────────────────────────────────────────────
