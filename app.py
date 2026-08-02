@@ -1076,7 +1076,23 @@ def sitemap():
 @app.route('/robots.txt')
 def robots():
     from flask import Response
-    txt = "User-agent: *\nAllow: /\nDisallow: /admin/\nDisallow: /api/\nSitemap: https://www.3nfinans.com/sitemap.xml\n"
+    # Giriş-kapalı (özel) uygulama yolları: Googlebot girişsiz olduğu için bunlar
+    # /login'e redirect eder ve GSC'de "Yönlendirmeli sayfa" hatası üretir. Zaten
+    # dizine girmelerini istemiyoruz (kişiye özel panel) → taramayı baştan kes.
+    txt = (
+        "User-agent: *\n"
+        "Allow: /\n"
+        "Disallow: /admin/\n"
+        "Disallow: /api/\n"
+        "Disallow: /dashboard\n"
+        "Disallow: /bist/\n"
+        "Disallow: /usa/\n"
+        "Disallow: /tefas/\n"
+        "Disallow: /flow\n"
+        "Disallow: /funds\n"
+        "Disallow: /crypto\n"
+        "Sitemap: https://www.3nfinans.com/sitemap.xml\n"
+    )
     return Response(txt, mimetype='text/plain')
 
 
