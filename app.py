@@ -994,6 +994,14 @@ def admin(secret):
                            data_status=data_status, market_reports=market_reports)
 
 
+@app.route('/admin/<secret>/portfoy')
+def admin_portfolio_page(secret):
+    """Portföy Manuel Düzenleme — ana admin panelinden ayrılmış özel sayfa."""
+    if secret != ADMIN_SECRET:
+        return redirect(url_for('login'))
+    return render_template('admin_portfolio.html', secret=secret)
+
+
 @app.route('/admin/<secret>/market-brief/<report_id>/delete', methods=['POST'])
 def admin_delete_market_brief(secret, report_id):
     if secret != ADMIN_SECRET:
