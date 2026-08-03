@@ -357,6 +357,20 @@
   </div>
 </div>
 
+<!-- ── Çarkıfelek — Hisse Analizi ── -->
+<h2 style="font-size:14px;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:8px;margin-top:32px;">🎡 Çarkıfelek — Hisse Analizi</h2>
+<p style="font-size:12px;color:#475569;margin-bottom:14px;">
+  Üyeler yayında analiz için hisse öneriyor (üye başı 5 hak). Şu an
+  <b id="wheelTotal" style="color:#94a3b8;">…</b> öneri ·
+  <b id="wheelUsers" style="color:#94a3b8;">…</b> üye ·
+  <b id="wheelUnique" style="color:#94a3b8;">…</b> farklı hisse.
+  Sıfırlarsan tüm öneriler silinir ve <b>herkese yeniden 5 hak</b> açılır.
+</p>
+<div class="add-card" style="align-items:center;gap:12px;">
+  <button class="btn" id="wheelResetBtn" onclick="resetWheel()" style="background:#ef4444;color:#fff;">🗑️ Önerileri Sıfırla</button>
+  <span style="font-size:12px;color:#475569;">Yeni yayın turu başlatmak için kullan.</span>
+</div>
+
 <!-- Kullanıcı tablosu (tıklayınca açılır) -->
 <h2 onclick="toggleUsers()" style="font-size:14px;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:14px;cursor:pointer;user-select:none;display:flex;align-items:center;gap:10px;">
   <span id="usersChevron" style="display:inline-block;transition:transform .2s;font-size:11px;">▶</span>
@@ -675,7 +689,32 @@ async function sendPush(){
   finally{ btn.disabled = false; btn.textContent = old; }
 }
 
-window.addEventListener('DOMContentLoaded', () => { loadSubscribers(); loadPageviews(); loadEmailStats(); loadCustomFunds(); loadPushCount(); });
+// ── Çarkıfelek ──
+async function loadWheelStats(){
+  try{
+    const r = await fetch(`/admin/${SECRET}/wheel/count`);
+    const d = await r.json();
+    document.getElementById('wheelTotal').textContent  = (d.total ?? '?');
+    document.getElementById('wheelUsers').textContent  = (d.users ?? '?');
+    document.getElementById('wheelUnique').textContent = (d.unique ?? '?');
+  }catch(e){
+    ['wheelTotal','wheelUsers','wheelUnique'].forEach(id=>document.getElementById(id).textContent='?');
+  }
+}
+async function resetWheel(){
+  if(!confirm('Tüm hisse önerileri silinsin mi?\nHerkese yeniden 5 öneri hakkı açılacak.')) return;
+  const btn = document.getElementById('wheelResetBtn');
+  const old = btn.textContent; btn.disabled = true; btn.textContent = 'Sıfırlanıyor…';
+  try{
+    const r = await fetch(`/admin/${SECRET}/wheel/reset`, { method:'POST' });
+    const d = await r.json();
+    if(d.ok){ toast(`Sıfırlandı ✓ ${d.cleared} öneri silindi`); loadWheelStats(); }
+    else toast(d.error || 'Hata', false);
+  }catch(e){ toast(e.message, false); }
+  finally{ btn.disabled = false; btn.textContent = old; }
+}
+
+window.addEventListener('DOMContentLoaded', () => { loadSubscribers(); loadPageviews(); loadEmailStats(); loadCustomFunds(); loadPushCount(); loadWheelStats(); });
 
 function toast(msg, ok=true) {
   const el = document.getElementById('toast');

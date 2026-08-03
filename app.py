@@ -164,6 +164,71 @@ def admin_push_count(secret):
     return jsonify({'subscribers': push.count()})
 
 
+# ── Çarkıfelek — Hisse Analizi ─────────────────────────────
+@app.route('/carkifelek')
+def carkifelek():
+    """Üyelerin yayında analiz için hisse önerdiği çarkıfelek sayfası."""
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+    return render_template('carkifelek.html',
+                           username=session.get('username', ''),
+                           user_name=session.get('user_name', ''))
+
+
+@app.route('/api/wheel/suggestions')
+def wheel_suggestions():
+    import wheel
+    me = session.get('username', '')
+    sugg = []
+    for s in wheel.list_suggestions():
+        sugg.append({
+            'ticker': s['ticker'],
+            'name': s.get('name') or '',
+            'mine': (s.get('username') == me),
+        })
+    mine_n = wheel.user_count(me)
+    return jsonify({
+        'suggestions': sugg,
+        'tickers': wheel.unique_tickers(),
+        'mine': mine_n,
+        'max': wheel.MAX_PER_USER,
+        'remaining': max(0, wheel.MAX_PER_USER - mine_n),
+    })
+
+
+@app.route('/api/wheel/suggest', methods=['POST'])
+def wheel_suggest():
+    import wheel
+    me = session.get('username', '')
+    d = request.get_json(silent=True) or {}
+    res = wheel.add_suggestion(me, session.get('user_name', ''), d.get('ticker', ''))
+    return (jsonify(res), 200) if res.get('ok') else (jsonify(res), 400)
+
+
+@app.route('/api/wheel/unsuggest', methods=['POST'])
+def wheel_unsuggest():
+    import wheel
+    me = session.get('username', '')
+    d = request.get_json(silent=True) or {}
+    return jsonify(wheel.remove_suggestion(me, d.get('ticker', '')))
+
+
+@app.route('/admin/<secret>/wheel/count')
+def admin_wheel_count(secret):
+    if secret != ADMIN_SECRET:
+        return jsonify({'error': 'forbidden'}), 403
+    import wheel
+    return jsonify(wheel.stats())
+
+
+@app.route('/admin/<secret>/wheel/reset', methods=['POST'])
+def admin_wheel_reset(secret):
+    if secret != ADMIN_SECRET:
+        return jsonify({'error': 'forbidden'}), 403
+    import wheel
+    return jsonify(wheel.reset_all())
+
+
 # ── TEFAS React SPA static dosyalar ────────────────────────
 _TEFAS_BUILD = os.path.join(os.path.dirname(__file__), 'tefas_build')
 
