@@ -345,7 +345,7 @@ def custom_funds_flow():
         return err
     codes = load_custom_funds()
     if not codes:
-        return jsonify({"funds": [], "flow": [], "ret": []})
+        return jsonify({"funds": [], "flow": [], "ret": [], "inv": [], "aum": []})
 
     days      = request.args.get("days")
     start_str = request.args.get("start")
@@ -372,8 +372,9 @@ def custom_funds_flow():
             fq = fq.where(FundFlow.trade_date >= s, FundFlow.trade_date <= e)  # type: ignore
         flows = db.exec(fq.order_by(FundFlow.trade_date)).all()
 
-        # Fiyat + yatırımcı sayısı satırları
-        pq = select(FundDaily.code, FundDaily.trade_date, FundDaily.price, FundDaily.investors).where(
+        # Fiyat + yatırımcı sayısı + fon büyüklüğü (AUM) satırları
+        pq = select(FundDaily.code, FundDaily.trade_date, FundDaily.price,
+                    FundDaily.investors, FundDaily.aum).where(
             FundDaily.code.in_(codes), FundDaily.price.isnot(None)  # type: ignore
         )
         if s and e:
@@ -408,11 +409,14 @@ def custom_funds_flow():
     # ── Getiri serisi (başlangıç = 100) + yatırımcı sayısı serisi ──
     price_map: dict = {}
     inv_map: dict = {}
-    for code, td, px, inv in prices:
+    aum_map: dict = {}
+    for code, td, px, inv, aum in prices:
         if px:
             price_map.setdefault(td, {})[code] = px
         if inv is not None:
             inv_map.setdefault(td, {})[code] = inv
+        if aum is not None:
+            aum_map.setdefault(td, {})[code] = aum
     ret_dates = sorted(price_map.keys())
     ret_series = []
     base: dict = {}
@@ -445,8 +449,26 @@ def custom_funds_flow():
         row["TOPLAM"] = tot
         inv_series.append(row)
 
+    # Fon büyüklüğü (AUM) serisi — ham TL, son bilinen değeri taşı (tatil/eksik gün için)
+    aum_dates = sorted(aum_map.keys())
+    aum_series = []
+    aum_last: dict = {}
+    for d in aum_dates:
+        row = {"date": d.isoformat()}
+        tot = 0.0
+        for c in codes:
+            v = aum_map[d].get(c)
+            if v is not None:
+                aum_last[c] = v
+            if c in aum_last:
+                row[c] = round(aum_last[c], 0)
+                tot += aum_last[c]
+        row["TOPLAM"] = round(tot, 0)
+        aum_series.append(row)
+
     funds = [{"code": c, "name": names.get(c) or c} for c in codes]
-    return jsonify({"funds": funds, "flow": flow_series, "ret": ret_series, "inv": inv_series})
+    return jsonify({"funds": funds, "flow": flow_series, "ret": ret_series,
+                    "inv": inv_series, "aum": aum_series})
 
 
 # ---------------------------------------------------------------------------
