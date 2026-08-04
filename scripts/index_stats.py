@@ -112,6 +112,60 @@ def describe(vals, baslik):
     return ort, med
 
 
+# Getiri aralıkları (%) — hisse SAYISINA değil, getiri BÜYÜKLÜĞÜNE göre sınıflama
+DEFAULT_BANDS = [0, 100, 250, 500, 1000, 2500, 5000]
+
+
+def _tr(x):
+    """1234.0 → '1.234' (Türkçe binlik ayracı)"""
+    return f'{x:,.0f}'.replace(',', '.')
+
+
+def print_bands(rows, own, period, edges):
+    """Hisseleri getiri ARALIKLARINA göre sınıflandırır (eşit sayı değil)."""
+    vals = sorted(p for _, _, p in rows)
+    n = len(vals)
+    if not n:
+        return
+    lims = [float('-inf')] + list(edges) + [float('inf')]
+
+    gruplar = []
+    for i in range(len(lims) - 1):
+        lo, hi = lims[i], lims[i + 1]
+        g = [v for v in vals if lo <= v < hi]
+        if lo == float('-inf'):
+            ad = 'Zarar (< %0)'
+        elif hi == float('inf'):
+            ad = f'%{_tr(lo)} ve üzeri'
+        else:
+            ad = f'%{_tr(lo)} – %{_tr(hi)}'
+        gruplar.append((ad, g, lo, hi))
+
+    enb = max(len(g) for _, g, _, _ in gruplar) or 1
+
+    print(f'\n>> GETİRİ ARALIKLARINA GÖRE DAĞILIM — {period}  ({n} hisse)\n')
+    print(f'   {"Aralık":<22}{"Adet":>6}{"Pay":>8}{"Kümülatif":>11}{"Medyan":>10}   Dağılım')
+    print('   ' + '-' * 76)
+
+    kum = 0
+    for ad, g, lo, hi in gruplar:
+        c = len(g)
+        kum += c
+        pay = c / n * 100
+        med = f'%{_tr(statistics.median(g))}' if g else '—'
+        bar = '█' * round(c / enb * 26)
+        satir = (f'   {ad:<22}{c:>6}{pay:>7.1f}%{kum / n * 100:>10.1f}%'
+                 f'{med:>10}   {bar}')
+        # Endeksin kendi getirisi hangi banda düşüyor?
+        if own is not None and lo <= own < hi:
+            satir += f'  ← ENDEKS (%{_tr(own)})'
+        print(satir)
+
+    if own is not None:
+        gecen = sum(1 for v in vals if v > own)
+        print(f'\n   Endeksi (%{_tr(own)}) geçen: {gecen} / {n}  (%{gecen / n * 100:.1f})')
+
+
 def print_quartiles(rows, own, period):
     """Hisseleri getiriye göre 4 eşit gruba böler ve her grubu özetler.
 
@@ -157,6 +211,10 @@ def main():
     ap.add_argument('--period', default='5y', help='1a,3a,6a,1y,3y,5y,10y (varsayılan 5y)')
     ap.add_argument('--top', type=int, default=10, help='Kaç en iyi/en kötü gösterilsin')
     ap.add_argument('--list', action='store_true', help='Mevcut endeksleri listele')
+    ap.add_argument('--bands', default=','.join(str(x) for x in DEFAULT_BANDS),
+                    help='Getiri aralığı sınırları, virgülle. Örn: 0,100,500,1000,5000')
+    ap.add_argument('--no-quartiles', action='store_true',
+                    help='Eşit sayılı çeyreklik tablosunu gizle')
     a = ap.parse_args()
 
     if not DB_PATH.exists():
@@ -229,7 +287,13 @@ def main():
         print('   Medyan endeksin altındaysa, yükselişi birkaç büyük hisse taşımış demektir.)')
 
     if ana:
-        print_quartiles(ana, own, a.period)
+        try:
+            edges = sorted(float(x) for x in a.bands.split(',') if x.strip() != '')
+        except ValueError:
+            sys.exit('HATA: --bands sayı listesi olmalı, ör: 0,100,500,1000')
+        print_bands(ana, own, a.period, edges)
+        if not a.no_quartiles:
+            print_quartiles(ana, own, a.period)
 
     if a.top and ana:
         s = sorted(ana, key=lambda x: x[2], reverse=True)
