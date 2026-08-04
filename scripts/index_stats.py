@@ -112,6 +112,45 @@ def describe(vals, baslik):
     return ort, med
 
 
+def print_quartiles(rows, own, period):
+    """Hisseleri getiriye göre 4 eşit gruba böler ve her grubu özetler.
+
+    rows: [(kod, ad, pct)] · own: endeksin kendi getirisi (None olabilir)
+    """
+    s = sorted(rows, key=lambda x: x[2], reverse=True)
+    n = len(s)
+    if n < 4:
+        return
+    b = [round(n * i / 4) for i in range(5)]
+    etiket = ['1. çeyrek (en iyi)', '2. çeyrek', '3. çeyrek', '4. çeyrek (en kötü)']
+
+    print(f'\n>> ÇEYREKLİKLER — {period}  ({n} hisse, getiriye göre büyükten küçüğe)\n')
+    head = (f'   {"Çeyrek":<22}{"Adet":>5}{"En düşük":>12}{"En yüksek":>12}'
+            f'{"ORTALAMA":>12}{"MEDYAN":>12}')
+    if own is not None:
+        head += f'{"Endeksi geçen":>15}'
+    print(head)
+    print('   ' + '-' * (len(head) - 3))
+
+    for i in range(4):
+        g = [p for _, _, p in s[b[i]:b[i + 1]]]
+        if not g:
+            continue
+        line = (f'   {etiket[i]:<22}{len(g):>5}{min(g):>12.1f}{max(g):>12.1f}'
+                f'{statistics.mean(g):>12.1f}{statistics.median(g):>12.1f}')
+        if own is not None:
+            line += f'{sum(1 for x in g if x > own):>15}'
+        print(line)
+
+    if own is not None:
+        toplam = sum(1 for _, _, p in s if p > own)
+        print(f'\n   Endeksi (% {own:.1f}) geçen toplam: {toplam} / {n}  '
+              f'(%{toplam / n * 100:.1f})')
+    print('\n   Not: Çeyrek sınırları hisse SAYISINA göre eşit bölünür; ilk çeyrek')
+    print('   içindeki dağılım çok geniş olabilir (birkaç uç değer ortalamayı şişirir,')
+    print('   o yüzden her çeyrekte de MEDYAN daha temsil edicidir).')
+
+
 def main():
     ap = argparse.ArgumentParser(description='Endeks bileşenleri getiri istatistiği')
     ap.add_argument('--index', default='XTUMY', help='Ticker veya panel adı (varsayılan XTUMY)')
@@ -189,14 +228,19 @@ def main():
         print('  (Endeks piyasa değeri ağırlıklı; medyan ise "ortadaki hisse".')
         print('   Medyan endeksin altındaysa, yükselişi birkaç büyük hisse taşımış demektir.)')
 
+    if ana:
+        print_quartiles(ana, own, a.period)
+
     if a.top and ana:
         s = sorted(ana, key=lambda x: x[2], reverse=True)
-        print(f'\n>> EN İYİ {min(a.top, len(s))}')
-        for kod, ad, p in s[:a.top]:
-            print(f'   {kod:<8} % {p:>9.2f}   {ad[:34]}')
-        print(f'\n>> EN KÖTÜ {min(a.top, len(s))}')
-        for kod, ad, p in s[-a.top:][::-1]:
-            print(f'   {kod:<8} % {p:>9.2f}   {ad[:34]}')
+        k = min(a.top, len(s) // 2)          # iki liste çakışmasın
+        if k:
+            print(f'\n>> EN İYİ {k}')
+            for kod, ad, p in s[:k]:
+                print(f'   {kod:<8} % {p:>9.2f}   {ad[:34]}')
+            print(f'\n>> EN KÖTÜ {k}')
+            for kod, ad, p in s[-k:][::-1]:
+                print(f'   {kod:<8} % {p:>9.2f}   {ad[:34]}')
 
     print('\n' + '-' * 60)
     print('NOT: Liste endeksin BUGÜNKÜ bileşimidir. Dönem içinde borsadan çıkan veya')
