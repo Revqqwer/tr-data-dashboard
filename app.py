@@ -78,6 +78,29 @@ DISCORD_ROLE_ID       = os.environ.get('DISCORD_ROLE_ID',       '119602278511437
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'tr-3nfinans-gizli-anahtar-2024')
 
+# ── Oturum: kullanıcı "Çıkış"a basmadıkça açık kalsın ─────────────────────
+# Flask'ın varsayılanı "tarayıcı oturumu" cookie'sidir: tarayıcı (veya PC)
+# kapanınca silinir → kullanıcı atılır. Kalıcı işaretleyip ömrü 1 yıl veriyoruz.
+# SESSION_REFRESH_EACH_REQUEST her istekte bitiş tarihini ileri iter; siteye
+# ara sıra giren kullanıcının oturumu pratikte hiç düşmez.
+app.config.update(
+    PERMANENT_SESSION_LIFETIME=timedelta(days=365),
+    SESSION_REFRESH_EACH_REQUEST=True,
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE='Lax',
+    # Üretim HTTPS; yerelde http ile denerken .env'e SESSION_COOKIE_SECURE=0 koy
+    SESSION_COOKIE_SECURE=os.environ.get('SESSION_COOKIE_SECURE', '1') != '0',
+)
+
+
+@app.after_request
+def _persist_session(resp):
+    """Girişli oturumu kalıcı işaretle — login isteğinin kendisi de dahil.
+    (after_request, Flask oturumu cookie'ye yazmadan önce çalışır.)"""
+    if session.get('logged_in') and not session.permanent:
+        session.permanent = True
+    return resp
+
 # Analytics IDs (isteğe bağlı — .env'e ekle)
 if os.environ.get('GA4_ID'):
     app.config['GA4_ID'] = os.environ['GA4_ID']
