@@ -215,6 +215,8 @@ def main():
                     help='Getiri aralığı sınırları, virgülle. Örn: 0,100,500,1000,5000')
     ap.add_argument('--no-quartiles', action='store_true',
                     help='Eşit sayılı çeyreklik tablosunu gizle')
+    ap.add_argument('--dump', action='store_true',
+                    help='Sadece nokta bazında veriyi bas (kopyalayıp grafik çizmek için)')
     a = ap.parse_args()
 
     if not DB_PATH.exists():
@@ -253,6 +255,17 @@ def main():
             tam.append((kod, s['ad'], pct))
 
     ticker = ENDEKSLER.get(idx, '?')
+    own_erken = index_own_return(conn, idx, a.period)
+
+    # --dump: sadece ham noktalar (tam geçmişi olanlar), kopyalanabilir tek satır
+    if a.dump:
+        nokta = sorted(tam if kisa else (tam + kisa), key=lambda x: x[2], reverse=True)
+        print(f'#{ticker}|{a.period}|n={len(nokta)}|'
+              f'endeks={own_erken if own_erken is not None else "yok"}')
+        print(','.join(f'{k}:{p:g}' for k, _, p in nokta))
+        conn.close()
+        return
+
     print('=' * 60)
     print(f'  {idx}  ({ticker})   ·   dönem: {a.period}')
     print('=' * 60)
