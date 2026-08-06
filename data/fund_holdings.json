@@ -230,168 +230,98 @@
   ],
   "PHE": [
     {
-      "code": "KTLEV",
-      "weight": 0.096,
-      "type": "hisse"
-    },
-    {
       "code": "ODINE",
-      "weight": 0.0948,
-      "type": "hisse"
-    },
-    {
-      "code": "GUNDG",
-      "weight": 0.0891,
+      "weight": 0.145,
       "type": "hisse"
     },
     {
       "code": "PASEU",
-      "weight": 0.0664,
+      "weight": 0.1191,
       "type": "hisse"
+    },
+    {
+      "code": "GUNDG",
+      "weight": 0.1017,
+      "type": "hisse"
+    },
+    {
+      "code": "PKZ",
+      "weight": 0.0997,
+      "type": "byf"
+    },
+    {
+      "code": "KTLEV",
+      "weight": 0.0948,
+      "type": "hisse"
+    },
+    {
+      "code": "PCS",
+      "weight": 0.0941,
+      "type": "byf"
     },
     {
       "code": "HEDEF",
-      "weight": 0.0511,
-      "type": "hisse"
-    },
-    {
-      "code": "THYAO",
-      "weight": 0.0475,
-      "type": "hisse"
-    },
-    {
-      "code": "AKBNK",
-      "weight": 0.0405,
-      "type": "hisse"
-    },
-    {
-      "code": "TRALT",
-      "weight": 0.0387,
-      "type": "hisse"
-    },
-    {
-      "code": "YKBNK",
-      "weight": 0.0362,
-      "type": "hisse"
-    },
-    {
-      "code": "BALSU",
-      "weight": 0.0288,
+      "weight": 0.08,
       "type": "hisse"
     },
     {
       "code": "DSTKF",
-      "weight": 0.0277,
-      "type": "hisse"
-    },
-    {
-      "code": "ISCTR",
-      "weight": 0.0264,
-      "type": "hisse"
-    },
-    {
-      "code": "ANELE",
-      "weight": 0.022,
-      "type": "hisse"
-    },
-    {
-      "code": "TATEN",
-      "weight": 0.0186,
-      "type": "hisse"
-    },
-    {
-      "code": "MGROS",
-      "weight": 0.0176,
-      "type": "hisse"
-    },
-    {
-      "code": "SAHOL",
-      "weight": 0.0174,
-      "type": "hisse"
-    },
-    {
-      "code": "BIMAS",
-      "weight": 0.0159,
-      "type": "hisse"
-    },
-    {
-      "code": "TCELL",
-      "weight": 0.0151,
-      "type": "hisse"
-    },
-    {
-      "code": "KCHOL",
-      "weight": 0.014,
-      "type": "hisse"
-    },
-    {
-      "code": "TTKOM",
-      "weight": 0.0136,
-      "type": "hisse"
-    },
-    {
-      "code": "GARAN",
-      "weight": 0.0129,
-      "type": "hisse"
-    },
-    {
-      "code": "PEKGY",
-      "weight": 0.0078,
-      "type": "hisse"
-    },
-    {
-      "code": "PGSUS",
-      "weight": 0.0076,
-      "type": "hisse"
-    },
-    {
-      "code": "ALKLC",
-      "weight": 0.0064,
-      "type": "hisse"
-    },
-    {
-      "code": "DAPGM",
-      "weight": 0.006,
-      "type": "hisse"
-    },
-    {
-      "code": "BRSAN",
-      "weight": 0.0043,
+      "weight": 0.0528,
       "type": "hisse"
     },
     {
       "code": "AKSEN",
-      "weight": 0.0042,
+      "weight": 0.0508,
       "type": "hisse"
     },
     {
-      "code": "ENKAI",
-      "weight": 0.0039,
+      "code": "BALSU",
+      "weight": 0.0282,
       "type": "hisse"
     },
     {
-      "code": "IZENR",
-      "weight": 0.0037,
+      "code": "ANELE",
+      "weight": 0.0275,
+      "type": "hisse"
+    },
+    {
+      "code": "TATEN",
+      "weight": 0.0189,
       "type": "hisse"
     },
     {
       "code": "IZFAS",
-      "weight": 0.0037,
+      "weight": 0.0111,
       "type": "hisse"
     },
     {
-      "code": "TAVHL",
-      "weight": 0.0035,
+      "code": "TMPOL",
+      "weight": 0.0107,
       "type": "hisse"
     },
     {
-      "code": "TERA",
-      "weight": 0.0028,
+      "code": "PEKGY",
+      "weight": 0.0101,
+      "type": "hisse"
+    },
+    {
+      "code": "ALKLC",
+      "weight": 0.0065,
+      "type": "hisse"
+    },
+    {
+      "code": "DAPGM",
+      "weight": 0.0053,
+      "type": "hisse"
+    },
+    {
+      "code": "IZENR",
+      "weight": 0.0038,
       "type": "hisse"
     },
     {
       "code": "ALVES",
-      "weight": 0.0019,
+      "weight": 0.0013,
       "type": "hisse"
     },
     {
@@ -400,44 +330,19 @@
       "type": "hisse"
     },
     {
+      "code": "TURSG",
+      "weight": 0.0007,
+      "type": "hisse"
+    },
+    {
       "code": "MOPAS",
-      "weight": 0.0008,
-      "type": "hisse"
-    },
-    {
-      "code": "EREGL",
-      "weight": 0.0005,
-      "type": "hisse"
-    },
-    {
-      "code": "BETAE",
       "weight": 0.0004,
       "type": "hisse"
     },
     {
-      "code": "TRMET",
-      "weight": 0.0004,
-      "type": "hisse"
-    },
-    {
-      "code": "GUBRF",
+      "code": "TRALT",
       "weight": 0.0003,
       "type": "hisse"
-    },
-    {
-      "code": "PKZ",
-      "weight": 0.0813,
-      "type": "byf"
-    },
-    {
-      "code": "PCS",
-      "weight": 0.0807,
-      "type": "byf"
-    },
-    {
-      "code": "PRY",
-      "weight": 0.025,
-      "type": "byf"
     }
   ]
 }
