@@ -1,5 +1,13 @@
 #!/usr/bin/env python3
-"""Parse broker account statement (Ekstre3 (1).pdf) → data/portfolio.json"""
+"""Parse broker account statement(s) → data/portfolio.json
+
+İki ekstre birleştirilir:
+  OLD_PDF_PATH — hesabın açılışından CUTOVER_DATE'e kadar (bu tarihten sonrası
+                 için sadece OLD_PDF'teki satırlar kullanılır, ondan sonrası yok sayılır).
+  NEW_PDF_PATH — CUTOVER_DATE'ten (dahil) itibaren, daha güncel/eksiksiz ekstre.
+Bu ikisi hesabın tam işlem geçmişini oluşturur; aralarında tarih çakışması
+olsa bile OLD sadece CUTOVER öncesini, NEW sadece CUTOVER-ve-sonrasını kullanır.
+"""
 import pdfplumber
 import re
 import json
@@ -9,20 +17,32 @@ import requests
 from datetime import datetime, date
 from collections import defaultdict
 
-PDF_PATH  = os.path.join(os.path.dirname(__file__), '..', '..', 'Downloads', 'Ekstre3 (1).pdf')
-OUT_PATH  = os.path.join(os.path.dirname(__file__), 'data', 'portfolio.json')
+OLD_PDF_PATH  = os.path.join(os.path.dirname(__file__), '..', '..', 'Downloads', 'Ekstre3 (1).pdf')
+NEW_PDF_PATH  = os.path.join(os.path.dirname(__file__), '..', '..', 'Downloads', 'Ekstre3 (5).pdf')
+CUTOVER_DATE  = date(2026, 1, 1)
+OUT_PATH      = os.path.join(os.path.dirname(__file__), 'data', 'portfolio.json')
+
+# Para piyasası fonları — "<KOD> B Tipi <adet> Payx<fiyat> Alış/Satış" satırlarından
+# ayrı ayrı takip edilir (her biri kendi units/value serisiyle).
+MMF_FUNDS = {
+    'NSP': 'Nurol Portföy Para Piyasası Katılım Fonu',
+    'GOP': 'Golden Global Portföy Para Piyasası Katılım Fonu',
+}
 
 # GENKMH is a rights-derived lot, treat as same stock GENKM
 TICKER_NORM = {'GENKMH': 'GENKM', 'GOLDAH': 'GOLDA', 'SOHOEH': 'SOHOE'}
 
 # Halka arz tahsisatıyla gelen (normal "Alis" satırı olmayan) hisseler — maliyet
-# ekstrede "AHMET EMİN TAHTACI - ŞİRKET ..." teslim satırında (qty ekstrede yok/kesik).
+# ekstrede "AHMET EMİN TAHTACI - ŞİRKET ..." teslim satırında (qty ekstrede yok/kesik),
+# ve bu ekstrede ne "Talep...kabul..." tahsisat satırı ne normal "Alis" satırı var.
 # Sadece bu ekstrede satışı olup alışı olmayan tickerlara uygulanır (gate: process()).
 IPO_ALLOCATIONS = [
     {'ticker': 'EKIM',  'date': '2026-07-01', 'qty': 143, 'price': 30.26, 'amount': 4327.18},
     {'ticker': 'ORZAX', 'date': '2026-06-30', 'qty': 35,  'price': 69.00, 'amount': 2415.00},
     {'ticker': 'SSAAT', 'date': '2026-07-07', 'qty': 26,  'price': 56.00, 'amount': 1456.00},
-    {'ticker': 'SARAE', 'date': '2026-07-09', 'qty': 70,  'price': 70.00, 'amount': 4900.00},  # hâlâ elde
+    {'ticker': 'SARAE', 'date': '2026-07-09', 'qty': 70,  'price': 70.00, 'amount': 4900.00},
+    {'ticker': 'MASFN', 'date': '2026-07-23', 'qty': 46,  'price': 45.68, 'amount': 2101.28},
+    {'ticker': 'QUICK', 'date': '2026-07-29', 'qty': 35,  'price': 76.60, 'amount': 2681.00},
 ]
 
 
@@ -68,30 +88,41 @@ def extract_lines(pdf_path: str):
 STOCK_RE    = re.compile(r'(\d{2}/\d{2})\s+([A-Z][A-Z0-9]+)\s+([\d\.]+)x([\d,]+)\s+TL\s+(Ali[sş]?|Sati[sş]?|Sat[ıi][sş]?)', re.I)
 RIGHTS_RE   = re.compile(r'([A-Z][A-Z0-9]+)\s+\d+\s+Talep\s+\d+x[\d,]+\s+-\s+kabul\s+(\d+)x([\d,]+)')
 DIVIDEND_RE = re.compile(r'([A-Z][A-Z0-9]+)\s+(\d+)\s+Lot.*?Temett', re.I)
-KOMIS_RE    = re.compile(r'KOMISYON|Borsa Pay|Islem Komisyonu|Saklama Komisyonu|Stopaj|Vergi|BSMV', re.I)
-NSP_RE      = re.compile(r'NSP B Tipi\s+([\d\.]+)\s+Payx([\d,]+)\s+(Sat|Ali)', re.I)
+KOMIS_RE    = re.compile(r'KOMISYON|Borsa Pay|Islem Komisyonu|Saklama Komisyonu|Stopaj|Vergi|BSMV|Temerrut', re.I)
+MMF_RE      = re.compile(r'(' + '|'.join(MMF_FUNDS) + r')\s+B\s+Tipi\s+([\d\.]+)\s+Payx([\d,]+)\s+(Sat|Ali)', re.I)
 
 
-def process(rows):
+def process(rows, date_filter=None, apply_ipo_allocations=True):
+    """Ham ekstre satırlarını trades/mmf_trades/dividends/balance'a dönüştürür.
+
+    date_filter: (date) -> bool — verilirse sadece bu şartı sağlayan satırlar işlenir
+                 (iki ekstreyi CUTOVER_DATE'ten bölmek için kullanılır).
+    apply_ipo_allocations: IPO_ALLOCATIONS listesi sadece bu satırların ait olduğu
+                 ekstrede uygulanmalı (tarihleri o pencereye ait); diğer ekstre
+                 çağrısında False verilmeli, yoksa tarih penceresi dışına da eklenir.
+    """
     trades        = []
-    nsp_trades    = []
+    mmf_trades    = defaultdict(list)   # fund_code -> [{date, units, price, type}]
     dividends     = []
     balance_pts   = {}   # date -> last bakiye
     total_komis   = 0.0
 
     for r in rows:
         d    = r['row_date']
+        if date_filter and not date_filter(d):
+            continue
         desc = r['description']
         balance_pts[d.isoformat()] = r['bakiye']
 
-        # NSP money-market fund — track separately
-        m = NSP_RE.search(desc)
+        # Para piyasası fonu (NSP, GOP, ...) — ayrı ayrı takip edilir
+        m = MMF_RE.search(desc)
         if m:
-            units = float(m.group(1).replace('.', ''))   # "58.075" → 58075 (thousands sep)
-            price = tr_float(m.group(2))
+            code  = m.group(1).upper()
+            units = float(m.group(2).replace('.', ''))   # "58.075" → 58075 (thousands sep)
+            price = tr_float(m.group(3))
             # Use borc/alacak to determine direction — Turkish char encoding is unreliable
             ttype = 'alis' if r['borc'] > 0 else 'satis'
-            nsp_trades.append({
+            mmf_trades[code].append({
                 'date':  d.isoformat(),
                 'units': units,
                 'price': price,
@@ -159,33 +190,37 @@ def process(rows):
             })
 
     # Halka arz tahsisatı: alışı olmayan hisselere maliyet ekle (satılmış ya da hâlâ elde)
-    _has_buy = {t['ticker'] for t in trades if t['type'] == 'alis'}
-    for ipo in IPO_ALLOCATIONS:
-        tk = ipo['ticker']
-        if tk not in _has_buy:
-            trades.append({
-                'date':        ipo['date'],
-                'settle_date': ipo['date'],
-                'ticker':      tk,
-                'qty':         ipo['qty'],
-                'price':       ipo['price'],
-                'type':        'alis',
-                'amount':      ipo['amount'],
-                'is_rights':   False,
-                'is_ipo':      True,
-            })
+    if apply_ipo_allocations:
+        _has_buy = {t['ticker'] for t in trades if t['type'] == 'alis'}
+        for ipo in IPO_ALLOCATIONS:
+            tk = ipo['ticker']
+            if tk not in _has_buy:
+                trades.append({
+                    'date':        ipo['date'],
+                    'settle_date': ipo['date'],
+                    'ticker':      tk,
+                    'qty':         ipo['qty'],
+                    'price':       ipo['price'],
+                    'type':        'alis',
+                    'amount':      ipo['amount'],
+                    'is_rights':   False,
+                    'is_ipo':      True,
+                })
 
-    # NSP position history: running units at each transaction date
-    nsp_units = 0.0
-    nsp_position_history = []
-    for t in sorted(nsp_trades, key=lambda x: x['date']):
-        nsp_units += t['units'] if t['type'] == 'alis' else -t['units']
-        nsp_position_history.append({
-            'date':  t['date'],
-            'units': round(nsp_units, 3),
-            'price': t['price'],
-            'value': round(nsp_units * t['price'], 2),
-        })
+    # Fon başına pozisyon geçmişi: her işlem tarihindeki kümülatif adet
+    mmf_position_history = {}
+    for code, code_trades in mmf_trades.items():
+        units = 0.0
+        hist = []
+        for t in sorted(code_trades, key=lambda x: x['date']):
+            units += t['units'] if t['type'] == 'alis' else -t['units']
+            hist.append({
+                'date':  t['date'],
+                'units': round(units, 3),
+                'price': t['price'],
+                'value': round(units * t['price'], 2),
+            })
+        mmf_position_history[code] = hist
 
     # Daily balance (keep last value per day, sorted)
     balance_history = [
@@ -193,7 +228,7 @@ def process(rows):
         for k, v in sorted(balance_pts.items())
     ]
 
-    return trades, nsp_trades, nsp_position_history, dividends, balance_history, total_komis
+    return trades, dict(mmf_trades), mmf_position_history, dividends, balance_history, total_komis
 
 
 def compute_pnl(trades):
@@ -263,8 +298,8 @@ def compute_pnl(trades):
     return summary, open_positions, timeline
 
 
-def fetch_nsp_prices(start_date: date, end_date: date) -> dict:
-    """Fetch NSP daily prices from TEFAS API. Returns {date_str: price}.
+def fetch_mmf_prices(fund_code: str, start_date: date, end_date: date) -> dict:
+    """Fetch a money-market fund's daily prices from TEFAS API. Returns {date_str: price}.
     Uses 14-day chunks (API silently returns null for larger ranges).
     """
     from datetime import timedelta
@@ -303,12 +338,12 @@ def fetch_nsp_prices(start_date: date, end_date: date) -> dict:
                         raise ValueError('Empty response')
                     result_list = resp.json().get('resultList') or []
                     for row in result_list:
-                        if row.get('fonKodu') == 'NSP' and row.get('fiyat'):
+                        if row.get('fonKodu') == fund_code and row.get('fiyat'):
                             prices[row['tarih']] = float(row['fiyat'])
                     break
                 except Exception as e:
                     if attempt == 2:
-                        print(f'  Chunk {chunk_start} failed after 3 tries: {e}')
+                        print(f'  [{fund_code}] Chunk {chunk_start} failed after 3 tries: {e}')
                     else:
                         # Refresh session on failure
                         s = requests.Session()
@@ -320,7 +355,7 @@ def fetch_nsp_prices(start_date: date, end_date: date) -> dict:
             time.sleep(0.4)
 
     except Exception as e:
-        print(f'TEFAS NSP fetch error: {e}')
+        print(f'TEFAS [{fund_code}] fetch error: {e}')
     return prices
 
 
@@ -453,6 +488,7 @@ def fetch_stock_prices(tickers: list, start_date: date, end_date: date) -> dict:
     tv_tickers  = [t for t in tickers if t in TV_FALLBACK]
     is_tickers  = [f'{t}.IS' for t in yf_tickers]
     result: dict = {}
+    n_bars = min(600, (date.today() - start_date).days + 30)
 
     # ── Yahoo Finance ──────────────────────────────────────────────────────
     if is_tickers:
@@ -479,17 +515,20 @@ def fetch_stock_prices(tickers: list, start_date: date, end_date: date) -> dict:
             print(f'  yfinance error: {e}')
 
     # ── TradingView WebSocket fallback (no package needed, uses websocket-client) ──
-    if tv_tickers:
-        for ticker in tv_tickers:
-            tv_sym = TV_FALLBACK[ticker]
-            try:
-                prices_tv = _fetch_tv_ws(tv_sym, 'BIST', n_bars=300)
-                result[ticker] = {
-                    d: p for d, p in prices_tv.items()
-                    if d >= start_date.isoformat()
-                }
-            except Exception as e:
-                print(f'  TV WebSocket {ticker} ({tv_sym}) error: {e}')
+    # Hem TV_FALLBACK'teki (Yahoo'da hiç olmayan) tickerlar, hem de Yahoo'nun
+    # bu koşuda (rate-limit vb.) veri döndürmediği tickerlar için kullanılır.
+    missing = [t for t in yf_tickers if not result.get(t)]
+    for ticker in tv_tickers + missing:
+        tv_sym = TV_FALLBACK.get(ticker, ticker)
+        try:
+            prices_tv = _fetch_tv_ws(tv_sym, 'BIST', n_bars=n_bars)
+            got = {d: p for d, p in prices_tv.items() if d >= start_date.isoformat()}
+            if got:
+                result[ticker] = got
+            elif ticker not in result:
+                print(f'  TV WebSocket {ticker} ({tv_sym}): veri yok')
+        except Exception as e:
+            print(f'  TV WebSocket {ticker} ({tv_sym}) error: {e}')
 
     return result
 
@@ -540,32 +579,40 @@ def fetch_benchmark_prices(start_date: date, end_date: date) -> dict:
     return result
 
 
-def build_portfolio_daily_value(trades: list, nsp_trades: list, nsp_daily_value: list,
+def build_portfolio_daily_value(trades: list, mmf_trades_all: list, mmf_daily_values: dict,
                                  stock_prices: dict) -> list:
     """
-    Compute daily total portfolio value = Σ(qty_held × price) + NSP value + theoretical cash.
+    Compute daily total portfolio value = Σ(qty_held × price) + Σ(fon değeri) + theoretical cash.
+
+    mmf_trades_all: tüm para piyasası fonlarının (NSP+GOP+...) işlemleri, tek liste
+                    (theoretical cash hesaplamasında nakit akışı olarak kullanılır).
+    mmf_daily_values: {fund_code: nsp_daily_value-şeklinde liste} — her fonun günlük değeri.
 
     "Theoretical cash" tracks in-transit money between portfolio rotations to eliminate
-    artificial dips when e.g. an NSP sell settles before the replacement stocks are bought,
-    or when stocks are sold and the proceeds sit idle before an NSP buy.
+    artificial dips when e.g. a fund sell settles before the replacement stocks are bought,
+    or when stocks are sold and the proceeds sit idle before a fund buy.
     """
-    if not nsp_daily_value and not stock_prices:
+    if not any(mmf_daily_values.values()) and not stock_prices:
         return []
 
-    nsp_by_date = {p['date']: p['value'] for p in nsp_daily_value}
-
-    # Build step-function NSP fill: for a date with no NSP price,
-    # carry forward the last known NSP value.
-    nsp_steps = sorted(nsp_by_date.items())
+    # Fon başına step-function: bir tarihte fiyat yoksa son bilinen değeri taşı.
+    fund_steps = {
+        code: sorted({p['date']: p['value'] for p in dv}.items())
+        for code, dv in mmf_daily_values.items()
+    }
 
     def nsp_value_at(d_str: str) -> float:
-        val = 0.0
-        for step_d, step_v in nsp_steps:
-            if step_d <= d_str:
-                val = step_v
-            else:
-                break
-        return val
+        """Tüm para piyasası fonlarının o tarihteki TOPLAM değeri (isim tarihsel sebeple korundu)."""
+        total = 0.0
+        for steps in fund_steps.values():
+            val = 0.0
+            for step_d, step_v in steps:
+                if step_d <= d_str:
+                    val = step_v
+                else:
+                    break
+            total += val
+        return total
 
     # Running stock inventory (sorted trades, applied in order)
     sorted_trades = sorted(trades, key=lambda x: x['date'])
@@ -579,7 +626,7 @@ def build_portfolio_daily_value(trades: list, nsp_trades: list, nsp_daily_value:
     #   NSP sell (T+0) → stocks appear at trade date → theoretical_cash bridges the gap
     #   Stock sell (T) → NSP buy later → theoretical_cash bridges the reverse gap
     cash_events: list = []
-    for nt in nsp_trades:
+    for nt in mmf_trades_all:
         amount = nt['units'] * nt['price']
         cash_events.append((nt['date'], +amount if nt['type'] == 'satis' else -amount))
     for t in trades:
@@ -597,8 +644,10 @@ def build_portfolio_daily_value(trades: list, nsp_trades: list, nsp_daily_value:
         running = sum(delta for d, delta in cash_events if d <= d_str)
         return initial_cash_offset + running
 
-    # Union of all dates from stock prices + NSP
-    all_dates: set = set(nsp_by_date.keys())
+    # Union of all dates from stock prices + tüm fonlar
+    all_dates: set = set()
+    for dv in mmf_daily_values.values():
+        all_dates.update(p['date'] for p in dv)
     for tp in stock_prices.values():
         all_dates.update(tp.keys())
     all_dates_sorted = sorted(all_dates)
@@ -651,57 +700,91 @@ def build_portfolio_daily_value(trades: list, nsp_trades: list, nsp_daily_value:
     return result
 
 
+def _resolve_pdf(path_hint: str, fallback_name: str) -> str:
+    p = os.path.abspath(path_hint)
+    if os.path.exists(p):
+        return p
+    return os.path.join(os.path.expanduser('~'), 'Downloads', fallback_name)
+
+
 def main():
-    pdf_path = os.path.abspath(PDF_PATH)
-    if not os.path.exists(pdf_path):
-        # Try the Downloads folder directly
-        pdf_path = os.path.join(os.path.expanduser('~'), 'Downloads', 'Ekstre3 (1).pdf')
+    old_pdf = _resolve_pdf(OLD_PDF_PATH, 'Ekstre3 (1).pdf')
+    new_pdf = _resolve_pdf(NEW_PDF_PATH, 'Ekstre3 (5).pdf')
 
-    print(f'Parsing {pdf_path}')
-    rows = extract_lines(pdf_path)
-    print(f'Found {len(rows)} transaction rows')
+    print(f'Parsing OLD (< {CUTOVER_DATE}): {old_pdf}')
+    old_rows = extract_lines(old_pdf)
+    print(f'  {len(old_rows)} satır')
+    (trades_old, mmf_trades_old, _mmf_hist_old, divs_old,
+     balance_old, komis_old) = process(
+        old_rows, date_filter=lambda d: d < CUTOVER_DATE, apply_ipo_allocations=False)
 
-    trades, nsp_trades, nsp_position_history, dividends, balance_history, total_komis = process(rows)
+    print(f'Parsing NEW (>= {CUTOVER_DATE}): {new_pdf}')
+    new_rows = extract_lines(new_pdf)
+    print(f'  {len(new_rows)} satır')
+    (trades_new, mmf_trades_new, _mmf_hist_new, divs_new,
+     balance_new, komis_new) = process(
+        new_rows, date_filter=lambda d: d >= CUTOVER_DATE, apply_ipo_allocations=True)
+
+    trades          = trades_old + trades_new
+    dividends       = divs_old + divs_new
+    total_komis     = komis_old + komis_new
+    balance_history = sorted(balance_old + balance_new, key=lambda x: x['date'])
+
+    # Fon işlemlerini birleştir (OLD'de sadece NSP olabilir, GOP NEW'de başladı)
+    mmf_trades: dict = defaultdict(list)
+    for code in MMF_FUNDS:
+        mmf_trades[code] = mmf_trades_old.get(code, []) + mmf_trades_new.get(code, [])
+    mmf_trades = {k: v for k, v in mmf_trades.items() if v}   # boş fonu at
+
+    print(f'Toplam: {len(trades)} hisse işlemi, '
+          f'{sum(len(v) for v in mmf_trades.values())} fon işlemi ({list(mmf_trades.keys())})')
+
     pnl_summary, open_positions, pnl_timeline = compute_pnl(trades)
 
     total_realized = sum(v['realized_pnl'] for v in pnl_summary.values())
     total_divs     = sum(d['net'] for d in dividends)
 
-    # Fetch NSP daily prices from TEFAS for the portfolio period
-    if nsp_position_history:
-        first_nsp_date = date.fromisoformat(nsp_position_history[0]['date'])
-        nsp_end_date   = date.today()
-        print(f'Fetching NSP prices from TEFAS ({first_nsp_date} to {nsp_end_date})...')
-        nsp_prices = fetch_nsp_prices(first_nsp_date, nsp_end_date)
-        print(f'  Got {len(nsp_prices)} NSP price points')
-    else:
-        nsp_prices = {}
+    # Her fon için: pozisyon geçmişi (birleşik trade listesinden), TEFAS fiyatı, günlük değer
+    mmf_position_history: dict = {}
+    mmf_daily_value: dict = {}
+    mmf_trades_all: list = []
+    for code, code_trades in mmf_trades.items():
+        units = 0.0
+        hist = []
+        for t in sorted(code_trades, key=lambda x: x['date']):
+            units += t['units'] if t['type'] == 'alis' else -t['units']
+            hist.append({'date': t['date'], 'units': round(units, 3),
+                        'price': t['price'], 'value': round(units * t['price'], 2)})
+        mmf_position_history[code] = hist
+        mmf_trades_all.extend(code_trades)
 
-    nsp_daily_value = build_nsp_daily_value(nsp_position_history, nsp_prices)
+        first_date = date.fromisoformat(hist[0]['date'])
+        end_date   = date.today()
+        print(f'Fetching {code} prices from TEFAS ({first_date} to {end_date})...')
+        prices = fetch_mmf_prices(code, first_date, end_date)
+        print(f'  Got {len(prices)} {code} price points')
+        daily = build_nsp_daily_value(hist, prices)
 
-    # For NSP transactions that fall inside a TEFAS data gap (API returned no prices
-    # for that chunk), add synthetic nsp_daily_value entries using the transaction
-    # price so that the portfolio chart doesn't show false dips or spikes when the
-    # theoretical-cash change has no matching NSP value update.
-    if nsp_position_history:
-        nsp_daily_dict = {e['date']: e for e in nsp_daily_value}
-        synthetic_added = 0
-        for pos in nsp_position_history:
-            if pos['date'] not in nsp_daily_dict:
-                nsp_daily_value.append({
-                    'date':  pos['date'],
-                    'units': round(pos['units'], 3),
-                    'price': round(pos['price'], 6),
-                    'value': round(pos['units'] * pos['price'], 2),
-                })
-                synthetic_added += 1
-        if synthetic_added:
-            nsp_daily_value.sort(key=lambda x: x['date'])
-            print(f'  Added {synthetic_added} synthetic NSP entries for TEFAS data gaps')
+        # TEFAS'ın veri vermediği (gap) günler için işlem fiyatından sentetik nokta ekle
+        daily_dict = {e['date']: e for e in daily}
+        added = 0
+        for pos in hist:
+            if pos['date'] not in daily_dict:
+                daily.append({'date': pos['date'], 'units': round(pos['units'], 3),
+                              'price': round(pos['price'], 6),
+                              'value': round(pos['units'] * pos['price'], 2)})
+                added += 1
+        if added:
+            daily.sort(key=lambda x: x['date'])
+            print(f'  {code}: {added} TEFAS-boşluğu için sentetik nokta eklendi')
+        mmf_daily_value[code] = daily
 
-    nsp_current_value = nsp_daily_value[-1]['value'] if nsp_daily_value else (
-        nsp_position_history[-1]['value'] if nsp_position_history else 0
-    )
+    def _mmf_current(code):
+        dv = mmf_daily_value.get(code, [])
+        if dv:
+            return dv[-1]['value']
+        hist = mmf_position_history.get(code, [])
+        return hist[-1]['value'] if hist else 0
 
     # Fetch historical BIST closing prices for all traded tickers
     all_tickers = sorted({t['ticker'] for t in trades})
@@ -711,10 +794,14 @@ def main():
         stock_prices = fetch_stock_prices(all_tickers, first_trade_date, date.today())
         fetched = {t: len(v) for t, v in stock_prices.items()}
         print(f'  Price points: {fetched}')
+        missing_tickers = [t for t in all_tickers if not stock_prices.get(t)]
+        if missing_tickers:
+            print(f'  UYARI: fiyat bulunamadı: {missing_tickers}')
     else:
         stock_prices = {}
 
-    portfolio_daily_value = build_portfolio_daily_value(trades, nsp_trades, nsp_daily_value, stock_prices)
+    portfolio_daily_value = build_portfolio_daily_value(
+        trades, mmf_trades_all, mmf_daily_value, stock_prices)
     portfolio_current_value = portfolio_daily_value[-1]['total_value'] if portfolio_daily_value else 0
 
     # Last known price for each ticker (for unrealized P&L of open positions)
@@ -732,8 +819,11 @@ def main():
     else:
         benchmark_prices = {}
 
+    first_overall = min(t['date'] for t in trades) if trades else CUTOVER_DATE.isoformat()
+    last_overall  = max(r['row_date'] for r in new_rows).isoformat() if new_rows else date.today().isoformat()
+
     output = {
-        'period':       '2025-11-13 / 2026-05-23',
+        'period':       f'{first_overall} / {last_overall}',
         'account_name': 'AHMET EMİN TAHTACI',
         'account_no':   '73285',
         'broker':       'PUSULA Yatırım',
@@ -742,12 +832,21 @@ def main():
             'total_dividends':    round(total_divs, 2),
             'total_commission':   round(total_komis, 2),
         },
-        'trades':                trades,
-        'nsp_trades':            nsp_trades,
-        'nsp_position_history':  nsp_position_history,
-        'nsp_daily_value':          nsp_daily_value,
-        'nsp_current_units':        nsp_position_history[-1]['units'] if nsp_position_history else 0,
-        'nsp_current_value':        round(nsp_current_value, 2),
+        'trades':                   trades,
+        # Geriye dönük uyumluluk: nsp_* alanları sadece NSP fonuna ait kalır.
+        'nsp_trades':               mmf_trades.get('NSP', []),
+        'nsp_position_history':     mmf_position_history.get('NSP', []),
+        'nsp_daily_value':          mmf_daily_value.get('NSP', []),
+        'nsp_current_units':        mmf_position_history.get('NSP', [{'units': 0}])[-1]['units']
+                                     if mmf_position_history.get('NSP') else 0,
+        'nsp_current_value':        round(_mmf_current('NSP'), 2),
+        # Yeni: GOP aynı şekilde ayrı alanlarda.
+        'gop_trades':               mmf_trades.get('GOP', []),
+        'gop_position_history':     mmf_position_history.get('GOP', []),
+        'gop_daily_value':          mmf_daily_value.get('GOP', []),
+        'gop_current_units':        mmf_position_history.get('GOP', [{'units': 0}])[-1]['units']
+                                     if mmf_position_history.get('GOP') else 0,
+        'gop_current_value':        round(_mmf_current('GOP'), 2),
         'portfolio_daily_value':    portfolio_daily_value,
         'portfolio_current_value':  round(portfolio_current_value, 2),
         'pnl_timeline':             pnl_timeline,
@@ -779,8 +878,11 @@ def main():
     print(f'Total realized P&L: {total_realized:,.2f} TL')
     print(f'Total dividends:    {total_divs:,.2f} TL')
     print(f'Total commission:   {total_komis:,.2f} TL')
-    print(f'NSP daily points:       {len(nsp_daily_value)} | Current: {nsp_current_value:,.2f} TL')
+    for code in mmf_trades:
+        print(f'{code} daily points: {len(mmf_daily_value.get(code, []))} | '
+              f'Current: {_mmf_current(code):,.2f} TL')
     print(f'Portfolio daily points: {len(portfolio_daily_value)} | Current: {portfolio_current_value:,.2f} TL')
+    print(f'Period: {output["period"]}')
     print(f'Written: {OUT_PATH}')
 
 

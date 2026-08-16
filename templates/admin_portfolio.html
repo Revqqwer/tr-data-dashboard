@@ -328,6 +328,7 @@ function renderPf() {
   const base = pfData.base_positions || {};
   const ovs  = pfData.overrides?.open_positions || {};
   const nspOv = pfData.overrides?.nsp_units_override;
+  const gopOv = pfData.overrides?.gop_units_override;
   const cashOv = pfData.overrides?.cash_value_override;
 
   const allTickers = [...new Set([...Object.keys(base), ...Object.keys(ovs)])].sort();
@@ -336,6 +337,10 @@ function renderPf() {
   const nspBadge = nspOv != null ? '<span class="badge-ov">OV</span>' : '<span class="badge-pdf">PDF</span>';
   const nspUnitsDisp = fmt(pfData.nsp_current_units ?? 0);
   const nspValDisp   = fmt(pfData.nsp_current_value ?? 0);
+  // GOP satırı
+  const gopBadge = gopOv != null ? '<span class="badge-ov">OV</span>' : '<span class="badge-pdf">PDF</span>';
+  const gopUnitsDisp = fmt(pfData.gop_current_units ?? 0);
+  const gopValDisp   = fmt(pfData.gop_current_value ?? 0);
   const cashBadge = cashOv != null ? '<span class="badge-ov">OV</span>' : '<span class="badge-pdf">PDF</span>';
   const cashDisp  = fmt(pfData.cash_value ?? 0);
 
@@ -414,6 +419,24 @@ function renderPf() {
             <div style="display:flex;gap:8px;flex-wrap:wrap;">
               <button class="pf-btn-save" onclick="saveNspUnits()">Birimi Kaydet</button>
               ${nspOv != null ? `<button class="pf-btn-reset" onclick="resetFunding()">Sıfırla</button>` : ''}
+            </div>
+          </td>
+        </tr>
+        <!-- GOP satırı: bilgi amaçlı (override göstergesi) -->
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.06);">
+          <td style="font-family:monospace;font-weight:700;color:#60a5fa;">
+            GOP ${gopBadge}
+          </td>
+          <td style="color:#475569;font-size:12px;">${gopUnitsDisp} pay</td>
+          <td colspan="2">
+            <input class="pf-input wide" id="gopUnitsInput" type="number" min="0" step="0.0001"
+                   value="${pfData.gop_current_units ?? 0}" placeholder="16554">
+          </td>
+          <td style="color:#e2e8f0;font-size:13px;font-weight:600;">${gopValDisp} ₺</td>
+          <td>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button class="pf-btn-save" onclick="saveGopUnits()">Birimi Kaydet</button>
+              ${gopOv != null ? `<button class="pf-btn-reset" onclick="resetFunding()">Sıfırla</button>` : ''}
             </div>
           </td>
         </tr>
@@ -644,6 +667,21 @@ async function saveNspUnits() {
     });
     const j = await r.json();
     if (j.ok) { toast(`NSP birimi ${val.toFixed(2)} olarak kaydedildi ✓`); loadPf(); }
+    else toast(j.error || 'Hata', false);
+  } catch(e) { toast(e.message, false); }
+}
+
+async function saveGopUnits() {
+  const val = parseFloat(document.getElementById('gopUnitsInput').value);
+  if (isNaN(val) || val < 0) { toast('Geçersiz birim sayısı', false); return; }
+  try {
+    const r = await fetch(`/admin/${SECRET}/portfolio-set-gop`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({gop_units: val}),
+    });
+    const j = await r.json();
+    if (j.ok) { toast(`GOP birimi ${val.toFixed(2)} olarak kaydedildi ✓`); loadPf(); }
     else toast(j.error || 'Hata', false);
   } catch(e) { toast(e.message, false); }
 }
