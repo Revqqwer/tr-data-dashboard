@@ -1267,6 +1267,15 @@ def _portfolio_with_overrides() -> dict | None:
         last_price = nsp_dv[-1]['price'] if nsp_dv else 1.0
         pf['nsp_current_value'] = round(nsp_units_ov * last_price, 2)
 
+    # ── GOP birim override'ı ────────────────────────────────────────────────
+    gop_units_ov = ov.get('gop_units_override')
+    if gop_units_ov is not None:
+        gop_units_ov = float(gop_units_ov)
+        pf['gop_current_units'] = gop_units_ov
+        gop_dv = pf.get('gop_daily_value', [])
+        last_price = gop_dv[-1]['price'] if gop_dv else 1.0
+        pf['gop_current_value'] = round(gop_units_ov * last_price, 2)
+
     # ── Nakit (cash) override'ı ────────────────────────────────────────────
     cash_ov = ov.get('cash_value_override')
     if cash_ov is not None:
@@ -1387,9 +1396,11 @@ def admin_portfolio_overrides_get(secret):
     pf = _portfolio_with_overrides() or {}
     ov = _load_overrides()
 
-    # Last NSP unit price (for unit↔TL conversion in UI)
+    # Son NSP/GOP birim fiyatı (UI'de birim↔TL dönüşümü için)
     nsp_dv = pf_base.get('nsp_daily_value', [])
     nsp_last_price = nsp_dv[-1]['price'] if nsp_dv else 1.0
+    gop_dv = pf_base.get('gop_daily_value', [])
+    gop_last_price = gop_dv[-1]['price'] if gop_dv else 1.0
 
     # Current effective cash value (after cash override if any)
     pdv = pf.get('portfolio_daily_value', [])
@@ -1400,6 +1411,9 @@ def admin_portfolio_overrides_get(secret):
         'nsp_current_units': pf.get('nsp_current_units', 0),
         'nsp_current_value': pf.get('nsp_current_value', 0),
         'nsp_last_price':    round(nsp_last_price, 6),
+        'gop_current_units': pf.get('gop_current_units', 0),
+        'gop_current_value': pf.get('gop_current_value', 0),
+        'gop_last_price':    round(gop_last_price, 6),
         'cash_value':        round(cash_value, 2),
         'overrides':         ov,
         'closed_positions':  ov.get('closed_positions', []),
@@ -1471,6 +1485,7 @@ def admin_portfolio_override_delete(secret, ticker):
     data = request.get_json(silent=True) or {}
     if data.get('clear_funding'):
         ov.pop('nsp_units_override', None)
+        ov.pop('gop_units_override', None)
         ov.pop('cash_value_override', None)
     _save_overrides(ov)
     return jsonify({'ok': True})
@@ -1482,6 +1497,7 @@ def admin_portfolio_reset_funding(secret):
         return jsonify({'error': 'forbidden'}), 403
     ov = _load_overrides()
     ov.pop('nsp_units_override', None)
+    ov.pop('gop_units_override', None)
     ov.pop('cash_value_override', None)
     _save_overrides(ov)
     return jsonify({'ok': True})
@@ -1527,6 +1543,28 @@ def admin_portfolio_set_nsp(secret):
         ov.pop('nsp_units_override', None)
     else:
         ov['nsp_units_override'] = val
+    _save_overrides(ov)
+    return jsonify({'ok': True})
+
+
+@app.route('/admin/<secret>/portfolio-set-gop', methods=['POST'])
+def admin_portfolio_set_gop(secret):
+    """GOP birim override'ını doğrudan kaydet."""
+    if secret != ADMIN_SECRET:
+        return jsonify({'error': 'forbidden'}), 403
+    data = request.get_json(silent=True) or {}
+    val  = data.get('gop_units')
+    if val is None:
+        return jsonify({'error': 'gop_units required'}), 400
+    try:
+        val = round(float(val), 4)
+    except (TypeError, ValueError):
+        return jsonify({'error': 'invalid gop_units'}), 400
+    ov = _load_overrides()
+    if val <= 0:
+        ov.pop('gop_units_override', None)
+    else:
+        ov['gop_units_override'] = val
     _save_overrides(ov)
     return jsonify({'ok': True})
 
