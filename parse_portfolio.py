@@ -18,7 +18,7 @@ from datetime import datetime, date
 from collections import defaultdict
 
 OLD_PDF_PATH  = os.path.join(os.path.dirname(__file__), '..', '..', 'Downloads', 'Ekstre3 (1).pdf')
-NEW_PDF_PATH  = os.path.join(os.path.dirname(__file__), '..', '..', 'Downloads', 'Ekstre3 (5).pdf')
+NEW_PDF_PATH  = os.path.join(os.path.dirname(__file__), '..', '..', 'Downloads', 'Ekstre3 (5) (2).pdf')
 CUTOVER_DATE  = date(2026, 1, 1)
 OUT_PATH      = os.path.join(os.path.dirname(__file__), 'data', 'portfolio.json')
 
@@ -700,16 +700,26 @@ def build_portfolio_daily_value(trades: list, mmf_trades_all: list, mmf_daily_va
     return result
 
 
-def _resolve_pdf(path_hint: str, fallback_name: str) -> str:
+def _resolve_pdf(path_hint: str) -> str:
+    """path_hint'i olduğu gibi dener; bulamazsa AYNI dosya adını kullanıcının
+    Downloads klasöründe arar. Eskiden burada ayrı bir 'fallback_name' string'i
+    elle veriliyordu — OLD/NEW_PDF_PATH güncellenince o string unutulup eski
+    dosya sessizce kullanılmaya devam ediyordu (bir kez böyle oldu). Artık
+    fallback ismi path_hint'ten OTOMATİK türetiliyor, ikisi asla birbirinden
+    kopamaz.
+    """
     p = os.path.abspath(path_hint)
     if os.path.exists(p):
         return p
-    return os.path.join(os.path.expanduser('~'), 'Downloads', fallback_name)
+    fallback = os.path.join(os.path.expanduser('~'), 'Downloads', os.path.basename(path_hint))
+    if os.path.exists(fallback):
+        return fallback
+    raise FileNotFoundError(f'PDF bulunamadı: {p}  (ne de {fallback})')
 
 
 def main():
-    old_pdf = _resolve_pdf(OLD_PDF_PATH, 'Ekstre3 (1).pdf')
-    new_pdf = _resolve_pdf(NEW_PDF_PATH, 'Ekstre3 (5).pdf')
+    old_pdf = _resolve_pdf(OLD_PDF_PATH)
+    new_pdf = _resolve_pdf(NEW_PDF_PATH)
 
     print(f'Parsing OLD (< {CUTOVER_DATE}): {old_pdf}')
     old_rows = extract_lines(old_pdf)
