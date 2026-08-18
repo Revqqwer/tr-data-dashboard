@@ -65,9 +65,12 @@ def _fetch_tv(tv_symbol: str, n_bars: int = 60) -> dict[str, float]:
     return dict(zip(dates, closes))
 
 
-# ── NSP fiyatı — TEFAS ───────────────────────────────────────────────────────
-def _fetch_nsp(from_str: str) -> dict[str, float]:
-    """TEFAS'tan NSP fiyatlarını çek. {date_str: price}"""
+# ── Para piyasası fonu fiyatı — TEFAS ────────────────────────────────────────
+# NSP + GOP burada aynı mantıkla çekilir. Fon fiyat bulunamazsa (ör. GOP bu
+# uçtan hiç dönmüyor) çağıran taraf son bilinen fiyatı taşımalı — burada
+# sessizce boş dict dönülür, hata sayılmaz.
+def _fetch_mmf(fund_code: str, from_str: str) -> dict[str, float]:
+    """TEFAS'tan bir para piyasası fonunun fiyatlarını çek. {date_str: price}"""
     import requests
     from datetime import datetime as dt
     prices = {}
@@ -81,16 +84,20 @@ def _fetch_nsp(from_str: str) -> dict[str, float]:
             timeout=30,
         )
         for row in r.json().get('data', []):
-            if row.get('KOD') == 'NSP':
+            if row.get('KOD') == fund_code:
                 try:
                     d = dt.strptime(row['TARIH'], '%d.%m.%Y').strftime('%Y-%m-%d')
                     prices[d] = float(row['FIYAT'])
                 except Exception:
                     pass
-        log.info('NSP: %d fiyat alındı', len(prices))
+        log.info('%s: %d fiyat alındı', fund_code, len(prices))
     except Exception as e:
-        log.warning('NSP fetch hatası: %s', e)
+        log.warning('%s fetch hatası: %s', fund_code, e)
     return prices
+
+
+def _fetch_nsp(from_str: str) -> dict[str, float]:
+    return _fetch_mmf('NSP', from_str)
 
 
 # ── Ana Güncelleme ────────────────────────────────────────────────────────────
@@ -132,6 +139,8 @@ def run():
     #    doğru son değerde (override) biter. ──
     nsp_units_base     = pf.get('nsp_current_units', 0.0)
     nsp_units_override = ov.get('nsp_units_override')
+    gop_units_base     = pf.get('gop_current_units', 0.0)
+    gop_units_override = ov.get('gop_units_override')
     cash_override      = ov.get('cash_value_override')
 
     new_pos_cost = {
@@ -199,9 +208,12 @@ def run():
             bench_raw[key] = {}
         time.sleep(0.6)
 
-    # 3. NSP fiyatları (TEFAS)
+    # 3. NSP + GOP fiyatları (TEFAS). GOP fonu yoksa (henüz alınmadıysa) hiç çekilmez.
     nsp_prices   = _fetch_nsp(recompute_from_str)
-    # Yeniden hesaplama başlangıç noktasındaki NSP değerini bul
+    gop_prices   = _fetch_mmf('GOP', recompute_from_str) if (gop_units_base or gop_units_override) else {}
+    # Yeniden hesaplama başlangıç noktasındaki değeri bul
+    # NOT: 'nsp_value' alanı artık NSP+GOP TOPLAMINI tutuyor (parse_portfolio.py ile aynı
+    # kural) — bu yüzden aşağıdaki NSP fallback'i aslında anchor'daki havuz toplamıdır.
     pdv_kept_tmp = [e for e in pdv if e['date'] <= recompute_from_str]
     recompute_anchor = pdv_kept_tmp[-1] if pdv_kept_tmp else last_entry
     last_nsp_val = recompute_anchor.get('nsp_value', 0.0)
@@ -220,6 +232,12 @@ def run():
     last_nsp_price_known = nsp_dv_all[-1]['price'] if nsp_dv_all else None
     if last_nsp_price_known is None and last_nsp_val and nsp_units_base:
         last_nsp_price_known = last_nsp_val / nsp_units_base
+
+    # Aynısı GOP için — kendi (ayrı) fiyat serisinden son bilinen fiyat
+    gop_dv_all = pf.get('gop_daily_value', [])
+    last_gop_price_known = gop_dv_all[-1]['price'] if gop_dv_all else None
+    gop_u0 = float(gop_units_override) if gop_units_override is not None else float(gop_units_base)
+    last_gop_val = gop_u0 * last_gop_price_known if last_gop_price_known else 0.0
 
     # 4. Trading günleri → XU100'ün döndürdüğü tarihleri kullan
     # recompute_from_str'den itibaren yeniden hesapla (son RECOMPUTE_DAYS günü dahil)
@@ -275,13 +293,26 @@ def run():
             nsp_val = nsp_u * last_nsp_price_known
         else:
             nsp_val = last_nsp_val
+
+        # GOP — aynı mantık, ayrı fon (henüz alınmadıysa gop_u0=0, val=0)
+        gop_p = gop_prices.get(d_str)
+        if gop_p:
+            last_gop_price_known = gop_p
+            gop_val = gop_u0 * gop_p
+        elif last_gop_price_known:
+            gop_val = gop_u0 * last_gop_price_known
+        else:
+            gop_val = last_gop_val
+        last_gop_val = gop_val
         last_nsp_val = nsp_val
 
-        total = round(sv + nsp_val + cash_d, 2)
+        # 'nsp_value' alanı NSP+GOP toplamını tutar (parse_portfolio.py ile aynı kural;
+        # GOP'u ayrıca eklemeyi unutmak, GOP'un tüm değerini toplamdan düşürüyordu).
+        total = round(sv + nsp_val + gop_val + cash_d, 2)
         new_entries.append({
             'date':         d_str,
             'stock_value':  round(sv, 2),
-            'nsp_value':    round(nsp_val, 2),
+            'nsp_value':    round(nsp_val + gop_val, 2),
             'cash_value':   round(cash_d, 2),
             'total_value':  total,
         })
@@ -310,7 +341,7 @@ def run():
         existing_bench[key] = dict(sorted(existing.items()))
     pf['benchmark_prices'] = existing_bench
 
-    # 9. nsp_daily_value'ye yeni NSP girdileri ekle
+    # 9. nsp_daily_value / gop_daily_value'ye yeni girdiler ekle
     nsp_dv = pf.get('nsp_daily_value', [])
     existing_nsp_dates = {e['date'] for e in nsp_dv}
     for d_str, nsp_p in sorted(nsp_prices.items()):
@@ -323,6 +354,18 @@ def run():
                 'value': round(u * nsp_p, 2),
             })
     pf['nsp_daily_value'] = sorted(nsp_dv, key=lambda x: x['date'])
+
+    gop_dv = pf.get('gop_daily_value', [])
+    existing_gop_dates = {e['date'] for e in gop_dv}
+    for d_str, gop_p in sorted(gop_prices.items()):
+        if d_str > last_date_str and d_str not in existing_gop_dates:
+            gop_dv.append({
+                'date':  d_str,
+                'units': gop_u0,
+                'price': gop_p,
+                'value': round(gop_u0 * gop_p, 2),
+            })
+    pf['gop_daily_value'] = sorted(gop_dv, key=lambda x: x['date'])
 
     # 10. Kaydet
     PORTFOLIO_FILE.write_text(json.dumps(pf, ensure_ascii=False, indent=2, default=str), encoding='utf-8')
