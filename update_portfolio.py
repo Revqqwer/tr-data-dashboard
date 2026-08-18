@@ -239,6 +239,29 @@ def run():
     gop_u0 = float(gop_units_override) if gop_units_override is not None else float(gop_units_base)
     last_gop_val = gop_u0 * last_gop_price_known if last_gop_price_known else 0.0
 
+    # GOP birim sayısı zaman içinde değişmiş olabilir (ör. birden fazla alım
+    # farklı tarihlerde) — RECOMPUTE_DAYS penceresi bu alımların tümünü
+    # kapsayabilir. gop_position_history'den (gerçek işlem geçmişi) tarihe göre
+    # kademe fonksiyonu kurup HER GÜN o günkü GERÇEK birim sayısını kullan;
+    # yoksa geçmiş günlere bugünün (daha büyük) birim sayısı yanlışlıkla
+    # uygulanıp grafikte sahte bir sıçrama oluşur (nitekim oluşmuştu).
+    _gop_steps = sorted(
+        (e['date'], float(e['units'])) for e in pf.get('gop_position_history', [])
+    )
+
+    def _gop_units_at(d_str: str) -> float:
+        if gop_units_override is not None:
+            return float(gop_units_override)
+        if not _gop_steps:
+            return gop_u0
+        u = 0.0
+        for sd, su in _gop_steps:
+            if sd <= d_str:
+                u = su
+            else:
+                break
+        return u
+
     # 4. Trading günleri → XU100'ün döndürdüğü tarihleri kullan
     # recompute_from_str'den itibaren yeniden hesapla (son RECOMPUTE_DAYS günü dahil)
     xu100_dates = sorted(
@@ -294,13 +317,15 @@ def run():
         else:
             nsp_val = last_nsp_val
 
-        # GOP — aynı mantık, ayrı fon (henüz alınmadıysa gop_u0=0, val=0)
+        # GOP — aynı mantık, ayrı fon; birim sayısı o GÜNE ait gerçek değer
+        # (henüz alınmadıysa 0, val=0)
+        gop_u = _gop_units_at(d_str)
         gop_p = gop_prices.get(d_str)
         if gop_p:
             last_gop_price_known = gop_p
-            gop_val = gop_u0 * gop_p
+            gop_val = gop_u * gop_p
         elif last_gop_price_known:
-            gop_val = gop_u0 * last_gop_price_known
+            gop_val = gop_u * last_gop_price_known
         else:
             gop_val = last_gop_val
         last_gop_val = gop_val
@@ -359,11 +384,12 @@ def run():
     existing_gop_dates = {e['date'] for e in gop_dv}
     for d_str, gop_p in sorted(gop_prices.items()):
         if d_str > last_date_str and d_str not in existing_gop_dates:
+            u = _gop_units_at(d_str)
             gop_dv.append({
                 'date':  d_str,
-                'units': gop_u0,
+                'units': u,
                 'price': gop_p,
-                'value': round(gop_u0 * gop_p, 2),
+                'value': round(u * gop_p, 2),
             })
     pf['gop_daily_value'] = sorted(gop_dv, key=lambda x: x['date'])
 
