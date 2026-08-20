@@ -157,10 +157,6 @@ def run():
         log.info('Açık pozisyon yok, çıkılıyor.')
         return
 
-    tickers = list(open_pos.keys())
-    qty_map = {t: float(open_pos[t]['qty']) for t in tickers}
-    log.info('Hisseler: %s', tickers)
-
     # Son portföy tarihi
     pdv = pf.get('portfolio_daily_value', [])
     if not pdv:
@@ -180,6 +176,59 @@ def run():
     RECOMPUTE_DAYS = 20
     recompute_from = last_date - timedelta(days=RECOMPUTE_DAYS)
     recompute_from_str = recompute_from.isoformat()
+
+    # ── GERÇEK işlem geçmişinden (pf['trades']) tarihe göre kademe fonksiyonları ──
+    # Önceki hâl: 'qty_map' (BUGÜNÜN nihai adetleri) ve nakit, sadece admin panel
+    # override'ı ('new_pos_dates') varsa tarihe duyarlıydı — pencere İÇİNDE
+    # gerçekleşen ORGANİK alım/satımlar (ör. FRMPL alımı, ALBRK/QUICK/BRSAN
+    # satışı, GOP alımları) hem hisse değerine hem nakde hiç yansımıyordu; nakit
+    # RECOMPUTE_DAYS öncesindeki (anchor) değerde donuk kalıyor, o günlerde henüz
+    # alınmamış/satılmış hisseler de yanlış (hep bugünkü nihai adetle) hesaplanıyordu.
+    real_trades = sorted(pf.get('trades', []), key=lambda t: t['date'])
+    qty_steps: dict[str, list] = {}
+    _running_qty: dict[str, float] = {}
+    trade_cash_steps: list = []      # [(date, kumulatif_gercek_hisse+fon_nakit_akisi)]
+    _running_trade_cash = 0.0
+    mmf_all_trades = list(pf.get('nsp_trades', [])) + list(pf.get('gop_trades', []))
+    for t in sorted(real_trades + mmf_all_trades, key=lambda x: x['date']):
+        if 'ticker' in t:   # hisse işlemi
+            tk = t['ticker']
+            _running_qty[tk] = _running_qty.get(tk, 0.0) + (t['qty'] if t['type'] == 'alis' else -t['qty'])
+            qty_steps.setdefault(tk, []).append((t['date'], _running_qty[tk]))
+            amount = t['amount']
+        else:                # NSP/GOP fon işlemi
+            amount = t['units'] * t['price']
+        _running_trade_cash += (amount if t['type'] == 'satis' else -amount)
+        trade_cash_steps.append((t['date'], _running_trade_cash))
+
+    def _qty_at(ticker: str, d_str: str) -> float:
+        steps = qty_steps.get(ticker)
+        if not steps:
+            return float(open_pos.get(ticker, {}).get('qty', 0))  # override-only pozisyon (gerçek işlemi yok)
+        q = 0.0
+        for sd, sq in steps:
+            if sd <= d_str:
+                q = sq
+            else:
+                break
+        return q
+
+    def _trade_cash_delta_since(anchor_str: str, d_str: str) -> float:
+        """anchor_str (hariç) ile d_str (dahil) arasında GERÇEK hisse+fon işlemlerinden net nakit değişimi."""
+        a = b = 0.0
+        for sd, cum in trade_cash_steps:
+            if sd <= anchor_str:
+                a = cum
+            if sd <= d_str:
+                b = cum
+        return b - a
+
+    # Fiyat çekilecek tickerlar: bugün açık olanlar + pencere içinde işlem görüp
+    # kapanmış olanlar (ör. ALBRK, QUICK) — yoksa o günlerin gerçek hisse değeri
+    # hesaplanamaz (fiyatı hiç çekilmemiş olur).
+    window_tickers = {t['ticker'] for t in real_trades if t['date'] > recompute_from_str}
+    tickers = sorted(set(open_pos.keys()) | window_tickers)
+    log.info('Hisseler (fiyat çekilecek): %s', tickers)
 
     n_bars = max(30, (today - recompute_from).days + 10)
     log.info('Son tarih: %s → bugün: %s (%d bar istenecek, son %d gün yeniden hesaplanacak)',
@@ -289,24 +338,32 @@ def run():
             last_stock_prices[t] = list(v.values())[-1]
 
     for d_str in xu100_dates:
-        # Mevcut fiyatı al (yoksa son bilinen fiyatı kullan)
+        # Hisse değeri: o GÜNE ait GERÇEK adet (qty_steps'ten) × o günün fiyatı.
+        # Override-only pozisyonlar (gerçek işlemi olmayan, admin panelinden
+        # eklenenler) hâlâ new_pos_dates ile alım tarihinden önce hariç tutulur.
         sv = 0.0
-        for ticker, qty in qty_map.items():
-            # Yeni override pozisyonunu alım tarihinden önce dahil etme
+        for ticker in tickers:
             if ticker in new_pos_dates and d_str < new_pos_dates[ticker]:
                 continue
-            p = stock_prices[ticker].get(d_str)
+            qty = _qty_at(ticker, d_str)
+            if qty <= 0:
+                continue
+            p = stock_prices.get(ticker, {}).get(d_str)
             if p is not None:
                 last_stock_prices[ticker] = p
             sv += qty * last_stock_prices.get(ticker, 0.0)
 
-        # O güne kadar alımı yapılmış yeni pozisyonlar → fonlamayı kademeli düş
+        # O güne kadar alımı yapılmış yeni (override) pozisyonlar → fonlamayı kademeli düş
         started = [t for t in new_pos_dates if d_str >= new_pos_dates[t]]
         nsp_u  = nsp_units_base - sum(nsp_units_removed.get(t, 0.0) for t in started)
         if cash_ramp is not None:
             cash_d = cash_ramp[d_str]
         else:
-            cash_d = cash_base_abs + sum(cash_added.get(t, 0.0) for t in started)
+            # GERÇEK işlemlerin (hisse + NSP/GOP alım-satım) bu pencerede yarattığı
+            # net nakit değişimi + (varsa) override fonlama ayarı.
+            cash_d = (cash_base_abs
+                      + _trade_cash_delta_since(recompute_from_str, d_str)
+                      + sum(cash_added.get(t, 0.0) for t in started))
         nsp_p = nsp_prices.get(d_str)
         if nsp_p:
             last_nsp_price_known = nsp_p
