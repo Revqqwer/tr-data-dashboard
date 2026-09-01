@@ -99,6 +99,10 @@
     width:48px;height:48px;border-radius:14px;font-size:19px;flex-shrink:0;transition:.15s}
   .soundBtn:hover{border-color:#33465f}
   .soundBtn.muted{opacity:.45}
+  .volumeBox{display:flex;align-items:center;gap:8px;background:#0d1728;border:1px solid var(--border);
+    border-radius:14px;padding:0 14px;height:48px}
+  .volumeBox input[type=range]{width:110px;accent-color:var(--accent)}
+  .volumeBox span{font-size:12px;color:var(--muted);min-width:32px;text-align:right;font-variant-numeric:tabular-nums}
 </style>
 </head>
 <body>
@@ -218,9 +222,15 @@
         </div>
         <audio id="spinAudio" src="/static/audio/circus-spin.mp3" preload="auto"></audio>
         <div class="result" id="result"></div>
-        <div style="display:flex;align-items:center;gap:10px">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center">
           <button class="btn btn-gold spinBtn" id="spinBtn" onclick="spin()">🎡 Çarkı Çevir</button>
           <button class="soundBtn" id="soundBtn" onclick="toggleSound()" title="Sesi aç/kapat">🔊</button>
+          {% if is_wheel_admin %}
+          <div class="volumeBox">
+            <input type="range" id="volumeSlider" min="0" max="100" value="50" oninput="setVolume(this.value)">
+            <span id="volumeLabel">%50</span>
+          </div>
+          {% endif %}
         </div>
         <div class="spin-note" id="spinNote">Çevirmek için en az 2 öneri gerekir.</div>
         {% if is_wheel_admin %}
@@ -396,6 +406,9 @@ function updateSpinAvail(){
 // ── Ses: orijinal, kod-ile-üretilmiş "sirk/palyaço" temalı oom-pah melodisi ──
 // Çark dönerken tempo hızlı başlar, çark yavaşladıkça tempo da yavaşlar; sonunda "ta-da!" ile biter.
 let soundOn = localStorage.getItem('wheelSound') !== 'off';
+// Yönetici ses seviyesi — 0-1 arası çarpan, mevcut tavan sesin (0.85) üzerine uygulanır.
+// Varsayılan 0.5 → şu anki sesin %50'si.
+let soundVolume = localStorage.getItem('wheelVolume') !== null ? parseFloat(localStorage.getItem('wheelVolume')) : 0.5;
 function updateSoundBtn(){
   const b=$('soundBtn'); if(!b) return;
   b.textContent = soundOn ? '🔊' : '🔇';
@@ -405,6 +418,16 @@ function toggleSound(){
   soundOn = !soundOn;
   localStorage.setItem('wheelSound', soundOn?'on':'off');
   updateSoundBtn();
+}
+function setVolume(v){
+  soundVolume = Math.max(0, Math.min(100, +v))/100;
+  localStorage.setItem('wheelVolume', soundVolume);
+  const lbl=$('volumeLabel'); if(lbl) lbl.textContent = `%${Math.round(soundVolume*100)}`;
+}
+function initVolumeSlider(){
+  const s=$('volumeSlider'); if(!s) return;
+  s.value = Math.round(soundVolume*100);
+  const lbl=$('volumeLabel'); if(lbl) lbl.textContent = `%${Math.round(soundVolume*100)}`;
 }
 const TOTAL_SPIN_MS = 11200; // toplam dönüş süresi (öncekinin 2 katı)
 
@@ -428,10 +451,11 @@ function playCircusSpin(durationMs){
     if (spinAudioCtx.state === 'suspended') spinAudioCtx.resume();
     const totalSec = durationMs/1000;
     const t0 = spinAudioCtx.currentTime;
+    const peakGain = Math.max(0.0001, 0.85 * soundVolume);
     spinAudioGain.gain.cancelScheduledValues(t0);
     spinAudioGain.gain.setValueAtTime(0.0001, t0);
-    spinAudioGain.gain.exponentialRampToValueAtTime(0.85, t0+0.15);
-    spinAudioGain.gain.setValueAtTime(0.85, t0+totalSec-0.6);
+    spinAudioGain.gain.exponentialRampToValueAtTime(peakGain, t0+0.15);
+    spinAudioGain.gain.setValueAtTime(peakGain, t0+totalSec-0.6);
     spinAudioGain.gain.exponentialRampToValueAtTime(0.0001, t0+totalSec);
     spinAudioEl.currentTime = 0;
     spinAudioEl.play().catch(()=>{});
@@ -513,6 +537,7 @@ function spin(){
 initBulbs();
 loadState();
 updateSoundBtn();
+initVolumeSlider();
 </script>
 </body>
 </html>
