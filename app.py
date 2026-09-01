@@ -238,6 +238,7 @@ def wheel_suggestions():
     return jsonify({
         'suggestions': sugg,
         'tickers': wheel.unique_tickers(),
+        'weights': wheel.ticker_weights(),
         'mine': mine_n,
         'max': wheel.MAX_PER_USER,
         'remaining': max(0, wheel.MAX_PER_USER - mine_n),

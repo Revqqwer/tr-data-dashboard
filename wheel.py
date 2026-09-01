@@ -109,6 +109,15 @@ def unique_tickers() -> list:
     return out
 
 
+def ticker_weights() -> list:
+    """unique_tickers() ile aynı sırada, her hisseyi kaç kişinin önerdiği (çark ağırlığı için)."""
+    order = unique_tickers()
+    counts: dict = {}
+    for s in list_suggestions():
+        counts[s['ticker']] = counts.get(s['ticker'], 0) + 1
+    return [counts.get(t, 1) for t in order]
+
+
 def stats() -> dict:
     init_db()
     with sqlite3.connect(DB_PATH) as c:

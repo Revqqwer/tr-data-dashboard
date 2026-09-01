@@ -143,6 +143,7 @@
       <!-- Çark -->
       <section class="card wheelwrap">
         <h2 style="align-self:flex-start">Çark</h2>
+        <div style="align-self:flex-start;font-size:11.5px;color:var(--muted);margin-top:-4px">Daha çok kişinin önerdiği hisse daha büyük dilim kaplar ve çıkma ihtimali de o kadar yüksek olur.</div>
         <div class="stage">
           <div class="pointer">
             <svg viewBox="0 0 44 52">
@@ -236,7 +237,8 @@ const COLORS = ['#d9463c','#e8842b','#f2c14e','#43a86b','#159a8a','#3d7fc4',
 const NS = 'http://www.w3.org/2000/svg';
 const IS_WHEEL_ADMIN = {{ 'true' if is_wheel_admin else 'false' }};
 let TICKERS = [];
-let segPaths = [], segLabels = [];
+let WEIGHTS = [];
+let segPaths = [], segLabels = [], segBounds = [];
 let rotation = 0, spinning = false;
 
 const $ = id => document.getElementById(id);
@@ -271,7 +273,8 @@ async function loadState(){
     renderQuota(d.remaining, d.max);
     renderChips(d.suggestions);
     TICKERS = d.tickers || [];
-    buildWheel(TICKERS);
+    WEIGHTS = d.weights || [];
+    buildWheel(TICKERS, WEIGHTS);
     updateSpinAvail();
   }catch(e){ $('chips').innerHTML = '<div class="empty">Yüklenemedi.</div>'; }
 }
@@ -320,9 +323,9 @@ async function unsuggest(ticker){
 }
 function msg(text,cls){ const m=$('msg'); m.textContent=text; m.className='msg '+(cls||''); }
 
-// ── Çark çizimi ──
-function buildWheel(tickers){
-  const rotor=$('rotor'); rotor.innerHTML=''; segPaths=[]; segLabels=[];
+// ── Çark çizimi — dilim genişliği öneri sayısıyla (weight) orantılı ──
+function buildWheel(tickers, weights){
+  const rotor=$('rotor'); rotor.innerHTML=''; segPaths=[]; segLabels=[]; segBounds=[];
   const n=tickers.length;
   if(n===0){
     const c=document.createElementNS(NS,'circle');
@@ -333,9 +336,14 @@ function buildWheel(tickers){
     t.setAttribute('fill','#8ea3c4');t.setAttribute('style','font-size:15px');t.textContent='Henüz öneri yok';
     rotor.appendChild(t); return;
   }
-  const seg=360/n, R=168;
+  const w = (weights && weights.length===n) ? weights : tickers.map(()=>1);
+  const total = w.reduce((a,b)=>a+b,0) || n;
+  const R=168;
+  let cum=0;
   for(let i=0;i<n;i++){
-    const a0=i*seg, a1=(i+1)*seg;
+    const a0=cum/total*360; cum+=w[i]; const a1=cum/total*360;
+    segBounds.push([a0,a1]);
+    const seg=a1-a0;
     const [x0,y0]=polar(200,200,R,a0), [x1,y1]=polar(200,200,R,a1);
     const large=seg>180?1:0;
     // Radyal gradyan: içi açık, dışı koyu → derinlik
@@ -355,16 +363,17 @@ function buildWheel(tickers){
     path.setAttribute('stroke','rgba(255,255,255,.35)');path.setAttribute('stroke-width','1.5');
     path.dataset.i=i; rotor.appendChild(path); segPaths.push(path);
 
-    const mid=a0+seg/2, rr=n<=2?92:120;
+    const mid=(a0+a1)/2, rr=(n<=2||seg>60)?92:120;
     const [lx,ly]=polar(200,200, rr, mid);
     const label=document.createElementNS(NS,'text');
     label.setAttribute('x',lx.toFixed(2));label.setAttribute('y',ly.toFixed(2));
     label.setAttribute('text-anchor','middle');label.setAttribute('dominant-baseline','central');
-    label.setAttribute('class','seg-label');label.setAttribute('font-size', n>10?'12':'15');
+    label.setAttribute('class','seg-label');label.setAttribute('font-size', seg<10?'9':(n>10?'12':'15'));
     // Radyal hizala; sol yarıda ters dönmesin diye 180° çevir
     const bAng=mid-90, rot=(mid>90&&mid<270)?bAng+180:bAng;
     label.setAttribute('transform',`rotate(${rot.toFixed(1)} ${lx.toFixed(2)} ${ly.toFixed(2)})`);
-    label.textContent=tickers[i]; rotor.appendChild(label); segLabels.push(label);
+    label.textContent = tickers[i] + (w[i]>1?` ×${w[i]}`:'');
+    rotor.appendChild(label); segLabels.push(label);
   }
 }
 
@@ -456,9 +465,13 @@ function spin(){
   const n=TICKERS.length; if(n<2||spinning) return;
   spinning=true; $('spinBtn').disabled=true;
   $('result').classList.remove('show'); $('result').innerHTML=''; clearHighlight();
-  const seg=360/n;
-  const winner=Math.floor(Math.random()*n);
-  const targetInCircle=360-(winner+0.5)*seg;
+  // Ağırlıklı rastgele seçim — daha çok kişi önerdiyse (dilim büyükse) çıkma ihtimali de o kadar yüksek
+  const w = (WEIGHTS && WEIGHTS.length===n) ? WEIGHTS : TICKERS.map(()=>1);
+  const total = w.reduce((a,b)=>a+b,0) || n;
+  let pick = Math.random()*total, winner=0;
+  for(let i=0;i<n;i++){ if(pick<w[i]){ winner=i; break; } pick-=w[i]; winner=i; }
+  const [wb0,wb1] = segBounds[winner] || [0,360/n];
+  const targetInCircle=360-(wb0+wb1)/2;
   const base=rotation-(rotation%360);
   let finalRotation=base+360*6+targetInCircle;
   if(finalRotation<=rotation+360) finalRotation+=360;
