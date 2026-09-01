@@ -82,7 +82,7 @@
   .pointer{position:absolute;top:-3.5%;left:50%;transform:translateX(-50%);z-index:4;
     width:52px;height:62px;filter:drop-shadow(0 6px 7px rgba(0,0,0,.6))}
   svg.wheel{position:relative;z-index:1;display:block;width:100%;height:100%;overflow:visible}
-  #rotor{transform-origin:200px 200px;transition:transform 5.6s cubic-bezier(.13,.73,.11,1)}
+  #rotor{transform-origin:200px 200px} /* transition JS'ten fazlar halinde uygulanır */
   .seg-label{font-weight:800;letter-spacing:.7px;fill:#fff;
     paint-order:stroke;stroke:rgba(0,0,0,.55);stroke-width:2.6px;stroke-linejoin:round}
   @keyframes bulbPulse{0%,100%{opacity:1}50%{opacity:.45}}
@@ -430,26 +430,17 @@ function playCircusSpin(durationMs){
   }catch(e){ /* Web Audio desteklenmiyorsa sessizce geç */ }
 }
 
-function spin(){
-  const n=TICKERS.length; if(n<2||spinning) return;
-  spinning=true; $('spinBtn').disabled=true;
-  $('result').classList.remove('show'); $('result').innerHTML=''; clearHighlight();
-  playCircusSpin(SPIN_MS);
-  const seg=360/n;
-  const winner=Math.floor(Math.random()*n);
-  const targetInCircle=360-(winner+0.5)*seg;
-  const base=rotation-(rotation%360);
-  let next=base+360*6+targetInCircle;
-  if(next<=rotation+360) next+=360;
-  rotation=next;
-  $('rotor').style.transform=`rotate(${rotation}deg)`;
-  const rotor=$('rotor');
-  const onEnd=async ()=>{
-    rotor.removeEventListener('transitionend',onEnd);
-    spinning=false; highlight(winner);
-    const won=TICKERS[winner];
-    const r=$('result'); r.innerHTML=`🎯 Analiz sırası: <span class="win">${won}</span>`;
-    r.classList.add('show');
+// Hızlı başlayıp yavaşça duruyormuş gibi görünen, sonra sertçe iniş yapan klasik "iniş" eğrisi.
+// Hem normal dönüşte hem sahte-durma fazlarında aynı eğri kullanılıyor — her yeni transition
+// hız=0'dan başladığı için, art arda uygulanınca "durdu, tekrar fırladı" hissi kendiliğinden oluşuyor.
+const LAND_EASE = 'cubic-bezier(.13,.73,.11,1)';
+
+function finishSpin(rotor, winner){
+  spinning=false; highlight(winner);
+  const won=TICKERS[winner];
+  const r=$('result'); r.innerHTML=`🎯 Analiz sırası: <span class="win">${won}</span>`;
+  r.classList.add('show');
+  (async ()=>{
     if(IS_WHEEL_ADMIN){
       try{
         await fetch('/api/wheel/admin-remove',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ticker:won})});
@@ -458,8 +449,65 @@ function spin(){
       await loadState();
     }
     updateSpinAvail();
+  })();
+}
+
+function spin(){
+  const n=TICKERS.length; if(n<2||spinning) return;
+  spinning=true; $('spinBtn').disabled=true;
+  $('result').classList.remove('show'); $('result').innerHTML=''; clearHighlight();
+  const seg=360/n;
+  const winner=Math.floor(Math.random()*n);
+  const targetInCircle=360-(winner+0.5)*seg;
+  const base=rotation-(rotation%360);
+  let finalRotation=base+360*6+targetInCircle;
+  if(finalRotation<=rotation+360) finalRotation+=360;
+  const rotor=$('rotor');
+
+  // Arada sırada (yaklaşık %45 ihtimalle) komik olsun diye: çark önce duruyormuş gibi yavaşlasın,
+  // kısa bir "eyvah durdu" anından sonra aniden tekrar fırlayıp asıl sonuca gitsin. Müzik bu sırada
+  // kesilmez — "seni kandırdım" hissini güçlendirir.
+  const fakeStop = Math.random() < 0.45 && Math.abs(finalRotation-rotation) > 720;
+
+  if(!fakeStop){
+    playCircusSpin(SPIN_MS);
+    rotation=finalRotation;
+    rotor.style.transition=`transform ${SPIN_MS}ms ${LAND_EASE}`;
+    rotor.style.transform=`rotate(${rotation}deg)`;
+    const onEnd=()=>{ rotor.removeEventListener('transitionend',onEnd); finishSpin(rotor,winner); };
+    rotor.addEventListener('transitionend',onEnd);
+    return;
+  }
+
+  const phase1Ms = 2100 + Math.random()*400;
+  const pauseMs  = 200 + Math.random()*180;
+  const phase2Ms = 3300 + Math.random()*400;
+  playCircusSpin(phase1Ms+pauseMs+phase2Ms);
+
+  // Faz 1: rastgele bir ara noktaya doğru yavaşlayarak "duruyormuş" gibi görün
+  const fakeTarget = base + 360*(2+Math.random()*2) + Math.random()*360;
+  rotation = fakeTarget;
+  rotor.style.transition = `transform ${phase1Ms}ms ${LAND_EASE}`;
+  rotor.style.transform = `rotate(${rotation}deg)`;
+
+  const onPhase1End=()=>{
+    rotor.removeEventListener('transitionend', onPhase1End);
+    // Kısa "durdu" anı — küçük bir tik ile izleyiciyi kandır
+    $('result').innerHTML = `<span style="opacity:.75">⏸ dur… </span>`;
+    $('result').classList.add('show');
+    setTimeout(()=>{
+      $('result').classList.remove('show'); $('result').innerHTML='';
+      // Faz 2: aniden tekrar fırla, asıl sonuca in
+      let next = finalRotation;
+      if (next <= rotation+360) next += 360;
+      rotation = next;
+      rotor.style.transition = `transform ${phase2Ms}ms ${LAND_EASE}`;
+      rotor.style.transform = `rotate(${rotation}deg)`;
+      const onPhase2End=()=>{ rotor.removeEventListener('transitionend',onPhase2End); finishSpin(rotor,winner); };
+      rotor.addEventListener('transitionend', onPhase2End);
+    }, pauseMs);
   };
-  rotor.addEventListener('transitionend',onEnd);
+  rotor.addEventListener('transitionend', onPhase1End);
 }
 
 initBulbs();
