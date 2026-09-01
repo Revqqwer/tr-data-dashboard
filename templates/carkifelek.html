@@ -215,6 +215,7 @@
             <text x="200" y="210" text-anchor="middle" style="font-size:30px">🎯</text>
           </svg>
         </div>
+        <audio id="spinAudio" src="/static/audio/circus-spin.mp3" preload="auto"></audio>
         <div class="result" id="result"></div>
         <div style="display:flex;align-items:center;gap:10px">
           <button class="btn btn-gold spinBtn" id="spinBtn" onclick="spin()">🎡 Çarkı Çevir</button>
@@ -383,7 +384,8 @@ function updateSpinAvail(){
   $('spinNote').style.display=ok?'none':'block';
 }
 
-// ── Ses: komik "klarnet" trill'i — çark dönerken hızlı wah-wah, yavaşlayınca trill de yavaşlar ──
+// ── Ses: orijinal, kod-ile-üretilmiş "sirk/palyaço" temalı oom-pah melodisi ──
+// Çark dönerken tempo hızlı başlar, çark yavaşladıkça tempo da yavaşlar; sonunda "ta-da!" ile biter.
 let soundOn = localStorage.getItem('wheelSound') !== 'off';
 function updateSoundBtn(){
   const b=$('soundBtn'); if(!b) return;
@@ -396,43 +398,35 @@ function toggleSound(){
   updateSoundBtn();
 }
 const SPIN_MS = 5600; // #rotor transition süresiyle aynı (CSS: 5.6s)
-function playClarinetSpin(durationMs){
+
+// Gerçek sirk müziği dosyası — GainNode üzerinden fade-in/out kontrolü için
+// Web Audio grafiğine bağlanır (MediaElementSource bir kez oluşturulur, tekrar spin'lerde reused).
+let spinAudioCtx=null, spinAudioGain=null, spinAudioEl=null;
+function initSpinAudio(){
+  if (spinAudioCtx) return;
+  spinAudioEl = $('spinAudio');
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  spinAudioCtx = new Ctx();
+  const src = spinAudioCtx.createMediaElementSource(spinAudioEl);
+  spinAudioGain = spinAudioCtx.createGain();
+  spinAudioGain.gain.value = 0.0001;
+  src.connect(spinAudioGain); spinAudioGain.connect(spinAudioCtx.destination);
+}
+function playCircusSpin(durationMs){
   if(!soundOn) return;
   try{
-    const Ctx = window.AudioContext || window.webkitAudioContext;
-    const ctx = new Ctx();
+    initSpinAudio();
+    if (spinAudioCtx.state === 'suspended') spinAudioCtx.resume();
     const totalSec = durationMs/1000;
-    const t0 = ctx.currentTime;
-
-    const master = ctx.createGain(); master.gain.value = 0.0001; master.connect(ctx.destination);
-    const filt = ctx.createBiquadFilter(); filt.type='lowpass'; filt.frequency.value=2200; filt.connect(master);
-    const osc = ctx.createOscillator(); osc.type='square'; osc.connect(filt);
-
-    // Hafif vibrato → klarnete benzer "reedy" titreşim
-    const lfo = ctx.createOscillator(); lfo.frequency.value = 17;
-    const lfoGain = ctx.createGain(); lfoGain.gain.value = 7;
-    lfo.connect(lfoGain); lfoGain.connect(osc.frequency);
-
-    // Komik "wah-wah" trill: küçük üçlü aralıkta hızlı gidip gelme, çark yavaşladıkça trill de yavaşlar
-    const lo = 349.23, hi = 415.30; // F4 - Ab4
-    let t = t0, stepMs = 65, high = false;
-    osc.frequency.setValueAtTime(lo, t);
-    while (t - t0 < totalSec - 0.2) {
-      high = !high;
-      osc.frequency.setValueAtTime(high ? hi : lo, t);
-      t += stepMs/1000;
-      stepMs *= 1.06; // kademeli yavaşlama
-    }
-    // Final "boop" — düşük, komik bitiş notası
-    osc.frequency.setValueAtTime(lo, t);
-    osc.frequency.exponentialRampToValueAtTime(lo*0.62, t+0.4);
-
-    master.gain.exponentialRampToValueAtTime(0.15, t0+0.06);
-    master.gain.setValueAtTime(0.15, t0+totalSec-0.25);
-    master.gain.exponentialRampToValueAtTime(0.0001, t0+totalSec+0.5);
-
-    osc.start(t0); lfo.start(t0);
-    osc.stop(t0+totalSec+0.6); lfo.stop(t0+totalSec+0.6);
+    const t0 = spinAudioCtx.currentTime;
+    spinAudioGain.gain.cancelScheduledValues(t0);
+    spinAudioGain.gain.setValueAtTime(0.0001, t0);
+    spinAudioGain.gain.exponentialRampToValueAtTime(0.85, t0+0.15);
+    spinAudioGain.gain.setValueAtTime(0.85, t0+totalSec-0.6);
+    spinAudioGain.gain.exponentialRampToValueAtTime(0.0001, t0+totalSec);
+    spinAudioEl.currentTime = 0;
+    spinAudioEl.play().catch(()=>{});
+    setTimeout(()=>{ try{ spinAudioEl.pause(); }catch(e){} }, durationMs+100);
   }catch(e){ /* Web Audio desteklenmiyorsa sessizce geç */ }
 }
 
@@ -440,7 +434,7 @@ function spin(){
   const n=TICKERS.length; if(n<2||spinning) return;
   spinning=true; $('spinBtn').disabled=true;
   $('result').classList.remove('show'); $('result').innerHTML=''; clearHighlight();
-  playClarinetSpin(SPIN_MS);
+  playCircusSpin(SPIN_MS);
   const seg=360/n;
   const winner=Math.floor(Math.random()*n);
   const targetInCircle=360-(winner+0.5)*seg;
