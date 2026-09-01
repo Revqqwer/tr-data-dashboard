@@ -501,8 +501,22 @@ function spin(){
   if(finalRotation<=rotation+360) finalRotation+=360;
   const rotor=$('rotor');
 
-  // Her dönüşte: ilk yarıda yavaşça duruyor gibi yap, kısa bir "duruyor" anından sonra
-  // (aniden değil) yumuşakça tekrar hızlanıp ikinci yarıda asıl sonuca inip yeniden yavaşça dur.
+  // %25 ihtimalle "iki kere çevriliyormuş" hissi veren dramatik faz: yavaşça
+  // duruyor gibi yap, kısa bir "duruyor" anından sonra yumuşakça tekrar
+  // hızlanıp asıl sonuca in. Kalan %75'inde tek, düz bir dönüşle direkt
+  // sonuca gidilir (daha sade/hızlı hissettiren varyant).
+  const doubleSpin = Math.random() < 0.25;
+
+  if(!doubleSpin){
+    playCircusSpin(TOTAL_SPIN_MS);
+    rotation = finalRotation;
+    rotor.style.transition = `transform ${TOTAL_SPIN_MS}ms ${LAND_EASE}`;
+    rotor.style.transform = `rotate(${rotation}deg)`;
+    const onSingleEnd=()=>{ rotor.removeEventListener('transitionend', onSingleEnd); finishSpin(rotor,winner); };
+    rotor.addEventListener('transitionend', onSingleEnd);
+    return;
+  }
+
   const pauseMs  = 220;
   const phase1Ms = TOTAL_SPIN_MS*0.5;
   const phase2Ms = TOTAL_SPIN_MS*0.5 - pauseMs;
