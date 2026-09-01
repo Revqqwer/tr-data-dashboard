@@ -406,7 +406,7 @@ function toggleSound(){
   localStorage.setItem('wheelSound', soundOn?'on':'off');
   updateSoundBtn();
 }
-const SPIN_MS = 5600; // #rotor transition süresiyle aynı (CSS: 5.6s)
+const TOTAL_SPIN_MS = 11200; // toplam dönüş süresi (öncekinin 2 katı)
 
 // Gerçek sirk müziği dosyası — GainNode üzerinden fade-in/out kontrolü için
 // Web Audio grafiğine bağlanır (MediaElementSource bir kez oluşturulur, tekrar spin'lerde reused).
@@ -439,10 +439,10 @@ function playCircusSpin(durationMs){
   }catch(e){ /* Web Audio desteklenmiyorsa sessizce geç */ }
 }
 
-// Hızlı başlayıp yavaşça duruyormuş gibi görünen, sonra sertçe iniş yapan klasik "iniş" eğrisi.
-// Hem normal dönüşte hem sahte-durma fazlarında aynı eğri kullanılıyor — her yeni transition
-// hız=0'dan başladığı için, art arda uygulanınca "durdu, tekrar fırladı" hissi kendiliğinden oluşuyor.
+// Faz 1: hızlı başlar, sertçe yavaşlayıp neredeyse durur → "duruyor gibi" hissi.
 const LAND_EASE = 'cubic-bezier(.13,.73,.11,1)';
+// Faz 2: yumuşak/kademeli hızlanma + yumuşak yavaşlama (ani sıçrama YOK) → gerçek sonuca iniş.
+const REACCEL_EASE = 'cubic-bezier(.45,.05,.55,.95)';
 
 function finishSpin(rotor, winner){
   spinning=false; highlight(winner);
@@ -477,24 +477,11 @@ function spin(){
   if(finalRotation<=rotation+360) finalRotation+=360;
   const rotor=$('rotor');
 
-  // Arada sırada (yaklaşık %45 ihtimalle) komik olsun diye: çark önce duruyormuş gibi yavaşlasın,
-  // kısa bir "eyvah durdu" anından sonra aniden tekrar fırlayıp asıl sonuca gitsin. Müzik bu sırada
-  // kesilmez — "seni kandırdım" hissini güçlendirir.
-  const fakeStop = Math.random() < 0.45 && Math.abs(finalRotation-rotation) > 720;
-
-  if(!fakeStop){
-    playCircusSpin(SPIN_MS);
-    rotation=finalRotation;
-    rotor.style.transition=`transform ${SPIN_MS}ms ${LAND_EASE}`;
-    rotor.style.transform=`rotate(${rotation}deg)`;
-    const onEnd=()=>{ rotor.removeEventListener('transitionend',onEnd); finishSpin(rotor,winner); };
-    rotor.addEventListener('transitionend',onEnd);
-    return;
-  }
-
-  const phase1Ms = 2100 + Math.random()*400;
-  const pauseMs  = 200 + Math.random()*180;
-  const phase2Ms = 3300 + Math.random()*400;
+  // Her dönüşte: ilk yarıda yavaşça duruyor gibi yap, kısa bir "duruyor" anından sonra
+  // (aniden değil) yumuşakça tekrar hızlanıp ikinci yarıda asıl sonuca inip yeniden yavaşça dur.
+  const pauseMs  = 220;
+  const phase1Ms = TOTAL_SPIN_MS*0.5;
+  const phase2Ms = TOTAL_SPIN_MS*0.5 - pauseMs;
   playCircusSpin(phase1Ms+pauseMs+phase2Ms);
 
   // Faz 1: rastgele bir ara noktaya doğru yavaşlayarak "duruyormuş" gibi görün
@@ -510,11 +497,11 @@ function spin(){
     $('result').classList.add('show');
     setTimeout(()=>{
       $('result').classList.remove('show'); $('result').innerHTML='';
-      // Faz 2: aniden tekrar fırla, asıl sonuca in
+      // Faz 2: yumuşak/kademeli hızlanarak (ani sıçrama yok) asıl sonuca in
       let next = finalRotation;
       if (next <= rotation+360) next += 360;
       rotation = next;
-      rotor.style.transition = `transform ${phase2Ms}ms ${LAND_EASE}`;
+      rotor.style.transition = `transform ${phase2Ms}ms ${REACCEL_EASE}`;
       rotor.style.transform = `rotate(${rotation}deg)`;
       const onPhase2End=()=>{ rotor.removeEventListener('transitionend',onPhase2End); finishSpin(rotor,winner); };
       rotor.addEventListener('transitionend', onPhase2End);
