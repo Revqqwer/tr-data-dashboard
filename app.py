@@ -191,11 +191,36 @@ def admin_push_count(secret):
 @app.route('/carkifelek')
 def carkifelek():
     """Üyelerin yayında analiz için hisse önerdiği çarkıfelek sayfası."""
-    if not session.get('logged_in'):
+    is_admin = bool(session.get('wheel_admin'))
+    if not session.get('logged_in') and not is_admin:
         return redirect(url_for('login'))
     return render_template('carkifelek.html',
                            username=session.get('username', ''),
-                           user_name=session.get('user_name', ''))
+                           user_name=session.get('user_name', 'Yönetici' if is_admin else ''),
+                           is_wheel_admin=is_admin)
+
+
+@app.route('/carkifelek/admin', methods=['GET', 'POST'])
+def carkifelek_admin_login():
+    """Çarkıfelek yöneticisi girişi — site hesabından bağımsız, kendi ID/şifresiyle."""
+    if session.get('wheel_admin'):
+        return redirect(url_for('carkifelek'))
+    error = None
+    if request.method == 'POST':
+        uid = (request.form.get('id') or '').strip()
+        pw = request.form.get('password') or ''
+        if uid == WHEEL_ADMIN_ID and pw == WHEEL_ADMIN_PASS:
+            session['wheel_admin'] = True
+            session.permanent = True
+            return redirect(url_for('carkifelek'))
+        error = 'Hatalı ID veya şifre.'
+    return render_template('carkifelek_admin_login.html', error=error)
+
+
+@app.route('/carkifelek/admin/logout')
+def carkifelek_admin_logout():
+    session.pop('wheel_admin', None)
+    return redirect(url_for('carkifelek_admin_login'))
 
 
 @app.route('/api/wheel/suggestions')
@@ -236,6 +261,16 @@ def wheel_unsuggest():
     return jsonify(wheel.remove_suggestion(me, d.get('ticker', '')))
 
 
+@app.route('/api/wheel/admin-remove', methods=['POST'])
+def wheel_admin_remove():
+    """Çarkıfelek yöneticisi: çarkta çıkan hisseyi havuzdan tamamen çıkar."""
+    if not session.get('wheel_admin'):
+        return jsonify({'error': 'forbidden'}), 403
+    import wheel
+    d = request.get_json(silent=True) or {}
+    return jsonify(wheel.remove_ticker_everywhere(d.get('ticker', '')))
+
+
 @app.route('/admin/<secret>/wheel/count')
 def admin_wheel_count(secret):
     if secret != ADMIN_SECRET:
@@ -269,6 +304,8 @@ def tefas_static(path):
     # React Router client-side route → index.html döndür
     return send_from_directory(_TEFAS_BUILD, 'index.html')
 ADMIN_SECRET = os.environ.get('ADMIN_SECRET', '3n-admin-gizli')
+WHEEL_ADMIN_ID = os.environ.get('WHEEL_ADMIN_ID', 'Tahtaci')
+WHEEL_ADMIN_PASS = os.environ.get('WHEEL_ADMIN_PASS', 'bist31')
 
 DB_PATH = os.path.join(os.path.dirname(__file__), 'data', 'cache.db')
 
@@ -1129,6 +1166,10 @@ def _require_login():
     p = request.path
     if p in _PUBLIC_EXACT or p.startswith(_PUBLIC_PREFIXES):
         return  # public yol → serbest
+    if p == '/carkifelek/admin':
+        return  # kendi ID/şifre kapısı var, site girişi gerekmez
+    if session.get('wheel_admin') and (p.startswith('/carkifelek') or p.startswith('/api/wheel/')):
+        return  # çarkıfelek yöneticisi → site hesabı olmadan da serbest
     # Girişsiz + public değil → engelle
     if p.startswith('/api/'):
         return jsonify({'error': 'unauthorized'}), 401
