@@ -28,6 +28,8 @@
   .brand{display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:-.3px}
   .brand .logo{width:30px;height:30px;border-radius:9px;
     background:linear-gradient(135deg,var(--accent),#a855f7);display:flex;align-items:center;justify-content:center}
+  .admin-badge{font-size:10px;font-weight:800;letter-spacing:.6px;color:#211603;
+    background:linear-gradient(135deg,#ffd76a,var(--accent));padding:3px 8px;border-radius:999px;margin-left:6px}
   .back{font-size:13px;color:var(--muted);text-decoration:none;padding:8px 14px;border:1px solid var(--border);
     border-radius:10px;white-space:nowrap;transition:.15s}
   .back:hover{color:var(--text);border-color:#33465f}
@@ -97,8 +99,14 @@
 </head>
 <body>
   <div class="topbar">
-    <div class="brand"><span class="logo">🎡</span> 3N Finans · Çarkıfelek</div>
-    <a class="back" href="/dashboard">← Panele Dön</a>
+    <div class="brand"><span class="logo">🎡</span> 3N Finans · Çarkıfelek
+      {% if is_wheel_admin %}<span class="admin-badge">YÖNETİCİ</span>{% endif %}
+    </div>
+    {% if is_wheel_admin %}
+      <a class="back" href="/carkifelek/admin/logout">Yönetici Çıkışı</a>
+    {% else %}
+      <a class="back" href="/dashboard">← Panele Dön</a>
+    {% endif %}
   </div>
 
   <div class="wrap">
@@ -206,6 +214,9 @@
         <div class="result" id="result"></div>
         <button class="btn btn-gold spinBtn" id="spinBtn" onclick="spin()">🎡 Çarkı Çevir</button>
         <div class="spin-note" id="spinNote">Çevirmek için en az 2 öneri gerekir.</div>
+        {% if is_wheel_admin %}
+          <div class="spin-note" style="color:var(--accent)">🔑 Yönetici modu: çıkan hisse otomatik olarak havuzdan çıkarılır.</div>
+        {% endif %}
       </section>
     </div>
   </div>
@@ -215,6 +226,7 @@
 const COLORS = ['#d9463c','#e8842b','#f2c14e','#43a86b','#159a8a','#3d7fc4',
                 '#7d5bbe','#d1508a','#e0703a','#2ca6bf','#6faf3f','#b8455e'];
 const NS = 'http://www.w3.org/2000/svg';
+const IS_WHEEL_ADMIN = {{ 'true' if is_wheel_admin else 'false' }};
 let TICKERS = [];
 let segPaths = [], segLabels = [];
 let rotation = 0, spinning = false;
@@ -377,11 +389,20 @@ function spin(){
   rotation=next;
   $('rotor').style.transform=`rotate(${rotation}deg)`;
   const rotor=$('rotor');
-  const onEnd=()=>{
+  const onEnd=async ()=>{
     rotor.removeEventListener('transitionend',onEnd);
-    spinning=false; updateSpinAvail(); highlight(winner);
-    const r=$('result'); r.innerHTML=`🎯 Analiz sırası: <span class="win">${TICKERS[winner]}</span>`;
+    spinning=false; highlight(winner);
+    const won=TICKERS[winner];
+    const r=$('result'); r.innerHTML=`🎯 Analiz sırası: <span class="win">${won}</span>`;
     r.classList.add('show');
+    if(IS_WHEEL_ADMIN){
+      try{
+        await fetch('/api/wheel/admin-remove',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ticker:won})});
+        r.innerHTML+=' <span style="color:var(--muted);font-weight:600;font-size:13px">(havuzdan çıkarıldı)</span>';
+      }catch(e){}
+      await loadState();
+    }
+    updateSpinAvail();
   };
   rotor.addEventListener('transitionend',onEnd);
 }

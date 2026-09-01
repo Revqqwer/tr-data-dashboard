@@ -122,6 +122,18 @@ def stats() -> dict:
     return {'total': total, 'users': users, 'unique': uniq}
 
 
+def remove_ticker_everywhere(raw_ticker: str) -> dict:
+    """Admin: çarkta çıkan hisseyi, kim önermiş olursa olsun havuzdan tamamen çıkarır."""
+    ticker = normalize_ticker(raw_ticker)
+    if not ticker:
+        return {'ok': False, 'error': 'Geçersiz hisse kodu.'}
+    init_db()
+    with sqlite3.connect(DB_PATH) as c:
+        cur = c.execute('DELETE FROM wheel_suggestions WHERE ticker=?', (ticker,))
+        n = cur.rowcount
+    return {'ok': True, 'ticker': ticker, 'removed_rows': n}
+
+
 def reset_all() -> dict:
     """Tüm önerileri sil → herkese yeniden MAX_PER_USER hak."""
     init_db()
