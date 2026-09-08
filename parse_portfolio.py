@@ -43,6 +43,7 @@ IPO_ALLOCATIONS = [
     {'ticker': 'SARAE', 'date': '2026-07-09', 'qty': 70,  'price': 70.00, 'amount': 4900.00},
     {'ticker': 'MASFN', 'date': '2026-07-23', 'qty': 46,  'price': 45.68, 'amount': 2101.28},
     {'ticker': 'QUICK', 'date': '2026-07-29', 'qty': 35,  'price': 76.60, 'amount': 2681.00},
+    {'ticker': 'TKNKA', 'date': '2026-08-20', 'qty': 25,  'price': 85.40, 'amount': 2135.00},
 ]
 
 
