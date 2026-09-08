@@ -18,7 +18,7 @@ from datetime import datetime, date
 from collections import defaultdict
 
 OLD_PDF_PATH  = os.path.join(os.path.dirname(__file__), '..', '..', 'Downloads', 'Ekstre3 (1).pdf')
-NEW_PDF_PATH  = os.path.join(os.path.dirname(__file__), '..', '..', 'Downloads', 'Ekstre3 (5) (2).pdf')
+NEW_PDF_PATH  = os.path.join(os.path.dirname(__file__), '..', '..', 'Downloads', 'Ekstre3 (6).pdf')
 CUTOVER_DATE  = date(2026, 1, 1)
 OUT_PATH      = os.path.join(os.path.dirname(__file__), 'data', 'portfolio.json')
 
@@ -30,7 +30,7 @@ MMF_FUNDS = {
 }
 
 # GENKMH is a rights-derived lot, treat as same stock GENKM
-TICKER_NORM = {'GENKMH': 'GENKM', 'GOLDAH': 'GOLDA', 'SOHOEH': 'SOHOE'}
+TICKER_NORM = {'GENKMH': 'GENKM', 'GOLDAH': 'GOLDA', 'SOHOEH': 'SOHOE', 'INTETH': 'INTET'}
 
 # Halka arz tahsisatıyla gelen (normal "Alis" satırı olmayan) hisseler — maliyet
 # ekstrede "AHMET EMİN TAHTACI - ŞİRKET ..." teslim satırında (qty ekstrede yok/kesik),
