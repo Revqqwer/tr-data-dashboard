@@ -395,17 +395,27 @@ def collect_range(start: datetime.date, end: datetime.date,
         done += (batch_end - batch_start).days + 1
         log.info("Ilerleme: %d/%d gun (%.1f%%)", done, total, done / total * 100)
 
-        # 3) Composition — yalnizca batch sonu gunu, ayri session
+        # 3) Composition — batch'teki HER gün icin ayri ayri denenir (sadece batch_end degil).
+        # TEFAS composition verisini fiyat/AUM verisinden daha GEC yayinliyor; gorev erken
+        # saatte calistiginda "bugun" icin composition henuz yayinlanmamis olabilir ve bos
+        # doner. Her gunu tekrar tekrar denemek, bir onceki gunun verisi bir sonraki
+        # calistirmada (o gun icin composition artik yayinlanmis olarak) kendi kendine
+        # tamamlanmasini saglar — aksi halde sadece batch_end denendiginde o gun hic
+        # yakalanamayip kalici bosluk olusuyordu (bkz. 2026-07-22 sonrasi composition kaybi).
         if not skip_composition:
-            for ft in FUND_TYPES:
-                try:
-                    comp_rows = fetch_composition(batch_end, ft)
-                    log.info("%s  composition %s: %d fon", batch_end, ft, len(comp_rows))
-                    with Session(engine) as session:
-                        upsert_composition(session, comp_rows)
-                    time.sleep(1)
-                except Exception as e:
-                    log.error("%s  composition %s hatasi: %s", batch_end, ft, e)
+            day = batch_start
+            while day <= batch_end:
+                for ft in FUND_TYPES:
+                    try:
+                        comp_rows = fetch_composition(day, ft)
+                        log.info("%s  composition %s: %d fon", day, ft, len(comp_rows))
+                        if comp_rows:
+                            with Session(engine) as session:
+                                upsert_composition(session, comp_rows)
+                        time.sleep(1)
+                    except Exception as e:
+                        log.error("%s  composition %s hatasi: %s", day, ft, e)
+                day += datetime.timedelta(days=1)
 
         batch_start = batch_end + datetime.timedelta(days=1)
         time.sleep(0.5)
