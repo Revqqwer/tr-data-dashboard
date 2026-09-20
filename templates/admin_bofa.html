@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>BofA Aracı Kurum Dağılımı — Admin</title>
+<link rel="icon" href="/static/icons/icon-192.png">
+<style>
+  :root{
+    --bg:#0a1120; --panel:#101c31; --panel2:#0d1728; --border:#22324b;
+    --text:#eaf1fd; --muted:#8ea3c4; --accent:#f0b429;
+    --good:#22c55e; --bad:#ef4444;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    background:radial-gradient(1200px 700px at 50% -8%,#182a49 0%,var(--bg) 58%);color:var(--text)}
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px;
+    border-bottom:1px solid var(--border);position:sticky;top:0;background:rgba(10,17,32,.86);backdrop-filter:blur(8px);z-index:10}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800}
+  .back{font-size:13px;color:var(--muted);text-decoration:none;padding:8px 14px;border:1px solid var(--border);border-radius:10px}
+  .back:hover{color:var(--text)}
+  .wrap{max-width:1280px;margin:0 auto;padding:22px 22px 60px}
+  .card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--border);
+    border-radius:16px;padding:18px 20px;margin-bottom:18px}
+  h2{margin:0 0 12px;font-size:12px;text-transform:uppercase;letter-spacing:1.3px;color:var(--muted)}
+  textarea{width:100%;min-height:150px;background:#0b1424;border:1px solid var(--border);color:var(--text);
+    padding:12px 14px;border-radius:12px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;resize:vertical}
+  textarea:focus{outline:none;border-color:var(--accent)}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px}
+  input[type=date],select{background:#0b1424;border:1px solid var(--border);color:var(--text);
+    padding:10px 12px;border-radius:10px;font-size:14px}
+  .btn{border:none;cursor:pointer;border-radius:10px;font-weight:800;font-size:14px;padding:11px 20px;
+    background:linear-gradient(135deg,#ffd76a,var(--accent) 45%,#d8890a);color:#211603}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .btn-ghost{background:none;border:1px solid var(--border);color:var(--muted);font-weight:600}
+  .btn-ghost:hover{color:var(--text)}
+  .msg{font-size:13px;margin-top:10px;min-height:18px}
+  .msg.ok{color:var(--good)} .msg.err{color:var(--bad)}
+
+  /* Özet */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+  .stat{background:#0b1424;border:1px solid var(--border);border-radius:12px;padding:14px 16px}
+  .stat .lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px}
+  .stat .val{font-size:22px;font-weight:800;font-family:ui-monospace,Menlo,Consolas,monospace;margin-top:6px}
+  .pos{color:var(--good)} .neg{color:var(--bad)}
+  .headline{font-size:15px;margin-top:14px;color:var(--muted)}
+  .headline b{font-size:18px}
+
+  /* Tablolar */
+  .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:18px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;color:var(--muted);font-weight:600;padding:8px;border-bottom:1px solid var(--border);
+    font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+  td{padding:7px 8px;border-bottom:1px solid #16233a;font-family:ui-monospace,Menlo,Consolas,monospace}
+  td.tk{font-weight:700;font-family:inherit}
+  th.r,td.r{text-align:right}
+  tbody tr:hover{background:#12203a}
+  .empty{color:var(--muted);font-size:13px;padding:10px 2px}
+  details summary{cursor:pointer;color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">🏦 BofA · Aracı Kurum Dağılımı <span style="font-size:11px;color:var(--muted);font-weight:600">(yalnızca admin)</span></div>
+    <a class="back" href="/admin/{{ secret }}">← Admin Paneli</a>
+  </div>
+
+  <div class="wrap">
+    <!-- Veri girişi -->
+    <section class="card">
+      <h2>Veri Girişi</h2>
+      <div style="font-size:12.5px;color:var(--muted);margin-bottom:10px">
+        Fintables → Aracı Kurumlar → Bank of America → <b>Aracı Kurum Dağılımı</b> tablosunu seçip kopyalayın,
+        aşağıya yapıştırın. Sıra no, hisse kodu ve sayısal sütunlar otomatik ayrıştırılır.
+      </div>
+      <textarea id="paste" placeholder="1&#9;KCHOL&#9;1,88 mr&#9;8.722.205&#9;215,34&#9;4,61 mr&#9;21.437.471&#9;214,92&#9;-2,73 mr&#9;-12.715.266&#9;..."></textarea>
+      <div class="row">
+        <input type="date" id="date">
+        <button class="btn" id="saveBtn" onclick="save()">Kaydet</button>
+        <span style="flex:1"></span>
+        <select id="dateSel" onchange="load(this.value)"></select>
+        <button class="btn btn-ghost" onclick="delDay()">Seçili günü sil</button>
+      </div>
+      <div class="msg" id="msg"></div>
+    </section>
+
+    <!-- Özet -->
+    <section class="card">
+      <h2>Özet <span id="dayLabel" style="color:var(--text)"></span></h2>
+      <div class="stats" id="stats"></div>
+      <div class="headline" id="headline"></div>
+    </section>
+
+    <!-- Aldıkları / Sattıkları -->
+    <div class="cols">
+      <section class="card">
+        <h2 style="color:var(--good)">▲ Aldıkları <span id="cntBuy" style="color:var(--muted)"></span></h2>
+        <div id="buyTable"><div class="empty">—</div></div>
+      </section>
+      <section class="card">
+        <h2 style="color:var(--bad)">▼ Sattıkları <span id="cntSell" style="color:var(--muted)"></span></h2>
+        <div id="sellTable"><div class="empty">—</div></div>
+      </section>
+    </div>
+  </div>
+
+<script>
+const SECRET = "{{ secret }}";
+const $ = id => document.getElementById(id);
+
+const fmtTL = v => {
+  if (v == null || isNaN(v)) return '—';
+  const a = Math.abs(v), s = v < 0 ? '-' : '+';
+  if (a >= 1e9) return s + (a/1e9).toFixed(2).replace('.',',') + ' mr';
+  if (a >= 1e6) return s + (a/1e6).toFixed(2).replace('.',',') + ' mn';
+  return s + new Intl.NumberFormat('tr-TR',{maximumFractionDigits:0}).format(a);
+};
+// Brüt (yönsüz) tutarlar için — işaret öneki yok
+const fmtAbs = v => {
+  if (v == null || isNaN(v)) return '—';
+  const a = Math.abs(v);
+  if (a >= 1e9) return (a/1e9).toFixed(2).replace('.',',') + ' mr';
+  if (a >= 1e6) return (a/1e6).toFixed(2).replace('.',',') + ' mn';
+  return new Intl.NumberFormat('tr-TR',{maximumFractionDigits:0}).format(a);
+};
+const fmtLot = v => v == null || isNaN(v) ? '—'
+  : new Intl.NumberFormat('tr-TR',{maximumFractionDigits:0}).format(v);
+const fmtPx = v => v == null || isNaN(v) ? '—'
+  : new Intl.NumberFormat('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2}).format(v);
+
+function msg(t, cls){ const m=$('msg'); m.textContent=t; m.className='msg '+(cls||''); }
+
+async function save(){
+  const text = $('paste').value.trim();
+  const date = $('date').value;
+  if(!text){ msg('Önce tabloyu yapıştırın.','err'); return; }
+  if(!date){ msg('Tarih seçin.','err'); return; }
+  $('saveBtn').disabled = true;
+  try{
+    const r = await fetch(`/admin/${SECRET}/bofa/save`,{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({date, text})
+    });
+    const d = await r.json();
+    if(d.ok){
+      let t = `${d.count} satır kaydedildi (${d.date}).`;
+      if(d.skipped_count) t += ` ${d.skipped_count} satır okunamadı/atlandı.`;
+      msg(t,'ok');
+      $('paste').value = '';
+      await refresh(d.date);
+    } else {
+      msg(d.error || 'Kaydedilemedi.','err');
+    }
+  }catch(e){ msg('Bağlantı hatası.','err'); }
+  finally{ $('saveBtn').disabled = false; }
+}
+
+async function delDay(){
+  const date = $('dateSel').value;
+  if(!date) return;
+  if(!confirm(`${date} tarihli kayıt silinsin mi?`)) return;
+  await fetch(`/admin/${SECRET}/bofa/delete`,{
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({date})
+  });
+  msg(`${date} silindi.`,'ok');
+  await refresh();
+}
+
+function rowsTable(rows, positive){
+  if(!rows.length) return '<div class="empty">Bu yönde işlem yok.</div>';
+  const cls = positive ? 'pos' : 'neg';
+  return `<table><thead><tr>
+      <th>Hisse</th><th class="r">Net TL</th><th class="r">Net Lot</th><th class="r">Ort. Maliyet</th>
+    </tr></thead><tbody>` +
+    rows.map(r => `<tr>
+      <td class="tk">${r.ticker}</td>
+      <td class="r ${cls}">${fmtTL(r.net_tl)}</td>
+      <td class="r">${fmtLot(r.net_lot)}</td>
+      <td class="r">${fmtPx(r.net_maliyet)}</td>
+    </tr>`).join('') + '</tbody></table>';
+}
+
+function render(day){
+  const s = day.summary || {};
+  $('dayLabel').textContent = day.date ? '· ' + day.date : '';
+
+  if(!day.rows || !day.rows.length){
+    $('stats').innerHTML = '<div class="empty">Kayıt yok — yukarıdan tablo yapıştırın.</div>';
+    $('headline').textContent = '';
+    $('buyTable').innerHTML = '<div class="empty">—</div>';
+    $('sellTable').innerHTML = '<div class="empty">—</div>';
+    $('cntBuy').textContent = ''; $('cntSell').textContent = '';
+    return;
+  }
+
+  const net = s.net_total_tl || 0;
+  const netCls = net >= 0 ? 'pos' : 'neg';
+  $('stats').innerHTML = `
+    <div class="stat"><div class="lbl">Net Pozisyon</div><div class="val ${netCls}">${fmtTL(net)}</div></div>
+    <div class="stat"><div class="lbl">Net Alım Toplamı</div><div class="val pos">${fmtTL(s.buy_total_tl)}</div></div>
+    <div class="stat"><div class="lbl">Net Satım Toplamı</div><div class="val neg">${fmtTL(s.sell_total_tl)}</div></div>
+    <div class="stat"><div class="lbl">İşlem Gören Hisse</div><div class="val">${s.stock_count ?? '—'}</div></div>
+    <div class="stat"><div class="lbl">Brüt Alış</div><div class="val">${fmtAbs(s.gross_buy_tl)}</div></div>
+    <div class="stat"><div class="lbl">Brüt Satış</div><div class="val">${fmtAbs(s.gross_sell_tl)}</div></div>`;
+
+  $('headline').innerHTML = net >= 0
+    ? `BofA bu gün <b class="pos">net ALICI</b> — nette <b class="pos">${fmtTL(net)}</b> aldı.
+       ${s.bought_count} hissede alım, ${s.sold_count} hissede satım.`
+    : `BofA bu gün <b class="neg">net SATICI</b> — nette <b class="neg">${fmtTL(net)}</b> sattı.
+       ${s.bought_count} hissede alım, ${s.sold_count} hissede satım.`;
+
+  $('cntBuy').textContent  = `(${(s.bought||[]).length})`;
+  $('cntSell').textContent = `(${(s.sold||[]).length})`;
+  $('buyTable').innerHTML  = rowsTable(s.bought || [], true);
+  $('sellTable').innerHTML = rowsTable(s.sold || [], false);
+}
+
+async function load(date){
+  const url = `/admin/${SECRET}/bofa/data` + (date ? `?date=${date}` : '');
+  const d = await (await fetch(url)).json();
+  const sel = $('dateSel');
+  sel.innerHTML = (d.dates||[]).map(x => `<option value="${x}">${x}</option>`).join('')
+                  || '<option value="">kayıt yok</option>';
+  if(d.day && d.day.date) sel.value = d.day.date;
+  render(d.day || {});
+}
+const refresh = load;
+
+$('date').value = new Date().toISOString().slice(0,10);
+load();
+</script>
+</body>
+</html>

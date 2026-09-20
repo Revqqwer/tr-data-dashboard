@@ -26,3 +26,6 @@ data/usa_cache.db
 data/usa_cache_building.db
 data/usa_cache.db-shm
 data/usa_cache.db-wal
+
+# BofA AKD - BIST lisansli veri, repo PUBLIC oldugu icin git e girmemeli
+data/bofa_akd.json
