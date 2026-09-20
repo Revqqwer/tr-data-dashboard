@@ -60,6 +60,7 @@
   .hint{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.55}
   .tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--border);color:var(--muted)}
   .tag.ok{color:var(--green);border-color:var(--green)} .tag.warn{color:var(--gold);border-color:var(--gold)}
+  .hidden{display:none !important}
   .legend{display:flex;gap:14px;font-size:12px;color:var(--muted);margin-top:8px}
   .sw{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
   .disc{font-size:11.5px;color:var(--muted);line-height:1.55;margin-top:6px}
@@ -80,7 +81,7 @@
 
   <!-- Kümülatif net -->
   <div class="card">
-    <h2>Kümülatif net alım / satım (TL)</h2>
+    <h2 id="cumTitle">Kümülatif net alım / satım (TL)</h2>
     <div class="row" style="margin-bottom:10px" id="cumPresets">
       <button class="chip" data-p="3m">3A</button><button class="chip" data-p="6m">6A</button>
       <button class="chip" data-p="ytd">YBB</button><button class="chip" data-p="1y">1Y</button>
@@ -92,9 +93,13 @@
         <input id="code" type="text" placeholder="THYAO" maxlength="10"
           style="width:96px;margin-left:4px;padding:6px 9px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);text-transform:uppercase"></label>
       <button class="chip" id="codeClear">Tümüne dön</button>
+      <span id="unitRow" class="row hidden" style="margin-left:8px;gap:6px">
+        <span class="dim" style="font-size:12px">Birim:</span>
+        <button class="chip on" data-u="tl">TL</button><button class="chip" data-u="lot">Lot</button>
+      </span>
     </div>
     <div class="chartbox"><canvas id="cumChart"></canvas></div>
-    <div class="hint">Seçili aralığın başından itibaren günlük net TL'lerin toplamı (+ net alıcı, − net satıcı).</div>
+    <div class="hint" id="cumHint">Seçili aralığın başından itibaren günlük net TL'lerin toplamı (+ net alıcı, − net satıcı).</div>
   </div>
 
   <!-- En çok alınan / satılan -->
@@ -233,21 +238,40 @@ function tbl(el, rows) {
       <td class="r">${px(r.buy_avg)}</td><td class="r">${px(r.sell_avg)}</td></tr>`).join('') + '</tbody>';
 }
 
+const lotf = (v, signed) => {
+  const a = Math.abs(v), s = v < 0 ? '−' : (signed && v > 0 ? '+' : '');
+  if (a >= 1e9) return s + (a / 1e9).toFixed(2).replace('.', ',') + ' mr';
+  if (a >= 1e6) return s + (a / 1e6).toFixed(2).replace('.', ',') + ' mn';
+  if (a >= 1e4) return s + (a / 1e3).toFixed(0) + ' bin';
+  return s + nf.format(a);
+};
+let unit = 'tl';                                   // yalnızca tek hissede 'lot' seçilebilir; genelde her zaman TL
+
 async function loadCum() {
   const code = $('code').value.trim().toUpperCase();
+  if (!code) unit = 'tl';                          // hisse boşaltılınca TL'ye dön
+  $('unitRow').classList.toggle('hidden', !code);
+  document.querySelectorAll('#unitRow .chip').forEach(b => b.classList.toggle('on', b.dataset.u === unit));
   const q = new URLSearchParams({start: range.start, end: range.end, limit: 10, funds: $('funds').checked ? '1' : '0'});
   if (code) q.set('code', code);
   const d = await (await fetch(`${API}/data?` + q)).json();
-  const s = d.cum.series, up = s.length && s[s.length - 1].cum >= 0, col = up ? css('--green') : css('--red');
+  const lot = unit === 'lot';
+  const s = d.cum.series, key = lot ? 'cum_lot' : 'cum', dkey = lot ? 'net_lot' : 'net';
+  const fmt = (v, sg) => lot ? lotf(v, sg) + ' lot' : tl(v, sg) + ' TL';
+  const up = s.length && s[s.length - 1][key] >= 0, col = up ? css('--green') : css('--red');
+  $('cumTitle').textContent = 'Kümülatif net alım / satım (' + (lot ? 'lot' : 'TL') + ')';
+  $('cumHint').textContent = lot
+    ? 'Seçili aralığın başından itibaren günlük net lot adetlerinin toplamı (+ net alıcı, − net satıcı). Fiyat değiştikçe aynı lot farklı TL eder; bu yüzden TL ve lot çizgileri ters yönde gidebilir.'
+    : "Seçili aralığın başından itibaren günlük net TL'lerin toplamı (+ net alıcı, − net satıcı).";
   mk('cumChart', {
     type: 'line',
-    data: {labels: s.map(x => x.date), datasets: [{data: s.map(x => x.cum), borderColor: col, backgroundColor: col + '22', fill: 'origin', borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, tension: .15}]},
+    data: {labels: s.map(x => x.date), datasets: [{data: s.map(x => x[key]), borderColor: col, backgroundColor: col + '22', fill: 'origin', borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, tension: .15}]},
     options: {responsive: true, maintainAspectRatio: false, interaction: {mode: 'index', intersect: false},
       plugins: {legend: {display: false}, tooltip: {callbacks: {
-        label: c => (code ? code + ' ' : '') + 'kümülatif: ' + tl(c.parsed.y, true) + ' TL',
-        afterLabel: c => 'Günlük: ' + tl(s[c.dataIndex].net, true) + ' TL'}}},
+        label: c => (code ? code + ' ' : '') + 'kümülatif: ' + fmt(c.parsed.y, true),
+        afterLabel: c => 'Günlük: ' + fmt(s[c.dataIndex][dkey], true)}}},
       scales: {x: {ticks: {color: css('--muted'), maxTicksLimit: 9, maxRotation: 0}, grid: {color: css('--grid')}},
-               y: {ticks: {color: css('--muted'), callback: v => tl(v)}, grid: {color: css('--grid')}}}}
+               y: {ticks: {color: css('--muted'), callback: v => lot ? lotf(v) : tl(v)}, grid: {color: css('--grid')}}}}
   });
   tbl($('tBuy'), d.top.bought); tbl($('tSell'), d.top.sold);
 }
@@ -264,6 +288,7 @@ document.querySelectorAll('#cumPresets .chip').forEach(b => b.addEventListener('
 $('funds').addEventListener('change', () => { loadCum(); loadTrend(); });
 let t; $('code').addEventListener('input', () => { clearTimeout(t); t = setTimeout(loadCum, 250); });
 $('codeClear').addEventListener('click', () => { $('code').value = ''; loadCum(); });
+document.querySelectorAll('#unitRow .chip').forEach(b => b.addEventListener('click', () => { unit = b.dataset.u; loadCum(); }));
 document.addEventListener('click', e => { const c = e.target.closest('td.tk'); if (c) { $('code').value = c.dataset.code; loadCum(); } });
 </script>
 </body>
