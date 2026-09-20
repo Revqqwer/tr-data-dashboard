@@ -158,10 +158,10 @@ function setPreset(p) {
 function renderTable(el, rows, sign) {
   if (!rows.length) { el.innerHTML = '<tr><td class="empty">Bu dönemde kayıt yok</td></tr>'; return; }
   el.innerHTML = '<thead><tr><th>#</th><th>Hisse</th><th class="r">Net TL</th><th class="r">Net lot</th>' +
-    '<th class="r">Ort. maliyet</th><th class="r">Alış TL</th><th class="r">Satış TL</th><th class="r">Gün</th></tr></thead><tbody>' +
+    '<th class="r">Ort. alış</th><th class="r">Ort. satış</th><th class="r">Alış TL</th><th class="r">Satış TL</th><th class="r">Gün</th></tr></thead><tbody>' +
     rows.map((r, i) => `<tr><td>${i + 1}</td><td class="tk" data-code="${r.code}">${r.code}</td>` +
       `<td class="r ${cls(r.net)}">${tl(r.net, true)}</td><td class="r">${nf.format(r.net_lot)}</td>` +
-      `<td class="r">${r.avg_cost == null ? '—' : r.avg_cost.toFixed(2).replace('.', ',')}</td>` +
+      `<td class="r">${r.buy_avg == null ? '—' : r.buy_avg.toFixed(2).replace('.', ',')}</td><td class="r">${r.sell_avg == null ? '—' : r.sell_avg.toFixed(2).replace('.', ',')}</td>` +
       `<td class="r">${tl(r.buy)}</td><td class="r">${tl(r.sell)}</td><td class="r">${r.days}</td></tr>`).join('') + '</tbody>';
 }
 
