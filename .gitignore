@@ -35,3 +35,4 @@ data/bofa_akd.db
 data/bofa_akd.db-*
 data/bofa_akd_*.json
 data/xu100_daily.json
+data/kap_fund_holdings.db
