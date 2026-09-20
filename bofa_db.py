@@ -167,9 +167,13 @@ def cumulative(start: str, end: str, include_funds: bool = True, code: str = Non
 
 
 def top(start: str, end: str, include_funds: bool = True, limit: int = 20) -> dict:
-    """Aralıkta en çok net aldığı / sattığı kodlar (net TL'ye göre)."""
+    """
+    Aralıkta en çok net aldığı / sattığı kodlar (net TL'ye göre).
+    Fiyatlar gerçek işlem fiyatlarıdır: buy_avg = Σ alış TL / Σ alış lot, sell_avg = Σ satış TL / Σ satış lot.
+    (Net TL / net lot anlamsızdır: alışlar ucuzken, satışlar pahalıyken yapıldıysa net lot ile net TL ters işaretli olabilir.)
+    """
     base = ('SELECT code, SUM(buy_volume), SUM(sell_volume), SUM(net_volume), '
-            'SUM(net_size), COUNT(*) FROM bofa_daily '
+            'SUM(net_size), COUNT(*), SUM(buy_size), SUM(sell_size) FROM bofa_daily '
             'WHERE trade_date BETWEEN ? AND ?' + _scope(include_funds) +
             ' GROUP BY code HAVING SUM(net_volume) {op} 0 ORDER BY SUM(net_volume) {ord} LIMIT ?')
     con = connect()
@@ -178,8 +182,9 @@ def top(start: str, end: str, include_funds: bool = True, limit: int = 20) -> di
             rows = con.execute(base.format(op=op, ord=order), (start, end, limit)).fetchall()
             return [{'code': c, 'buy': b or 0, 'sell': s or 0, 'net': n or 0,
                      'net_lot': lot or 0, 'days': d,
-                     'avg_cost': (abs(n / lot) if lot else None)}
-                    for c, b, s, n, lot, d in rows]
+                     'buy_avg': (b / bs) if b and bs else None,
+                     'sell_avg': (s / ss) if s and ss else None}
+                    for c, b, s, n, lot, d, bs, ss in rows]
         return {'bought': fetch('>', 'DESC'), 'sold': fetch('<', 'ASC')}
     finally:
         con.close()

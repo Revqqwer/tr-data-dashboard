@@ -339,6 +339,11 @@ def run(days=130, budget_min=60, workers=2, only_codes=None, log=print, skip_che
              for r in con.execute(q)]
     if only_codes:
         funds = [f for f in funds if f['code'] in only_codes]
+
+    def _prio(f):                       # hisse taşıması en olası fonlar önce işlensin
+        n = (f['name'] or '').upper().replace('İ', 'I')
+        return 0 if 'HISSE' in n else (1 if any(k in n for k in ('DEGISKEN', 'KARMA', 'SERBEST', 'ENDEKS')) else 2)
+    funds.sort(key=lambda f: (_prio(f), f['code']))
     if skip_checked_today:
         funds = [f for f in funds if f['last_checked'] != today]
     have_by = {}
