@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<script>
+(function(){try{var t=localStorage.getItem('theme');
+ if(t!=='dark'&&t!=='light'){t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}
+ document.documentElement.setAttribute('data-theme',t);}catch(e){}
+ function ch(t){var cur=document.documentElement.getAttribute('data-theme')||'light';
+  if((t==='dark'||t==='light')&&t!==cur){try{localStorage.setItem('theme',t)}catch(e){}location.reload();}}
+ window.addEventListener('message',function(e){if(e&&e.data&&e.data.type==='set-theme')ch(e.data.theme);});
+ window.addEventListener('storage',function(e){if(e.key==='theme'&&e.newValue)ch(e.newValue);});
+})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Fon İçerikleri</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+  :root{
+    --bg:#f5f6f8; --surface:#ffffff; --surface2:#f0f2f6; --border:#e0e3e8;
+    --text:#1a1d23; --muted:#6b7280; --accent:#2563eb; --green:#16a34a; --red:#dc2626; --grid:#e8ebf0; --gold:#d97706;
+  }
+  :root[data-theme="dark"]{
+    --bg:#0f1420; --surface:#161d2e; --surface2:#101726; --border:#26314a;
+    --text:#e8edf7; --muted:#8b9ab8; --accent:#5aa9ff; --green:#22c55e; --red:#ef4444; --grid:#1e2940; --gold:#f0b429;
+  }
+  body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+  .wrap{max-width:1180px;margin:0 auto;padding:18px 16px 56px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:16px;min-width:0}
+  h2{font-size:12px;text-transform:uppercase;letter-spacing:1.1px;color:var(--muted);margin-bottom:12px;font-weight:700}
+  h3{font-size:13px;font-weight:700;margin-bottom:8px}
+  .pos{color:var(--green)} .neg{color:var(--red)} .dim{color:var(--muted)}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+  .tab,.chip{background:var(--surface);border:1px solid var(--border);color:var(--muted);border-radius:999px;padding:8px 16px;font-size:13px;cursor:pointer}
+  .tab:hover,.chip:hover{color:var(--text)} .tab.on,.chip.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+  .chip{padding:6px 13px;font-size:12.5px}
+  select,input[type=text]{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:8px 11px;font-size:14px}
+  input[type=text]{min-width:200px}
+  input:focus,select:focus{outline:none;border-color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:14px}
+  .stat{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px 14px;min-width:0}
+  .stat .lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+  .stat .val{font-size:21px;font-weight:800;margin-top:5px;font-variant-numeric:tabular-nums}
+  .stat .note{font-size:12px;color:var(--muted);margin-top:4px}
+  .cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;color:var(--muted);font-weight:600;padding:7px 8px;border-bottom:1px solid var(--border);font-size:11px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
+  td{padding:7px 8px;border-bottom:1px solid var(--grid);font-variant-numeric:tabular-nums;white-space:nowrap}
+  th.r,td.r{text-align:right} td.link{font-weight:700;cursor:pointer} td.link:hover{color:var(--accent);text-decoration:underline}
+  td.nm{max-width:260px;overflow:hidden;text-overflow:ellipsis}
+  tbody tr:hover{background:var(--surface2)}
+  .tscroll{overflow-x:auto}
+  .hint{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.55}
+  .badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--border);color:var(--muted)}
+  .badge.up{color:var(--green);border-color:var(--green)} .badge.down{color:var(--red);border-color:var(--red)}
+  .badge.new{color:var(--accent);border-color:var(--accent)}
+  .chartbox{position:relative;height:280px}
+  .hidden{display:none}
+  .results{display:flex;flex-direction:column;gap:2px;margin-top:10px;max-height:240px;overflow:auto}
+  .res{padding:8px 10px;border-radius:8px;cursor:pointer;font-size:13px;display:flex;gap:10px}
+  .res:hover{background:var(--surface2)} .res b{min-width:56px}
+  @media (max-width:860px){.cols{grid-template-columns:minmax(0,1fr)} .chartbox{height:240px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="tabs" id="tabs">
+    <button class="tab on" data-t="top">Bu ay en çok alınan / satılan</button>
+    <button class="tab" data-t="stock">Hisse → hangi fonlar taşıyor</button>
+    <button class="tab" data-t="fund">Fon → içeriği</button>
+  </div>
+  <div class="row" style="margin-bottom:14px">
+    <label class="dim" style="font-size:12px">Dönem <select id="period"></select></label>
+    <span class="dim" style="font-size:12px" id="cov"></span>
+  </div>
+
+  <!-- 1) En çok alınan / satılan -->
+  <div id="v-top">
+    <div class="stats" id="topStats"></div>
+    <div class="card">
+      <div class="cols">
+        <div><h3 class="pos">▲ Fonların en çok aldığı hisseler</h3><div class="tscroll"><table id="tBuy"></table></div></div>
+        <div><h3 class="neg">▼ Fonların en çok sattığı hisseler</h3><div class="tscroll"><table id="tSell"></table></div></div>
+      </div>
+      <div class="hint" id="topNote"></div>
+    </div>
+  </div>
+
+  <!-- 2) Hisse -->
+  <div id="v-stock" class="hidden">
+    <div class="card">
+      <div class="row">
+        <input type="text" id="stockQ" list="stockList" placeholder="Hisse kodu (örn. THYAO)" style="text-transform:uppercase">
+        <datalist id="stockList"></datalist>
+        <button class="chip on" id="stockGo">Göster</button>
+      </div>
+    </div>
+    <div id="stockOut"></div>
+  </div>
+
+  <!-- 3) Fon -->
+  <div id="v-fund" class="hidden">
+    <div class="card">
+      <div class="row">
+        <input type="text" id="fundQ" placeholder="Fon kodu ya da adı (örn. MAC)">
+        <button class="chip on" id="fundGo">Ara</button>
+      </div>
+      <div class="results" id="fundRes"></div>
+    </div>
+    <div id="fundOut"></div>
+  </div>
+
+  <div class="hint" style="margin-top:6px">Kaynak: KAP "Portföy Dağılım Raporu" (fonların aylık bildirimi; ay sonu durumu, ayın ~8'inde yayımlanır). Yalnızca KAP'a rapor veren
+    ve raporu ayrıştırılabilen fonlar dahildir; değişimler her iki ayda da raporu olan fonlar üzerinden hesaplanır. Yatırım tavsiyesi değildir.</div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const charts = {};
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const nf = new Intl.NumberFormat('tr-TR', {maximumFractionDigits: 0});
+const f2 = v => v == null ? '—' : v.toFixed(2).replace('.', ',');
+function tl(v, signed) {
+  const a = Math.abs(v), s = v < 0 ? '−' : (signed && v > 0 ? '+' : '');
+  if (a >= 1e9) return s + (a / 1e9).toFixed(2).replace('.', ',') + ' mr';
+  if (a >= 1e6) return s + (a / 1e6).toFixed(1).replace('.', ',') + ' mn';
+  return s + nf.format(a);
+}
+const lot = (v, signed) => v == null ? '—' : (signed && v > 0 ? '+' : v < 0 ? '−' : '') + nf.format(Math.abs(v));
+const cls = v => v > 0 ? 'pos' : (v < 0 ? 'neg' : '');
+const pname = p => { const m = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara']; return m[+p.slice(5) - 1] + ' ' + p.slice(0, 4); };
+const badge = s => s === 'new' ? '<span class="badge new">Yeni giriş</span>' : s === 'up' ? '<span class="badge up">Artırdı</span>' :
+                   s === 'down' ? '<span class="badge down">Azalttı</span>' : s === 'same' ? '<span class="badge">Değişmedi</span>' : '<span class="badge">—</span>';
+async function api(u) { const r = await fetch(u); return r.json(); }
+function mk(id, cfg) { if (charts[id]) charts[id].destroy(); charts[id] = new Chart($(id), cfg); }
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+
+let PERIODS = [], TAB = 'top';
+
+function setTab(t) {
+  TAB = t;
+  document.querySelectorAll('#tabs .tab').forEach(b => b.classList.toggle('on', b.dataset.t === t));
+  ['top', 'stock', 'fund'].forEach(x => $('v-' + x).classList.toggle('hidden', x !== t));
+  if (t === 'top') loadTop();
+}
+
+// ── En çok alınan / satılan ─────────────────────────────────────────────────
+function moveTable(el, rows, buy) {
+  if (!rows.length) { el.innerHTML = '<tr><td class="dim">Veri yok</td></tr>'; return; }
+  el.innerHTML = '<thead><tr><th>#</th><th>Hisse</th><th class="r">Net TL</th><th class="r">Net lot</th><th class="r">Fon: ' + (buy ? 'alan' : 'satan') + '</th><th class="r">Taşıyan fon</th></tr></thead><tbody>' +
+    rows.map((r, i) => `<tr><td class="dim">${i + 1}</td><td class="link" data-code="${r.code}" title="${esc(r.name)}">${r.code}</td>
+      <td class="r ${cls(r.d_tl)}">${tl(r.d_tl, true)}</td><td class="r">${lot(r.d_lots, true)}</td>
+      <td class="r">${buy ? (r.n_new + r.n_up) + (r.n_new ? ` <span class="dim">(${r.n_new} yeni)</span>` : '') : (r.n_down + r.n_exit) + (r.n_exit ? ` <span class="dim">(${r.n_exit} çıkış)</span>` : '')}</td>
+      <td class="r">${r.n_hold}</td></tr>`).join('') + '</tbody>';
+}
+async function loadTop() {
+  const d = await api('/api/fonicerik/top?limit=25&period=' + ($('period').value || ''));
+  if (d.empty) {
+    $('topStats').innerHTML = ''; $('tBuy').innerHTML = $('tSell').innerHTML = '';
+    $('topNote').textContent = 'Karşılaştırma için art arda iki ayın raporları gerekir (seçili dönem ve bir önceki ay).'; return;
+  }
+  $('topStats').innerHTML = `
+    <div class="stat"><div class="lbl">Karşılaştırılan fon</div><div class="val">${nf.format(d.comparable_funds)}</div><div class="note">${pname(d.prev)} ve ${pname(d.period)} raporu olan</div></div>
+    <div class="stat"><div class="lbl">Toplam net alım</div><div class="val pos">${tl(d.total_buy, true)}</div><div class="note">TL, ay sonu fiyatıyla</div></div>
+    <div class="stat"><div class="lbl">Toplam net satım</div><div class="val neg">${tl(d.total_sell, true)}</div><div class="note">TL, ay sonu fiyatıyla</div></div>`;
+  moveTable($('tBuy'), d.bought, true); moveTable($('tSell'), d.sold, false);
+  $('topNote').textContent = `${pname(d.prev)} → ${pname(d.period)}. Net TL = fonların toplam lot değişimi × ay sonu fiyatı. Hisse koduna tıklayınca hangi fonların taşıdığı açılır.`;
+}
+
+// ── Hisse ───────────────────────────────────────────────────────────────────
+async function showStock(code) {
+  code = (code || '').trim().toUpperCase(); if (!code) return;
+  $('stockQ').value = code; setTab('stock');
+  const d = await api(`/api/fonicerik/stock?code=${encodeURIComponent(code)}&period=` + ($('period').value || ''));
+  if (d.empty || !d.funds.length) { $('stockOut').innerHTML = `<div class="card dim">${esc(code)} için ${d.period ? pname(d.period) : 'bu dönemde'} kayıt bulunamadı.</div>`; return; }
+  const tot = d.funds.reduce((a, f) => a + f.value, 0), totLots = d.funds.reduce((a, f) => a + f.lots, 0);
+  const cmp = d.funds.filter(f => f.delta_lots != null);
+  const dLots = cmp.reduce((a, f) => a + f.delta_lots, 0) - d.exited.reduce((a, f) => a + f.prev_lots, 0);
+  $('stockOut').innerHTML = `
+    <div class="stats">
+      <div class="stat"><div class="lbl">${esc(code)} · ${pname(d.period)}</div><div class="val">${d.funds.length} fon</div><div class="note">${esc(d.name || '')}</div></div>
+      <div class="stat"><div class="lbl">Fonların toplam pozisyonu</div><div class="val">${tl(tot)} TL</div><div class="note">${lot(totLots)} lot</div></div>
+      <div class="stat"><div class="lbl">Aylık lot değişimi</div><div class="val ${cls(dLots)}">${d.prev ? lot(dLots, true) : '—'}</div><div class="note">${d.prev ? pname(d.prev) + ' → ' + pname(d.period) + ' (karşılaştırılabilir fonlar)' : 'önceki ay yok'}</div></div>
+      <div class="stat"><div class="lbl">Yeni giren / çıkan fon</div><div class="val"><span class="pos">${d.funds.filter(f => f.status === 'new').length}</span> / <span class="neg">${d.exited.length}</span></div><div class="note">bir önceki aya göre</div></div>
+    </div>
+    <div class="card"><h2>Fonların toplam ${esc(code)} pozisyonu (aylık)</h2><div class="chartbox"><canvas id="stockChart"></canvas></div></div>
+    <div class="card"><h2>${esc(code)} taşıyan fonlar</h2><div class="tscroll"><table id="stockTbl"></table></div>
+      ${d.exited.length ? `<div class="hint"><b>Bu ay çıkanlar:</b> ${d.exited.map(e => `<span class="link" style="cursor:pointer" data-fund="${e.fund}">${e.fund}</span>`).join(', ')}</div>` : ''}</div>`;
+  mk('stockChart', {
+    type: 'bar',
+    data: {labels: d.series.map(x => pname(x.period)), datasets: [
+      {label: 'Toplam değer (TL)', data: d.series.map(x => x.value), backgroundColor: css('--accent') + 'aa', yAxisID: 'y'},
+      {label: 'Fon sayısı', type: 'line', data: d.series.map(x => x.funds), borderColor: css('--gold'), pointRadius: 3, yAxisID: 'y2'}]},
+    options: {responsive: true, maintainAspectRatio: false, plugins: {legend: {labels: {color: css('--muted')}},
+      tooltip: {callbacks: {label: c => c.dataset.label + ': ' + (c.datasetIndex === 0 ? tl(c.parsed.y) + ' TL' : c.parsed.y)}}},
+      scales: {x: {ticks: {color: css('--muted')}, grid: {color: css('--grid')}},
+               y: {ticks: {color: css('--muted'), callback: v => tl(v)}, grid: {color: css('--grid')}},
+               y2: {position: 'right', ticks: {color: css('--gold'), precision: 0}, grid: {display: false}}}}
+  });
+  $('stockTbl').innerHTML = '<thead><tr><th>Fon</th><th>Ad</th><th class="r">Ağırlık</th><th class="r">Lot</th><th class="r">Değer</th><th class="r">Ort. maliyet</th><th class="r">Δ lot</th><th>Durum</th></tr></thead><tbody>' +
+    d.funds.map(f => `<tr><td class="link" data-fund="${f.fund}">${f.fund}</td><td class="nm" title="${esc(f.name)}">${esc(f.name)}</td>
+      <td class="r">%${f2(f.weight)}</td><td class="r">${lot(f.lots)}</td><td class="r">${tl(f.value)}</td><td class="r">${f.avg_cost ? f2(f.avg_cost) : '—'}</td>
+      <td class="r ${cls(f.delta_lots)}">${lot(f.delta_lots, true)}</td><td>${badge(f.status)}</td></tr>`).join('') + '</tbody>';
+}
+
+// ── Fon ─────────────────────────────────────────────────────────────────────
+async function searchFund() {
+  const q = $('fundQ').value.trim(); if (!q) return;
+  const rows = await api('/api/fonicerik/funds?q=' + encodeURIComponent(q));
+  $('fundRes').innerHTML = rows.length ? rows.map(r => `<div class="res" data-fund="${r.code}"><b>${r.code}</b><span>${esc(r.name)}</span><span class="dim">${r.last ? pname(r.last) : ''}</span></div>`).join('')
+    : '<div class="dim" style="padding:8px">Sonuç yok (yalnızca raporu KAP\'ta okunabilen fonlar listelenir).</div>';
+}
+async function showFund(code) {
+  setTab('fund'); $('fundQ').value = code;
+  const d = await api(`/api/fonicerik/fund?code=${encodeURIComponent(code)}&period=` + ($('period').value || ''));
+  if (d.empty) { $('fundOut').innerHTML = '<div class="card dim">Fon bulunamadı.</div>'; return; }
+  const rep = d.reports.find(r => r.period === d.period) || {};
+  $('fundOut').innerHTML = `
+    <div class="stats">
+      <div class="stat"><div class="lbl">${esc(d.fund.code)} · ${pname(d.period)}</div><div class="val" style="font-size:15px">${esc(d.fund.name)}</div></div>
+      <div class="stat"><div class="lbl">Fon büyüklüğü</div><div class="val">${rep.fund_value ? tl(rep.fund_value) + ' TL' : '—'}</div></div>
+      <div class="stat"><div class="lbl">Hisse oranı</div><div class="val">%${f2(rep.stock_pct)}</div><div class="note">${d.holdings.length} hisse</div></div>
+      <div class="stat"><div class="lbl">Yeni giriş / çıkış</div><div class="val"><span class="pos">${d.holdings.filter(h => h.status === 'new').length}</span> / <span class="neg">${d.exited.length}</span></div><div class="note">${d.prev ? pname(d.prev) + ' → ' + pname(d.period) : 'önceki ay yok'}</div></div>
+    </div>
+    <div class="card"><h2>Ağırlık geçmişi — ilk 6 hisse</h2><div class="chartbox"><canvas id="fundChart"></canvas></div></div>
+    <div class="card"><h2>Portföydeki hisseler</h2><div class="tscroll"><table id="fundTbl"></table></div>
+      ${d.exited.length ? `<div class="hint"><b>Bu ay çıkanlar:</b> ${d.exited.map(e => `<span class="link" style="cursor:pointer" data-code="${e.code}">${e.code}</span>`).join(', ')}</div>` : ''}</div>`;
+  const per = [...d.periods].reverse(), palette = ['#5aa9ff', '#22c55e', '#f0b429', '#ef4444', '#a78bfa', '#14b8a6'];
+  const top = d.holdings.slice(0, 6);
+  mk('fundChart', {
+    type: 'line',
+    data: {labels: per.map(pname), datasets: top.map((h, i) => ({label: h.code, data: per.map(p => (d.weights[h.code] || {})[p] ?? null),
+      borderColor: palette[i], backgroundColor: palette[i], borderWidth: 2, pointRadius: 3, spanGaps: true, tension: .15}))},
+    options: {responsive: true, maintainAspectRatio: false, plugins: {legend: {labels: {color: css('--muted')}},
+      tooltip: {callbacks: {label: c => c.dataset.label + ': %' + f2(c.parsed.y)}}},
+      scales: {x: {ticks: {color: css('--muted')}, grid: {color: css('--grid')}}, y: {ticks: {color: css('--muted'), callback: v => '%' + v}, grid: {color: css('--grid')}}}}
+  });
+  $('fundTbl').innerHTML = '<thead><tr><th>#</th><th>Hisse</th><th class="r">Ağırlık</th><th class="r">Lot</th><th class="r">Değer</th><th class="r">Ort. maliyet</th><th class="r">Δ lot</th><th>Durum</th></tr></thead><tbody>' +
+    d.holdings.map((h, i) => `<tr><td class="dim">${i + 1}</td><td class="link" data-code="${h.code}" title="${esc(h.name)}">${h.code}</td><td class="r">%${f2(h.weight)}</td>
+      <td class="r">${lot(h.lots)}</td><td class="r">${tl(h.value)}</td><td class="r">${h.avg_cost ? f2(h.avg_cost) : '—'}</td>
+      <td class="r ${cls(h.delta_lots)}">${lot(h.delta_lots, true)}</td><td>${badge(h.status)}</td></tr>`).join('') + '</tbody>';
+}
+
+// ── Başlangıç ───────────────────────────────────────────────────────────────
+(async () => {
+  const m = await api('/api/fonicerik/months');
+  PERIODS = m.periods || [];
+  if (!PERIODS.length) { $('cov').textContent = 'Henüz veri yok.'; return; }
+  $('period').innerHTML = PERIODS.map(p => `<option value="${p.period}">${pname(p.period)} (${p.funds} fon)</option>`).join('');
+  const c = m.coverage || {};
+  if (c.funds_total) $('cov').textContent = `KAP'ta ${nf.format(c.funds_total)} fon tarandı · ${nf.format(c.funds_with_stocks || 0)} fonun hisse portföyü okunabildi`;
+  loadTop();
+  api('/api/fonicerik/stocks').then(list => { $('stockList').innerHTML = list.map(s => `<option value="${s.code}">${esc(s.name)}</option>`).join(''); });
+})();
+$('period').addEventListener('change', () => { if (TAB === 'top') loadTop(); else if (TAB === 'stock' && $('stockQ').value) showStock($('stockQ').value); else if (TAB === 'fund' && $('fundQ').value && $('fundOut').innerHTML) showFund($('fundQ').value.split(' ')[0]); });
+document.querySelectorAll('#tabs .tab').forEach(b => b.addEventListener('click', () => setTab(b.dataset.t)));
+$('stockGo').addEventListener('click', () => showStock($('stockQ').value));
+$('stockQ').addEventListener('keydown', e => { if (e.key === 'Enter') showStock($('stockQ').value); });
+$('fundGo').addEventListener('click', searchFund);
+$('fundQ').addEventListener('keydown', e => { if (e.key === 'Enter') searchFund(); });
+document.addEventListener('click', e => {
+  const c = e.target.closest('[data-code]'); if (c) { showStock(c.dataset.code); return; }
+  const f = e.target.closest('[data-fund]'); if (f) showFund(f.dataset.fund);
+});
+</script>
+</body>
+</html>

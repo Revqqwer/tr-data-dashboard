@@ -1115,6 +1115,52 @@ def api_bofa_trend():
     return jsonify(bofa_analysis.trend(request.args.get('funds', '0') == '1'))
 
 
+# ── Fon İçerikleri (KAP portföy dağılım raporları; giriş gerekli) ──
+@app.route('/fon-icerik')
+def fon_icerik_page():
+    return render_template('fon_icerik.html')
+
+
+@app.route('/api/fonicerik/months')
+def api_fi_months():
+    import fon_icerik
+    return jsonify({**fon_icerik.months(), 'coverage': fon_icerik.coverage()})
+
+
+@app.route('/api/fonicerik/top')
+def api_fi_top():
+    import fon_icerik
+    try:
+        limit = max(5, min(100, int(request.args.get('limit', 25))))
+    except ValueError:
+        limit = 25
+    return jsonify(fon_icerik.top_moves(request.args.get('period') or None, limit))
+
+
+@app.route('/api/fonicerik/stocks')
+def api_fi_stocks():
+    import fon_icerik
+    return jsonify(fon_icerik.stock_list(request.args.get('period') or None))
+
+
+@app.route('/api/fonicerik/stock')
+def api_fi_stock():
+    import fon_icerik
+    return jsonify(fon_icerik.stock_detail(request.args.get('code', ''), request.args.get('period') or None))
+
+
+@app.route('/api/fonicerik/funds')
+def api_fi_funds():
+    import fon_icerik
+    return jsonify(fon_icerik.fund_search(request.args.get('q', '')))
+
+
+@app.route('/api/fonicerik/fund')
+def api_fi_fund():
+    import fon_icerik
+    return jsonify(fon_icerik.fund_detail(request.args.get('code', ''), request.args.get('period') or None))
+
+
 @app.route('/admin/<secret>/bofa/import', methods=['POST'])
 def admin_bofa_import(secret):
     """Fintables AKD JSON dosyasını (tek gün ya da {tarih: yanıt} paketi) DB'ye aktarır."""
