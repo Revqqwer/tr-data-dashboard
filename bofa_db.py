@@ -145,8 +145,12 @@ def meta() -> dict:
 
 
 def cumulative(start: str, end: str, include_funds: bool = True, code: str = None) -> dict:
-    """Günlük net TL ve seçilen aralığın başından itibaren kümülatif net TL (+ = net alım)."""
-    q = ('SELECT trade_date, SUM(net_volume) FROM bofa_daily '
+    """
+    Günlük net TL / net lot ve seçilen aralığın başından itibaren kümülatifleri (+ net alım).
+    Tek hisse (code) için lot bazlı okuma anlamlıdır; toplamlarda alış/satış lot ve TL de döner.
+    """
+    q = ('SELECT trade_date, SUM(net_volume), SUM(net_size), SUM(buy_size), SUM(sell_size), '
+         'SUM(buy_volume), SUM(sell_volume) FROM bofa_daily '
          'WHERE trade_date BETWEEN ? AND ?' + _scope(include_funds))
     args = [start, end]
     if code:
@@ -158,12 +162,20 @@ def cumulative(start: str, end: str, include_funds: bool = True, code: str = Non
         rows = con.execute(q, args).fetchall()
     finally:
         con.close()
-    out, run = [], 0.0
-    for d, net in rows:
-        net = net or 0.0
+    out, run, run_lot = [], 0.0, 0.0
+    tot = {'buy_lot': 0.0, 'sell_lot': 0.0, 'buy_tl': 0.0, 'sell_tl': 0.0}
+    for d, net, net_lot, bl, sl, bv, sv in rows:
+        net, net_lot = net or 0.0, net_lot or 0.0
         run += net
-        out.append({'date': d, 'net': net, 'cum': run})
-    return {'series': out, 'total': run}
+        run_lot += net_lot
+        tot['buy_lot'] += bl or 0
+        tot['sell_lot'] += sl or 0
+        tot['buy_tl'] += bv or 0
+        tot['sell_tl'] += sv or 0
+        out.append({'date': d, 'net': net, 'cum': run, 'net_lot': net_lot, 'cum_lot': run_lot})
+    tot['buy_avg'] = tot['buy_tl'] / tot['buy_lot'] if tot['buy_lot'] else None
+    tot['sell_avg'] = tot['sell_tl'] / tot['sell_lot'] if tot['sell_lot'] else None
+    return {'series': out, 'total': run, 'total_lot': run_lot, **tot}
 
 
 def top(start: str, end: str, include_funds: bool = True, limit: int = 20) -> dict:
