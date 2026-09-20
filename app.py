@@ -1115,6 +1115,35 @@ def api_bofa_trend():
     return jsonify(bofa_analysis.trend(request.args.get('funds', '0') == '1'))
 
 
+@app.route('/admin/<secret>/bofa/import', methods=['POST'])
+def admin_bofa_import(secret):
+    """Fintables AKD JSON dosyasını (tek gün ya da {tarih: yanıt} paketi) DB'ye aktarır."""
+    if secret != ADMIN_SECRET:
+        return jsonify({'error': 'Yetkisiz'}), 403
+    import tempfile, os as _os
+    import bofa_db
+    files = request.files.getlist('file')
+    if not files:
+        return jsonify({'error': 'Dosya seçilmedi.'}), 400
+    results = []
+    for f in files:
+        fd, tmp = tempfile.mkstemp(suffix='.json')
+        _os.close(fd)
+        try:
+            f.save(tmp)
+            res = bofa_db.import_file(tmp)
+            results.append({'file': f.filename, 'days': len([r for r in res if not r.get('error') and not r.get('skipped')]),
+                            'errors': [r for r in res if r.get('error')]})
+        except Exception as e:
+            results.append({'file': f.filename, 'days': 0, 'errors': [{'error': str(e)}]})
+        finally:
+            try:
+                _os.remove(tmp)
+            except OSError:
+                pass
+    return jsonify({'results': results, 'status': bofa_db.status()})
+
+
 @app.route('/admin/<secret>/bofa/site')
 def admin_bofa_site_preview(secret):
     """Üyelere açılacak BofA sayfasının önizlemesi (yayınlanmadan, admin anahtarıyla)."""

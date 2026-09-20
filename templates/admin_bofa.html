@@ -82,6 +82,16 @@
   </div>
 
   <div class="card">
+    <h2>Veri yükle (Fintables AKD JSON)</h2>
+    <div class="filters">
+      <input type="file" id="impFile" accept=".json,application/json" multiple>
+      <button class="chip on" id="impBtn">İçe aktar</button>
+      <span class="hint" id="impMsg" style="margin:0"></span>
+    </div>
+    <div class="hint">Konsol script'inin indirdiği <code>bofa_akd_….json</code> dosyaları. Aynı günün verisi varsa üzerine yazılır. Yüklemeden sonra sayfa yenilenir.</div>
+  </div>
+
+  <div class="card">
     <h2 id="chartTitle">Kümülatif net alım / satım (TL)</h2>
     <div class="stats">
       <div class="stat"><div class="lbl">Dönem net</div><div class="val" id="sNet">—</div></div>
@@ -228,6 +238,25 @@ function debounced() { clearTimeout(timer); timer = setTimeout(load, 250); }
 ['start', 'end'].forEach(id => $(id).addEventListener('change', () => {
   document.querySelectorAll('.chip[data-p]').forEach(b => b.classList.remove('on')); debounced();
 }));
+$('impBtn').addEventListener('click', async () => {
+  const files = $('impFile').files;
+  if (!files.length) { $('impMsg').textContent = 'Önce dosya seçin.'; return; }
+  const fd = new FormData();
+  for (const f of files) fd.append('file', f);
+  $('impBtn').disabled = true; $('impMsg').textContent = 'Yükleniyor…';
+  try {
+    const r = await fetch(`/admin/${SECRET}/bofa/import`, {method: 'POST', body: fd});
+    const d = await r.json();
+    if (!r.ok) { $('impMsg').textContent = d.error || ('Hata ' + r.status); }
+    else {
+      const total = d.results.reduce((a, x) => a + x.days, 0);
+      const errs = d.results.reduce((a, x) => a + x.errors.length, 0);
+      $('impMsg').textContent = `${total} gün aktarıldı${errs ? ', ' + errs + ' hata' : ''} · DB: ${d.status.first} → ${d.status.last} (${d.status.days} gün)`;
+      setTimeout(() => location.reload(), 1500);
+    }
+  } catch (e) { $('impMsg').textContent = 'Yükleme başarısız: ' + e.message; }
+  $('impBtn').disabled = false;
+});
 ['funds', 'limit'].forEach(id => $(id).addEventListener('change', load));
 $('code').addEventListener('input', debounced);
 $('codeClear').addEventListener('click', () => { $('code').value = ''; load(); });
