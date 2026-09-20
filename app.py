@@ -1063,6 +1063,50 @@ def admin_portfolio_page(secret):
     return render_template('admin_portfolio.html', secret=secret)
 
 
+@app.route('/admin/<secret>/bofa')
+def admin_bofa_page(secret):
+    """BofA aracı kurum dağılımı — yalnızca admin. Veri elle yapıştırılır."""
+    if secret != ADMIN_SECRET:
+        return redirect(url_for('login'))
+    return render_template('admin_bofa.html', secret=secret)
+
+
+@app.route('/admin/<secret>/bofa/data')
+def admin_bofa_data(secret):
+    if secret != ADMIN_SECRET:
+        return jsonify({'error': 'forbidden'}), 403
+    import bofa
+    dates = bofa.list_dates()
+    date = request.args.get('date') or (dates[0] if dates else None)
+    day = bofa.get_day(date) if date else {'rows': [], 'summary': {}, 'updated_at': None}
+    return jsonify({'dates': dates, 'day': day})
+
+
+@app.route('/admin/<secret>/bofa/save', methods=['POST'])
+def admin_bofa_save(secret):
+    if secret != ADMIN_SECRET:
+        return jsonify({'error': 'forbidden'}), 403
+    import bofa
+    d = request.get_json(silent=True) or {}
+    parsed = bofa.parse_table(d.get('text', ''))
+    if not parsed['rows']:
+        return jsonify({'ok': False, 'error': 'Hiçbir satır okunamadı. Tabloyu tümüyle kopyaladığınızdan emin olun.',
+                        'skipped': parsed['skipped'][:10]}), 400
+    res = bofa.save_day(d.get('date', ''), parsed['rows'])
+    res['skipped'] = parsed['skipped'][:10]
+    res['skipped_count'] = len(parsed['skipped'])
+    return (jsonify(res), 200) if res.get('ok') else (jsonify(res), 400)
+
+
+@app.route('/admin/<secret>/bofa/delete', methods=['POST'])
+def admin_bofa_delete(secret):
+    if secret != ADMIN_SECRET:
+        return jsonify({'error': 'forbidden'}), 403
+    import bofa
+    d = request.get_json(silent=True) or {}
+    return jsonify(bofa.delete_day(d.get('date', '')))
+
+
 @app.route('/admin/<secret>/market-brief/<report_id>/delete', methods=['POST'])
 def admin_delete_market_brief(secret, report_id):
     if secret != ADMIN_SECRET:
