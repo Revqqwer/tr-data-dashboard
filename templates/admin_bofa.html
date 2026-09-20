@@ -6,230 +6,236 @@
 <meta name="robots" content="noindex">
 <title>BofA Aracı Kurum Dağılımı — Admin</title>
 <link rel="icon" href="/static/icons/icon-192.png">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
   :root{
     --bg:#0a1120; --panel:#101c31; --panel2:#0d1728; --border:#22324b;
     --text:#eaf1fd; --muted:#8ea3c4; --accent:#f0b429;
-    --good:#22c55e; --bad:#ef4444;
+    --good:#22c55e; --bad:#ef4444; --line:#5aa9ff;
   }
   *{box-sizing:border-box}
   body{margin:0;min-height:100vh;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
     background:radial-gradient(1200px 700px at 50% -8%,#182a49 0%,var(--bg) 58%);color:var(--text)}
   .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px;
     border-bottom:1px solid var(--border);position:sticky;top:0;background:rgba(10,17,32,.86);backdrop-filter:blur(8px);z-index:10}
-  .brand{display:flex;align-items:center;gap:10px;font-weight:800}
+  .brand{font-weight:800}
   .back{font-size:13px;color:var(--muted);text-decoration:none;padding:8px 14px;border:1px solid var(--border);border-radius:10px}
   .back:hover{color:var(--text)}
   .wrap{max-width:1280px;margin:0 auto;padding:22px 22px 60px}
   .card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--border);
-    border-radius:16px;padding:18px 20px;margin-bottom:18px}
+    border-radius:16px;padding:18px 20px;margin-bottom:18px;min-width:0}
   h2{margin:0 0 12px;font-size:12px;text-transform:uppercase;letter-spacing:1.3px;color:var(--muted)}
-  textarea{width:100%;min-height:150px;background:#0b1424;border:1px solid var(--border);color:var(--text);
-    padding:12px 14px;border-radius:12px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;resize:vertical}
-  textarea:focus{outline:none;border-color:var(--accent)}
-  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px}
-  input[type=date],select{background:#0b1424;border:1px solid var(--border);color:var(--text);
-    padding:10px 12px;border-radius:10px;font-size:14px}
-  .btn{border:none;cursor:pointer;border-radius:10px;font-weight:800;font-size:14px;padding:11px 20px;
-    background:linear-gradient(135deg,#ffd76a,var(--accent) 45%,#d8890a);color:#211603}
-  .btn:disabled{opacity:.5;cursor:not-allowed}
-  .btn-ghost{background:none;border:1px solid var(--border);color:var(--muted);font-weight:600}
-  .btn-ghost:hover{color:var(--text)}
-  .msg{font-size:13px;margin-top:10px;min-height:18px}
-  .msg.ok{color:var(--good)} .msg.err{color:var(--bad)}
-
-  /* Özet */
-  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
-  .stat{background:#0b1424;border:1px solid var(--border);border-radius:12px;padding:14px 16px}
+  .filters{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .filters label{font-size:12px;color:var(--muted)}
+  input[type=date],input[type=text]{background:#0b1424;border:1px solid var(--border);color:var(--text);
+    padding:9px 11px;border-radius:10px;font-size:14px;color-scheme:dark}
+  input[type=text]{width:110px;text-transform:uppercase}
+  input:focus{outline:none;border-color:var(--accent)}
+  .chip{background:none;border:1px solid var(--border);color:var(--muted);border-radius:999px;padding:7px 13px;
+    font-size:12.5px;cursor:pointer}
+  .chip:hover{color:var(--text)}
+  .chip.on{background:var(--accent);border-color:var(--accent);color:#211603;font-weight:700}
+  .sep{width:1px;height:24px;background:var(--border);margin:0 4px}
+  .chk{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:14px}
+  .stat{background:#0b1424;border:1px solid var(--border);border-radius:12px;padding:12px 14px}
   .stat .lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px}
-  .stat .val{font-size:22px;font-weight:800;font-family:ui-monospace,Menlo,Consolas,monospace;margin-top:6px}
+  .stat .val{font-size:21px;font-weight:800;font-family:ui-monospace,Menlo,Consolas,monospace;margin-top:5px}
   .pos{color:var(--good)} .neg{color:var(--bad)}
-  .headline{font-size:15px;margin-top:14px;color:var(--muted)}
-  .headline b{font-size:18px}
-
-  /* Tablolar */
-  .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:18px}
+  .chartbox{position:relative;height:380px}
+  .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr));gap:18px}
   table{width:100%;border-collapse:collapse;font-size:13px}
   th{text-align:left;color:var(--muted);font-weight:600;padding:8px;border-bottom:1px solid var(--border);
-    font-size:11px;text-transform:uppercase;letter-spacing:.5px}
-  td{padding:7px 8px;border-bottom:1px solid #16233a;font-family:ui-monospace,Menlo,Consolas,monospace}
-  td.tk{font-weight:700;font-family:inherit}
+    font-size:11px;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
+  td{padding:7px 8px;border-bottom:1px solid #16233a;font-family:ui-monospace,Menlo,Consolas,monospace;white-space:nowrap}
+  td.tk{font-weight:700;font-family:inherit;cursor:pointer}
+  td.tk:hover{color:var(--accent);text-decoration:underline}
   th.r,td.r{text-align:right}
   tbody tr:hover{background:#12203a}
+  .tscroll{overflow-x:auto}
+  .hint{font-size:12px;color:var(--muted);margin-top:8px}
   .empty{color:var(--muted);font-size:13px;padding:10px 2px}
-  details summary{cursor:pointer;color:var(--muted);font-size:13px}
 </style>
 </head>
 <body>
-  <div class="topbar">
-    <div class="brand">🏦 BofA · Aracı Kurum Dağılımı <span style="font-size:11px;color:var(--muted);font-weight:600">(yalnızca admin)</span></div>
-    <a class="back" href="/admin/{{ secret }}">← Admin Paneli</a>
+<div class="topbar">
+  <div class="brand">🏦 BofA · Borsa İstanbul Aracı Kurum Dağılımı</div>
+  <div style="display:flex;gap:8px"><a class="back" href="/admin/{{ secret }}/bofa/analiz">📈 BİST korelasyonu</a><a class="back" href="/admin/{{ secret }}">← Admin</a></div>
+</div>
+
+<div class="wrap">
+  <div class="card">
+    <div class="filters">
+      <label>Başlangıç <input type="date" id="start"></label>
+      <label>Bitiş <input type="date" id="end"></label>
+      <span class="sep"></span>
+      <button class="chip" data-p="1m">1A</button>
+      <button class="chip" data-p="3m">3A</button>
+      <button class="chip" data-p="6m">6A</button>
+      <button class="chip" data-p="ytd">YBB</button>
+      <button class="chip" data-p="1y">1Y</button>
+      <button class="chip" data-p="all">Tümü</button>
+      <span class="sep"></span>
+      <label class="chk"><input type="checkbox" id="funds" checked> Fon/ETF'leri dahil et (.F)</label>
+    </div>
+    <div class="hint" id="metaHint"></div>
   </div>
 
-  <div class="wrap">
-    <!-- Veri girişi -->
-    <section class="card">
-      <h2>Veri Girişi</h2>
-      <div style="font-size:12.5px;color:var(--muted);margin-bottom:10px">
-        Fintables → Aracı Kurumlar → Bank of America → <b>Aracı Kurum Dağılımı</b> tablosunu seçip kopyalayın,
-        aşağıya yapıştırın. Sıra no, hisse kodu ve sayısal sütunlar otomatik ayrıştırılır.
-      </div>
-      <textarea id="paste" placeholder="1&#9;KCHOL&#9;1,88 mr&#9;8.722.205&#9;215,34&#9;4,61 mr&#9;21.437.471&#9;214,92&#9;-2,73 mr&#9;-12.715.266&#9;..."></textarea>
-      <div class="row">
-        <input type="date" id="date">
-        <button class="btn" id="saveBtn" onclick="save()">Kaydet</button>
-        <span style="flex:1"></span>
-        <select id="dateSel" onchange="load(this.value)"></select>
-        <button class="btn btn-ghost" onclick="delDay()">Seçili günü sil</button>
-      </div>
-      <div class="msg" id="msg"></div>
-    </section>
+  <div class="card">
+    <h2 id="chartTitle">Kümülatif net alım / satım (TL)</h2>
+    <div class="stats">
+      <div class="stat"><div class="lbl">Dönem net</div><div class="val" id="sNet">—</div></div>
+      <div class="stat"><div class="lbl">Günlük ortalama net</div><div class="val" id="sAvg">—</div></div>
+      <div class="stat"><div class="lbl">Net alıcı / satıcı gün</div><div class="val" id="sDays">—</div></div>
+      <div class="stat"><div class="lbl">En yüksek / en düşük kümülatif</div><div class="val" id="sPeak" style="font-size:15px">—</div></div>
+    </div>
+    <div class="filters" style="margin-bottom:10px">
+      <label>Tek hisse için göster <input type="text" id="code" placeholder="örn. THYAO"></label>
+      <button class="chip" id="codeClear">Tümüne dön</button>
+    </div>
+    <div class="chartbox"><canvas id="cumChart"></canvas></div>
+    <div class="hint">Çizgi: seçili aralığın başından itibaren günlük net TL'lerin toplamı (+ net alıcı, − net satıcı). Tablodaki bir hisse koduna tıklayınca grafik o hisseye döner.</div>
+  </div>
 
-    <!-- Özet -->
-    <section class="card">
-      <h2>Özet <span id="dayLabel" style="color:var(--text)"></span></h2>
-      <div class="stats" id="stats"></div>
-      <div class="headline" id="headline"></div>
-    </section>
-
-    <!-- Aldıkları / Sattıkları -->
+  <div class="card">
+    <h2>Seçili dönemde en çok aldığı ve sattığı</h2>
+    <div class="filters" style="margin-bottom:12px">
+      <label>Kaç satır
+        <select id="limit" style="background:#0b1424;border:1px solid var(--border);color:var(--text);padding:8px;border-radius:10px">
+          <option>10</option><option selected>20</option><option>30</option><option>50</option><option>100</option>
+        </select>
+      </label>
+    </div>
     <div class="cols">
-      <section class="card">
-        <h2 style="color:var(--good)">▲ Aldıkları <span id="cntBuy" style="color:var(--muted)"></span></h2>
-        <div id="buyTable"><div class="empty">—</div></div>
-      </section>
-      <section class="card">
-        <h2 style="color:var(--bad)">▼ Sattıkları <span id="cntSell" style="color:var(--muted)"></span></h2>
-        <div id="sellTable"><div class="empty">—</div></div>
-      </section>
+      <div><h2 class="pos">▲ Net aldıkları</h2><div class="tscroll"><table id="tBuy"></table></div></div>
+      <div><h2 class="neg">▼ Net sattıkları</h2><div class="tscroll"><table id="tSell"></table></div></div>
     </div>
   </div>
+</div>
 
 <script>
-const SECRET = "{{ secret }}";
+const SECRET = {{ secret|tojson }};
 const $ = id => document.getElementById(id);
+let chart = null, meta = null, timer = null;
 
-const fmtTL = v => {
-  if (v == null || isNaN(v)) return '—';
-  const a = Math.abs(v), s = v < 0 ? '-' : '+';
-  if (a >= 1e9) return s + (a/1e9).toFixed(2).replace('.',',') + ' mr';
-  if (a >= 1e6) return s + (a/1e6).toFixed(2).replace('.',',') + ' mn';
-  return s + new Intl.NumberFormat('tr-TR',{maximumFractionDigits:0}).format(a);
-};
-// Brüt (yönsüz) tutarlar için — işaret öneki yok
-const fmtAbs = v => {
-  if (v == null || isNaN(v)) return '—';
-  const a = Math.abs(v);
-  if (a >= 1e9) return (a/1e9).toFixed(2).replace('.',',') + ' mr';
-  if (a >= 1e6) return (a/1e6).toFixed(2).replace('.',',') + ' mn';
-  return new Intl.NumberFormat('tr-TR',{maximumFractionDigits:0}).format(a);
-};
-const fmtLot = v => v == null || isNaN(v) ? '—'
-  : new Intl.NumberFormat('tr-TR',{maximumFractionDigits:0}).format(v);
-const fmtPx = v => v == null || isNaN(v) ? '—'
-  : new Intl.NumberFormat('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2}).format(v);
+const nf = new Intl.NumberFormat('tr-TR', {maximumFractionDigits: 0});
+function tl(v, signed) {
+  const a = Math.abs(v), s = v < 0 ? '−' : (signed && v > 0 ? '+' : '');
+  if (a >= 1e9) return s + (a / 1e9).toFixed(2).replace('.', ',') + ' mr';
+  if (a >= 1e6) return s + (a / 1e6).toFixed(1).replace('.', ',') + ' mn';
+  return s + nf.format(a);
+}
+const cls = v => v > 0 ? 'pos' : (v < 0 ? 'neg' : '');
+const iso = d => d.toISOString().slice(0, 10);
 
-function msg(t, cls){ const m=$('msg'); m.textContent=t; m.className='msg '+(cls||''); }
+function setPreset(p) {
+  const last = new Date(meta.last + 'T00:00:00');
+  let s = new Date(last);
+  if (p === '1m') s.setMonth(s.getMonth() - 1);
+  else if (p === '3m') s.setMonth(s.getMonth() - 3);
+  else if (p === '6m') s.setMonth(s.getMonth() - 6);
+  else if (p === '1y') s.setFullYear(s.getFullYear() - 1);
+  else if (p === 'ytd') s = new Date(last.getFullYear(), 0, 1);
+  else s = new Date(meta.first + 'T00:00:00');
+  // toLocale yerine yerel tarih (UTC kayması olmasın)
+  const f = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  $('start').value = s < new Date(meta.first + 'T00:00:00') ? meta.first : f(s);
+  $('end').value = meta.last;
+  document.querySelectorAll('.chip[data-p]').forEach(b => b.classList.toggle('on', b.dataset.p === p));
+  load();
+}
 
-async function save(){
-  const text = $('paste').value.trim();
-  const date = $('date').value;
-  if(!text){ msg('Önce tabloyu yapıştırın.','err'); return; }
-  if(!date){ msg('Tarih seçin.','err'); return; }
-  $('saveBtn').disabled = true;
-  try{
-    const r = await fetch(`/admin/${SECRET}/bofa/save`,{
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({date, text})
-    });
-    const d = await r.json();
-    if(d.ok){
-      let t = `${d.count} satır kaydedildi (${d.date}).`;
-      if(d.skipped_count) t += ` ${d.skipped_count} satır okunamadı/atlandı.`;
-      msg(t,'ok');
-      $('paste').value = '';
-      await refresh(d.date);
-    } else {
-      msg(d.error || 'Kaydedilemedi.','err');
+function renderTable(el, rows, sign) {
+  if (!rows.length) { el.innerHTML = '<tr><td class="empty">Bu dönemde kayıt yok</td></tr>'; return; }
+  el.innerHTML = '<thead><tr><th>#</th><th>Hisse</th><th class="r">Net TL</th><th class="r">Net lot</th>' +
+    '<th class="r">Ort. maliyet</th><th class="r">Alış TL</th><th class="r">Satış TL</th><th class="r">Gün</th></tr></thead><tbody>' +
+    rows.map((r, i) => `<tr><td>${i + 1}</td><td class="tk" data-code="${r.code}">${r.code}</td>` +
+      `<td class="r ${cls(r.net)}">${tl(r.net, true)}</td><td class="r">${nf.format(r.net_lot)}</td>` +
+      `<td class="r">${r.avg_cost == null ? '—' : r.avg_cost.toFixed(2).replace('.', ',')}</td>` +
+      `<td class="r">${tl(r.buy)}</td><td class="r">${tl(r.sell)}</td><td class="r">${r.days}</td></tr>`).join('') + '</tbody>';
+}
+
+function renderChart(series, code) {
+  const labels = series.map(x => x.date), data = series.map(x => x.cum);
+  const up = data.length && data[data.length - 1] >= 0;
+  const col = up ? '#22c55e' : '#ef4444';
+  if (chart) chart.destroy();
+  chart = new Chart($('cumChart'), {
+    type: 'line',
+    data: { labels, datasets: [{
+      label: code ? code + ' kümülatif net' : 'Kümülatif net', data,
+      borderColor: col, backgroundColor: col + '22', fill: 'origin',
+      borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, tension: .15
+    }]},
+    options: {
+      responsive: true, maintainAspectRatio: false, interaction: {mode: 'index', intersect: false},
+      plugins: {
+        legend: {display: false},
+        tooltip: { callbacks: {
+          label: c => 'Kümülatif: ' + tl(c.parsed.y, true) + ' TL',
+          afterLabel: c => 'Günlük: ' + tl(series[c.dataIndex].net, true) + ' TL'
+        }}
+      },
+      scales: {
+        x: { ticks: {color: '#8ea3c4', maxTicksLimit: 10, maxRotation: 0}, grid: {color: '#16233a'} },
+        y: { ticks: {color: '#8ea3c4', callback: v => tl(v)}, grid: {color: '#16233a'} }
+      }
     }
-  }catch(e){ msg('Bağlantı hatası.','err'); }
-  finally{ $('saveBtn').disabled = false; }
-}
-
-async function delDay(){
-  const date = $('dateSel').value;
-  if(!date) return;
-  if(!confirm(`${date} tarihli kayıt silinsin mi?`)) return;
-  await fetch(`/admin/${SECRET}/bofa/delete`,{
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({date})
   });
-  msg(`${date} silindi.`,'ok');
-  await refresh();
 }
 
-function rowsTable(rows, positive){
-  if(!rows.length) return '<div class="empty">Bu yönde işlem yok.</div>';
-  const cls = positive ? 'pos' : 'neg';
-  return `<table><thead><tr>
-      <th>Hisse</th><th class="r">Net TL</th><th class="r">Net Lot</th><th class="r">Ort. Maliyet</th>
-    </tr></thead><tbody>` +
-    rows.map(r => `<tr>
-      <td class="tk">${r.ticker}</td>
-      <td class="r ${cls}">${fmtTL(r.net_tl)}</td>
-      <td class="r">${fmtLot(r.net_lot)}</td>
-      <td class="r">${fmtPx(r.net_maliyet)}</td>
-    </tr>`).join('') + '</tbody></table>';
+async function load() {
+  const code = $('code').value.trim().toUpperCase();
+  const q = new URLSearchParams({
+    start: $('start').value, end: $('end').value, limit: $('limit').value,
+    funds: $('funds').checked ? '1' : '0'
+  });
+  if (code) q.set('code', code);
+  const r = await fetch(`/admin/${SECRET}/bofa/data?` + q);
+  if (!r.ok) { $('metaHint').textContent = 'Veri alınamadı (' + r.status + ')'; return; }
+  const d = await r.json();
+  meta = d.meta;
+  $('metaHint').textContent = meta.days
+    ? `Veri: ${meta.first} → ${meta.last} · ${meta.days} işlem günü` : 'Henüz veri yok.';
+  $('chartTitle').textContent = code ? `${code} — kümülatif net alım / satım (TL)` : 'Kümülatif net alım / satım (TL)';
+
+  const s = d.cum.series;
+  renderChart(s, code);
+  const total = d.cum.total;
+  $('sNet').textContent = tl(total, true) + ' TL';
+  $('sNet').className = 'val ' + cls(total);
+  $('sAvg').textContent = s.length ? tl(total / s.length, true) + ' TL' : '—';
+  const pos = s.filter(x => x.net > 0).length, neg = s.filter(x => x.net < 0).length;
+  $('sDays').innerHTML = `<span class="pos">${pos}</span> / <span class="neg">${neg}</span>`;
+  if (s.length) {
+    const cs = s.map(x => x.cum);
+    $('sPeak').textContent = `${tl(Math.max(...cs), true)} / ${tl(Math.min(...cs), true)}`;
+  } else $('sPeak').textContent = '—';
+
+  renderTable($('tBuy'), d.top.bought);
+  renderTable($('tSell'), d.top.sold);
 }
 
-function render(day){
-  const s = day.summary || {};
-  $('dayLabel').textContent = day.date ? '· ' + day.date : '';
+function debounced() { clearTimeout(timer); timer = setTimeout(load, 250); }
 
-  if(!day.rows || !day.rows.length){
-    $('stats').innerHTML = '<div class="empty">Kayıt yok — yukarıdan tablo yapıştırın.</div>';
-    $('headline').textContent = '';
-    $('buyTable').innerHTML = '<div class="empty">—</div>';
-    $('sellTable').innerHTML = '<div class="empty">—</div>';
-    $('cntBuy').textContent = ''; $('cntSell').textContent = '';
-    return;
-  }
+(async () => {
+  const r = await fetch(`/admin/${SECRET}/bofa/data?limit=1`);
+  meta = (await r.json()).meta;
+  if (!meta.days) { $('metaHint').textContent = 'Henüz veri yok.'; return; }
+  setPreset('all');
+})();
 
-  const net = s.net_total_tl || 0;
-  const netCls = net >= 0 ? 'pos' : 'neg';
-  $('stats').innerHTML = `
-    <div class="stat"><div class="lbl">Net Pozisyon</div><div class="val ${netCls}">${fmtTL(net)}</div></div>
-    <div class="stat"><div class="lbl">Net Alım Toplamı</div><div class="val pos">${fmtTL(s.buy_total_tl)}</div></div>
-    <div class="stat"><div class="lbl">Net Satım Toplamı</div><div class="val neg">${fmtTL(s.sell_total_tl)}</div></div>
-    <div class="stat"><div class="lbl">İşlem Gören Hisse</div><div class="val">${s.stock_count ?? '—'}</div></div>
-    <div class="stat"><div class="lbl">Brüt Alış</div><div class="val">${fmtAbs(s.gross_buy_tl)}</div></div>
-    <div class="stat"><div class="lbl">Brüt Satış</div><div class="val">${fmtAbs(s.gross_sell_tl)}</div></div>`;
-
-  $('headline').innerHTML = net >= 0
-    ? `BofA bu gün <b class="pos">net ALICI</b> — nette <b class="pos">${fmtTL(net)}</b> aldı.
-       ${s.bought_count} hissede alım, ${s.sold_count} hissede satım.`
-    : `BofA bu gün <b class="neg">net SATICI</b> — nette <b class="neg">${fmtTL(net)}</b> sattı.
-       ${s.bought_count} hissede alım, ${s.sold_count} hissede satım.`;
-
-  $('cntBuy').textContent  = `(${(s.bought||[]).length})`;
-  $('cntSell').textContent = `(${(s.sold||[]).length})`;
-  $('buyTable').innerHTML  = rowsTable(s.bought || [], true);
-  $('sellTable').innerHTML = rowsTable(s.sold || [], false);
-}
-
-async function load(date){
-  const url = `/admin/${SECRET}/bofa/data` + (date ? `?date=${date}` : '');
-  const d = await (await fetch(url)).json();
-  const sel = $('dateSel');
-  sel.innerHTML = (d.dates||[]).map(x => `<option value="${x}">${x}</option>`).join('')
-                  || '<option value="">kayıt yok</option>';
-  if(d.day && d.day.date) sel.value = d.day.date;
-  render(d.day || {});
-}
-const refresh = load;
-
-$('date').value = new Date().toISOString().slice(0,10);
-load();
+['start', 'end'].forEach(id => $(id).addEventListener('change', () => {
+  document.querySelectorAll('.chip[data-p]').forEach(b => b.classList.remove('on')); debounced();
+}));
+['funds', 'limit'].forEach(id => $(id).addEventListener('change', load));
+$('code').addEventListener('input', debounced);
+$('codeClear').addEventListener('click', () => { $('code').value = ''; load(); });
+document.querySelectorAll('.chip[data-p]').forEach(b => b.addEventListener('click', () => setPreset(b.dataset.p)));
+document.addEventListener('click', e => {
+  const t = e.target.closest('td.tk');
+  if (t) { $('code').value = t.dataset.code; window.scrollTo({top: 0, behavior: 'smooth'}); load(); }
+});
 </script>
 </body>
 </html>

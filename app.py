@@ -1065,46 +1065,87 @@ def admin_portfolio_page(secret):
 
 @app.route('/admin/<secret>/bofa')
 def admin_bofa_page(secret):
-    """BofA aracı kurum dağılımı — yalnızca admin. Veri elle yapıştırılır."""
     if secret != ADMIN_SECRET:
-        return redirect(url_for('login'))
+        return 'Yetkisiz', 403
     return render_template('admin_bofa.html', secret=secret)
+
+
+def _bofa_data_payload():
+    """Kümülatif net seri + en çok aldığı/sattığı tablosu (bofa_db.py, SQLite)."""
+    import bofa_db
+    m = bofa_db.meta()
+    if not m['days']:
+        return {'meta': m, 'cum': {'series': [], 'total': 0}, 'top': {'bought': [], 'sold': []}}
+    start = request.args.get('start') or m['first']
+    end = request.args.get('end') or m['last']
+    funds = request.args.get('funds', '1') != '0'
+    code = request.args.get('code') or None
+    try:
+        limit = max(1, min(100, int(request.args.get('limit', 20))))
+    except ValueError:
+        limit = 20
+    return {
+        'meta': m, 'start': start, 'end': end,
+        'cum': bofa_db.cumulative(start, end, funds, code),
+        'top': bofa_db.top(start, end, funds, limit),
+    }
 
 
 @app.route('/admin/<secret>/bofa/data')
 def admin_bofa_data(secret):
     if secret != ADMIN_SECRET:
-        return jsonify({'error': 'forbidden'}), 403
-    import bofa
-    dates = bofa.list_dates()
-    date = request.args.get('date') or (dates[0] if dates else None)
-    day = bofa.get_day(date) if date else {'rows': [], 'summary': {}, 'updated_at': None}
-    return jsonify({'dates': dates, 'day': day})
+        return jsonify({'error': 'Yetkisiz'}), 403
+    return jsonify(_bofa_data_payload())
 
 
-@app.route('/admin/<secret>/bofa/save', methods=['POST'])
-def admin_bofa_save(secret):
+# ── Üye sayfası: BOFA Takip (giriş gerekli — _require_login public olmayan yolları korur) ──
+@app.route('/bofa')
+def bofa_page():
+    return render_template('bofa_site.html', api_base='/api/bofa')
+
+
+@app.route('/api/bofa/data')
+def api_bofa_data():
+    return jsonify(_bofa_data_payload())
+
+
+@app.route('/api/bofa/analiz/trend')
+def api_bofa_trend():
+    import bofa_analysis
+    return jsonify(bofa_analysis.trend(request.args.get('funds', '0') == '1'))
+
+
+@app.route('/admin/<secret>/bofa/site')
+def admin_bofa_site_preview(secret):
+    """Üyelere açılacak BofA sayfasının önizlemesi (yayınlanmadan, admin anahtarıyla)."""
     if secret != ADMIN_SECRET:
-        return jsonify({'error': 'forbidden'}), 403
-    import bofa
-    d = request.get_json(silent=True) or {}
-    parsed = bofa.parse_table(d.get('text', ''))
-    if not parsed['rows']:
-        return jsonify({'ok': False, 'error': 'Hiçbir satır okunamadı. Tabloyu tümüyle kopyaladığınızdan emin olun.',
-                        'skipped': parsed['skipped'][:10]}), 400
-    res = bofa.save_day(d.get('date', ''), parsed['rows'])
-    res['skipped'] = parsed['skipped'][:10]
-    res['skipped_count'] = len(parsed['skipped'])
-    return (jsonify(res), 200) if res.get('ok') else (jsonify(res), 400)
+        return 'Yetkisiz', 403
+    return render_template('bofa_site.html', api_base=f'/admin/{secret}/bofa')
 
 
-@app.route('/admin/<secret>/bofa/delete', methods=['POST'])
-def admin_bofa_delete(secret):
+@app.route('/admin/<secret>/bofa/analiz')
+def admin_bofa_analiz_page(secret):
     if secret != ADMIN_SECRET:
-        return jsonify({'error': 'forbidden'}), 403
-    import bofa
-    d = request.get_json(silent=True) or {}
-    return jsonify(bofa.delete_day(d.get('date', '')))
+        return 'Yetkisiz', 403
+    return render_template('admin_bofa_analiz.html', secret=secret)
+
+
+@app.route('/admin/<secret>/bofa/analiz/data')
+def admin_bofa_analiz_data(secret):
+    """BofA net akışı ↔ BİST 100 getirisi korelasyon analizi (bofa_analysis.py)."""
+    if secret != ADMIN_SECRET:
+        return jsonify({'error': 'Yetkisiz'}), 403
+    import bofa_analysis
+    return jsonify(bofa_analysis.compute(request.args.get('funds', '0') == '1'))
+
+
+@app.route('/admin/<secret>/bofa/analiz/trend')
+def admin_bofa_trend_data(secret):
+    """BofA rejim (1 hafta / 2 hafta / 1 ay net alım-satım trendi) analizi."""
+    if secret != ADMIN_SECRET:
+        return jsonify({'error': 'Yetkisiz'}), 403
+    import bofa_analysis
+    return jsonify(bofa_analysis.trend(request.args.get('funds', '0') == '1'))
 
 
 @app.route('/admin/<secret>/market-brief/<report_id>/delete', methods=['POST'])

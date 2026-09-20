@@ -29,3 +29,9 @@ data/usa_cache.db-wal
 
 # BofA AKD - BIST lisansli veri, repo PUBLIC oldugu icin git e girmemeli
 data/bofa_akd.json
+
+# BofA AKD SQLite deposu (BIST lisanslı veri, repo PUBLIC)
+data/bofa_akd.db
+data/bofa_akd.db-*
+data/bofa_akd_*.json
+data/xu100_daily.json

@@ -130,6 +130,12 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/><circle cx="19" cy="9" r="2"/></svg>
         TEFAS Fonlarına Para Girişi
       </a>
+      <div class="nav-section-items">
+        <a href="#" class="nav-item" data-page="bofa">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V10M9.5 21V10M14.5 21V10M19 21V10"/><path d="M12 3 3 8h18z"/></svg>
+          BOFA Takip
+        </a>
+      </div>
     </div>
 
     <!-- ── Ayırıcı ── -->
@@ -1422,6 +1428,24 @@
     <iframe
       src="/tefas/bist"
       id="bist-iframe"
+      style="width:100%;height:calc(100vh - 56px);border:none;display:block;"
+      loading="lazy"
+    ></iframe>
+  </div>
+
+  <!-- ── BOFA TAKİP TOPBAR ── -->
+  <header class="topbar hidden" id="topbar-bofa">
+    <div class="topbar-title">
+      <h1>BOFA Takip</h1>
+      <span class="topbar-sub">Bank of America · Borsa İstanbul Net Alım/Satım · Kümülatif Akış · Trend Analizi</span>
+    </div>
+  </header>
+
+  <!-- ── BOFA TAKİP iframe ── -->
+  <div class="page-content hidden" id="page-bofa" style="padding:0;overflow:hidden;">
+    <iframe
+      src="/bofa"
+      id="bofa-iframe"
       style="width:100%;height:calc(100vh - 56px);border:none;display:block;"
       loading="lazy"
     ></iframe>
