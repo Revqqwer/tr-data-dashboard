@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<script>
+(function(){try{var t=localStorage.getItem('theme');
+ if(t!=='dark'&&t!=='light'){t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}
+ document.documentElement.setAttribute('data-theme',t);}catch(e){}
+ function ch(t){var cur=document.documentElement.getAttribute('data-theme')||'light';
+  if((t==='dark'||t==='light')&&t!==cur){try{localStorage.setItem('theme',t)}catch(e){}location.reload();}}
+ window.addEventListener('message',function(e){if(e&&e.data&&e.data.type==='set-theme')ch(e.data.theme);});
+ window.addEventListener('storage',function(e){if(e.key==='theme'&&e.newValue)ch(e.newValue);});
+})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>BofA Pozisyonu</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+  :root{
+    --bg:#f5f6f8; --surface:#ffffff; --surface2:#f0f2f6; --border:#e0e3e8;
+    --text:#1a1d23; --muted:#6b7280; --accent:#2563eb; --green:#16a34a; --red:#dc2626;
+    --grid:#e8ebf0; --shadeG:rgba(22,163,74,.13); --shadeR:rgba(220,38,38,.12); --gold:#d97706;
+  }
+  :root[data-theme="dark"]{
+    --bg:#0f1420; --surface:#161d2e; --surface2:#101726; --border:#26314a;
+    --text:#e8edf7; --muted:#8b9ab8; --accent:#5aa9ff; --green:#22c55e; --red:#ef4444;
+    --grid:#1e2940; --shadeG:rgba(34,197,94,.16); --shadeR:rgba(239,68,68,.16); --gold:#f0b429;
+  }
+  body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+  .wrap{max-width:1180px;margin:0 auto;padding:18px 16px 56px}
+  header{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+  h1{font-size:20px;font-weight:800}
+  .sub{font-size:13px;color:var(--muted);margin-top:4px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:16px;min-width:0}
+  h2{font-size:12px;text-transform:uppercase;letter-spacing:1.1px;color:var(--muted);margin-bottom:12px;font-weight:700}
+  h3{font-size:13px;font-weight:700;margin-bottom:8px}
+  .pos{color:var(--green)} .neg{color:var(--red)} .dim{color:var(--muted)}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .chip{background:none;border:1px solid var(--border);color:var(--muted);border-radius:999px;padding:6px 13px;font-size:12.5px;cursor:pointer}
+  .chip:hover{color:var(--text)} .chip.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+  .chk{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer}
+  .hero{display:grid;grid-template-columns:minmax(0,1.3fr) repeat(3,minmax(0,1fr));gap:12px}
+  .stat{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:13px 15px;min-width:0}
+  .stat .lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+  .stat .val{font-size:22px;font-weight:800;margin-top:5px;font-variant-numeric:tabular-nums}
+  .stat .note{font-size:12px;color:var(--muted);margin-top:5px;line-height:1.45}
+  .stat.big{border-left:4px solid var(--muted)} .stat.big.buy{border-left-color:var(--green)} .stat.big.sell{border-left-color:var(--red)}
+  .stat.big .val{font-size:24px}
+  .chartbox{position:relative;height:340px}
+  .cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;color:var(--muted);font-weight:600;padding:7px 8px;border-bottom:1px solid var(--border);font-size:11px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
+  td{padding:7px 8px;border-bottom:1px solid var(--grid);font-variant-numeric:tabular-nums;white-space:nowrap}
+  th.r,td.r{text-align:right} td.tk{font-weight:700;cursor:pointer} td.tk:hover{color:var(--accent);text-decoration:underline}
+  tbody tr:hover{background:var(--surface2)}
+  .tscroll{overflow-x:auto}
+  .hint{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.55}
+  .tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--border);color:var(--muted)}
+  .tag.ok{color:var(--green);border-color:var(--green)} .tag.warn{color:var(--gold);border-color:var(--gold)}
+  .legend{display:flex;gap:14px;font-size:12px;color:var(--muted);margin-top:8px}
+  .sw{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+  .disc{font-size:11.5px;color:var(--muted);line-height:1.55;margin-top:6px}
+  @media (max-width:860px){
+    .hero{grid-template-columns:repeat(2,minmax(0,1fr))} .stat.big{grid-column:1/-1}
+    .cols{grid-template-columns:minmax(0,1fr)} .chartbox{height:280px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="sub" id="asof" style="margin-top:0">Bank of America'nın günlük net alım/satımı (aracı kurum dağılımı)</div>
+    </div>
+    <label class="chk"><input type="checkbox" id="funds" checked> Fon/ETF'leri dahil et</label>
+  </header>
+
+  <!-- Kümülatif net -->
+  <div class="card">
+    <h2>Kümülatif net alım / satım (TL)</h2>
+    <div class="row" style="margin-bottom:10px" id="cumPresets">
+      <button class="chip" data-p="3m">3A</button><button class="chip" data-p="6m">6A</button>
+      <button class="chip" data-p="ytd">YBB</button><button class="chip" data-p="1y">1Y</button>
+      <button class="chip on" data-p="all">Tümü</button>
+      <span class="dim" style="font-size:12px;margin-left:6px" id="cumRange"></span>
+    </div>
+    <div class="row" style="margin-bottom:10px">
+      <label class="dim" style="font-size:12px">Tek hisse:
+        <input id="code" type="text" placeholder="THYAO" maxlength="10"
+          style="width:96px;margin-left:4px;padding:6px 9px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);text-transform:uppercase"></label>
+      <button class="chip" id="codeClear">Tümüne dön</button>
+    </div>
+    <div class="chartbox"><canvas id="cumChart"></canvas></div>
+    <div class="hint">Seçili aralığın başından itibaren günlük net TL'lerin toplamı (+ net alıcı, − net satıcı).</div>
+  </div>
+
+  <!-- En çok alınan / satılan -->
+  <div class="card">
+    <h2>Seçili dönemde en çok aldığı ve sattığı</h2>
+    <div class="cols">
+      <div><h3 class="pos">▲ Net aldıkları</h3><div class="tscroll"><table id="tBuy"></table></div></div>
+      <div><h3 class="neg">▼ Net sattıkları</h3><div class="tscroll"><table id="tSell"></table></div></div>
+    </div>
+    <div class="hint">Dönem, yukarıdaki kümülatif grafiğin aralığıyla aynıdır. Bir hisse koduna tıklayınca grafik o hisseye döner.</div>
+  </div>
+
+  <!-- 1 aylık trend analizi (sayfanın en altında) -->
+  <div class="card">
+    <h2>Trend analizi — BofA nette alımda mı, satımda mı? (1 ay)</h2>
+    <div class="hero" id="hero"></div>
+    <div class="chartbox" style="margin-top:14px;height:320px"><canvas id="trendChart"></canvas></div>
+    <div class="legend"><span><i class="sw" style="background:var(--shadeG);border:1px solid var(--green)"></i>Alım yönlü trend</span>
+      <span><i class="sw" style="background:var(--shadeR);border:1px solid var(--red)"></i>Satım yönlü trend</span>
+      <span><i class="sw" style="background:var(--accent)"></i>BİST 100</span></div>
+    <div class="hint">Kural: son <b>21 işlem gününün</b> net akış toplamı pozitifse alım yönlü, negatifse satım yönlü trend.</div>
+
+    <h3 style="margin-top:18px" id="fwdTitle"></h3>
+    <div class="tscroll"><table id="fwdTbl"></table></div>
+    <div class="hint" id="fwdNote"></div>
+  </div>
+
+  <div class="disc">Veriler Fintables aracı kurum dağılımından alınır; yatırım tavsiyesi değildir. Trend, geçmişte endeksin nasıl hareket ettiğini
+    tarif eder; gelecekteki getiriyi öngörmediği aşağıdaki tabloda görülebilir.</div>
+</div>
+
+<script>
+const API = {{ api_base|tojson }};
+const $ = id => document.getElementById(id);
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const charts = {};
+let META = null, range = {start: null, end: null}, preset = 'all', TR = null;
+
+const nf = new Intl.NumberFormat('tr-TR', {maximumFractionDigits: 0});
+function tl(v, signed) {
+  const a = Math.abs(v), s = v < 0 ? '−' : (signed && v > 0 ? '+' : '');
+  if (a >= 1e9) return s + (a / 1e9).toFixed(2).replace('.', ',') + ' mr';
+  if (a >= 1e6) return s + (a / 1e6).toFixed(1).replace('.', ',') + ' mn';
+  return s + nf.format(a);
+}
+const cls = v => v > 0 ? 'pos' : (v < 0 ? 'neg' : '');
+const pc = (v, d = 2) => v == null ? '—' : (v >= 0 ? '+' : '−') + Math.abs(v * 100).toFixed(d).replace('.', ',') + '%';
+const pfmt = p => p == null ? '—' : (p < 0.001 ? '<0,001' : p.toFixed(3).replace('.', ','));
+const sig = p => p == null ? '<span class="tag">—</span>' : p < 0.01 ? '<span class="tag ok">anlamlı</span>' : p < 0.05 ? '<span class="tag warn">sınırda</span>' : '<span class="tag">anlamsız</span>';
+function mk(id, cfg) { if (charts[id]) charts[id].destroy(); charts[id] = new Chart($(id), cfg); }
+const axis = () => ({ticks: {color: css('--muted')}, grid: {color: css('--grid')}});
+const lf = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+// ── 1 aylık trend ───────────────────────────────────────────────────────────
+const shade = {
+  id: 'regimeShade',
+  beforeDatasetsDraw(chart, _a, o) {
+    if (!o.eps) return;
+    const {ctx, chartArea, scales: {x}} = chart, idx = Object.fromEntries(chart.data.labels.map((d, i) => [d, i]));
+    const half = (x.getPixelForValue(1) - x.getPixelForValue(0)) / 2;
+    ctx.save();
+    for (const e of o.eps) {
+      if (!e.r || idx[e.s] == null) continue;
+      const x0 = x.getPixelForValue(idx[e.s]), x1 = x.getPixelForValue(idx[e.e]);
+      ctx.fillStyle = e.r > 0 ? css('--shadeG') : css('--shadeR');
+      ctx.fillRect(x0 - half, chartArea.top, (x1 - x0) + 2 * half, chartArea.bottom - chartArea.top);
+    }
+    ctx.restore();
+  }
+};
+
+async function loadTrend() {
+  const r = await fetch(`${API}/analiz/trend?funds=` + ($('funds').checked ? '1' : '0'));
+  TR = await r.json();
+  if (TR.empty) return;
+  const w = TR.windows['1a'], c = w.current, buy = c.regime > 0;
+  const gap = (a, b) => a - b;
+  $('hero').innerHTML = `
+    <div class="stat big ${buy ? 'buy' : 'sell'}"><div class="lbl">Şu an · ${c.date}</div>
+      <div class="val ${buy ? 'pos' : 'neg'}">${buy ? '▲ Alım yönlü trend' : '▼ Satım yönlü trend'}</div>
+      <div class="note">Son 21 işlem gününde net <b class="${cls(c.window_net)}">${tl(c.window_net, true)} TL</b>.
+        Bu trend <b>${c.streak}</b> işlem gündür sürüyor (${c.since} tarihinden beri).</div></div>
+    <div class="stat"><div class="lbl">Alım yönlü dönemlerde endeks</div><div class="val pos">${pc(w.past.buy)}</div>
+      <div class="note">aynı 21 günde ortalama · %${(w.past.buy_hit * 100).toFixed(0)} yükselmiş</div></div>
+    <div class="stat"><div class="lbl">Satım yönlü dönemlerde endeks</div><div class="val neg">${pc(w.past.sell)}</div>
+      <div class="note">aynı 21 günde ortalama · %${(w.past.sell_hit * 100).toFixed(0)} düşmüş</div></div>
+    <div class="stat"><div class="lbl">Ortalama trend süresi</div><div class="val">${w.avg_len_buy.toFixed(0)} / ${w.avg_len_sell.toFixed(0)} <span class="dim" style="font-size:13px">gün</span></div>
+      <div class="note">alım / satım yönlü</div></div>`;
+
+  mk('trendChart', {
+    type: 'line',
+    data: {labels: TR.dates, datasets: [{data: TR.price, borderColor: css('--accent'), borderWidth: 1.8, pointRadius: 0, tension: .1}]},
+    plugins: [shade],
+    options: {responsive: true, maintainAspectRatio: false, interaction: {mode: 'index', intersect: false},
+      plugins: {legend: {display: false}, regimeShade: {eps: w.episodes},
+        tooltip: {callbacks: {label: x => 'BİST 100: ' + nf.format(x.parsed.y),
+          afterLabel: x => { const r = w.regime[x.dataIndex]; return r == null ? '' :
+            (r > 0 ? 'Alım yönlü' : r < 0 ? 'Satım yönlü' : 'Nötr') + ' · 21 gün net ' + tl(w.wsum[x.dataIndex], true) + ' TL'; }}}},
+      scales: {x: {ticks: {color: css('--muted'), maxTicksLimit: 9, maxRotation: 0}, grid: {color: css('--grid')}}, y: axis()}}
+  });
+
+  $('fwdTitle').textContent = '1 aylık trend sonrası BİST 100 ne yapmış?';
+  const body = w.forward.map(f => `<tr><td>Sonraki ${f.h} işlem günü</td>
+    <td class="r pos">${pc(f.buy_mean)}</td><td class="r">%${(f.buy_hit * 100).toFixed(0)}</td>
+    <td class="r neg">${pc(f.sell_mean)}</td><td class="r">%${(f.sell_hit * 100).toFixed(0)}</td>
+    <td class="r ${cls(f.diff)}">${pc(f.diff)}</td><td class="r">${pfmt(f.p_nonoverlap)}</td><td>${sig(f.p_nonoverlap)}</td></tr>`).join('');
+  $('fwdTbl').innerHTML = `<thead><tr><th>Ufuk</th><th class="r">Alım yönlüden sonra</th><th class="r">↑ isabet</th>
+    <th class="r">Satım yönlüden sonra</th><th class="r">↑ isabet</th><th class="r">Fark</th><th class="r">p*</th><th>Sonuç</th></tr></thead><tbody>${body}</tbody>`;
+  $('fwdNote').innerHTML = `Ortalama getiri (endeksin ilgili sürede yükseldiği günlerin oranı yanında). Alım yönlü trendden sonra endeks biraz daha iyi görünse de fark
+    istatistiksel olarak anlamlı değil; satım yönlü dönemlerden sonra da endeks yükselmiş. <b>*p:</b> örtüşmesiz örneklemle Welch testi.`;
+}
+
+// ── Kümülatif + tablo ───────────────────────────────────────────────────────
+function setRange(p) {
+  preset = p;
+  const last = new Date(META.last + 'T00:00:00');
+  let s = new Date(last);
+  if (p === '3m') s.setMonth(s.getMonth() - 3);
+  else if (p === '6m') s.setMonth(s.getMonth() - 6);
+  else if (p === '1y') s.setFullYear(s.getFullYear() - 1);
+  else if (p === 'ytd') s = new Date(last.getFullYear(), 0, 1);
+  else s = new Date(META.first + 'T00:00:00');
+  range.start = lf(s) < META.first ? META.first : lf(s);
+  range.end = META.last;
+  document.querySelectorAll('#cumPresets .chip').forEach(b => b.classList.toggle('on', b.dataset.p === p));
+  $('cumRange').textContent = range.start + ' → ' + range.end;
+  loadCum();
+}
+
+function tbl(el, rows) {
+  if (!rows.length) { el.innerHTML = '<tr><td class="dim">Kayıt yok</td></tr>'; return; }
+  el.innerHTML = '<thead><tr><th>#</th><th>Hisse</th><th class="r">Net TL</th><th class="r">Net lot</th><th class="r">Ort. maliyet</th></tr></thead><tbody>' +
+    rows.map((r, i) => `<tr><td class="dim">${i + 1}</td><td class="tk" data-code="${r.code}">${r.code}</td>
+      <td class="r ${cls(r.net)}">${tl(r.net, true)}</td><td class="r">${nf.format(r.net_lot)}</td>
+      <td class="r">${r.avg_cost == null ? '—' : r.avg_cost.toFixed(2).replace('.', ',')}</td></tr>`).join('') + '</tbody>';
+}
+
+async function loadCum() {
+  const code = $('code').value.trim().toUpperCase();
+  const q = new URLSearchParams({start: range.start, end: range.end, limit: 10, funds: $('funds').checked ? '1' : '0'});
+  if (code) q.set('code', code);
+  const d = await (await fetch(`${API}/data?` + q)).json();
+  const s = d.cum.series, up = s.length && s[s.length - 1].cum >= 0, col = up ? css('--green') : css('--red');
+  mk('cumChart', {
+    type: 'line',
+    data: {labels: s.map(x => x.date), datasets: [{data: s.map(x => x.cum), borderColor: col, backgroundColor: col + '22', fill: 'origin', borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, tension: .15}]},
+    options: {responsive: true, maintainAspectRatio: false, interaction: {mode: 'index', intersect: false},
+      plugins: {legend: {display: false}, tooltip: {callbacks: {
+        label: c => (code ? code + ' ' : '') + 'kümülatif: ' + tl(c.parsed.y, true) + ' TL',
+        afterLabel: c => 'Günlük: ' + tl(s[c.dataIndex].net, true) + ' TL'}}},
+      scales: {x: {ticks: {color: css('--muted'), maxTicksLimit: 9, maxRotation: 0}, grid: {color: css('--grid')}},
+               y: {ticks: {color: css('--muted'), callback: v => tl(v)}, grid: {color: css('--grid')}}}}
+  });
+  tbl($('tBuy'), d.top.bought); tbl($('tSell'), d.top.sold);
+}
+
+(async () => {
+  const d = await (await fetch(`${API}/data?limit=1`)).json();
+  META = d.meta;
+  if (!META.days) { $('asof').textContent = 'Henüz veri yok.'; return; }
+  $('asof').textContent = `Bank of America'nın günlük net alım/satımı · son veri: ${META.last} · ${META.days} işlem günü`;
+  setRange('all'); loadTrend();
+})();
+
+document.querySelectorAll('#cumPresets .chip').forEach(b => b.addEventListener('click', () => setRange(b.dataset.p)));
+$('funds').addEventListener('change', () => { loadCum(); loadTrend(); });
+let t; $('code').addEventListener('input', () => { clearTimeout(t); t = setTimeout(loadCum, 250); });
+$('codeClear').addEventListener('click', () => { $('code').value = ''; loadCum(); });
+document.addEventListener('click', e => { const c = e.target.closest('td.tk'); if (c) { $('code').value = c.dataset.code; loadCum(); } });
+</script>
+</body>
+</html>

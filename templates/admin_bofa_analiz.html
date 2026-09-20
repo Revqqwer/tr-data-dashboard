@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>BofA × BİST 100 Korelasyon — Admin</title>
+<link rel="icon" href="/static/icons/icon-192.png">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#0a1120; --panel:#101c31; --panel2:#0d1728; --border:#22324b;
+    --text:#eaf1fd; --muted:#8ea3c4; --accent:#f0b429; --good:#22c55e; --bad:#ef4444; --line:#5aa9ff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    background:radial-gradient(1200px 700px at 50% -8%,#182a49 0%,var(--bg) 58%);color:var(--text)}
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px;
+    border-bottom:1px solid var(--border);position:sticky;top:0;background:rgba(10,17,32,.86);backdrop-filter:blur(8px);z-index:10}
+  .brand{font-weight:800}
+  .back{font-size:13px;color:var(--muted);text-decoration:none;padding:8px 14px;border:1px solid var(--border);border-radius:10px}
+  .back:hover{color:var(--text)}
+  .wrap{max-width:1280px;margin:0 auto;padding:22px 22px 60px}
+  .card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--border);
+    border-radius:16px;padding:18px 20px;margin-bottom:18px;min-width:0}
+  h2{margin:0 0 12px;font-size:12px;text-transform:uppercase;letter-spacing:1.3px;color:var(--muted)}
+  p.lead{margin:0 0 12px;font-size:14px;line-height:1.6;color:#c9d6ee}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,520px),1fr));gap:18px}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+  .stat{background:#0b1424;border:1px solid var(--border);border-radius:12px;padding:13px 15px}
+  .stat .lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px}
+  .stat .val{font-size:26px;font-weight:800;font-family:ui-monospace,Menlo,Consolas,monospace;margin-top:5px}
+  .stat .sub{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.4}
+  .pos{color:var(--good)} .neg{color:var(--bad)} .dim{color:var(--muted)}
+  .chartbox{position:relative;height:340px}
+  .hint{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.5}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;color:var(--muted);font-weight:600;padding:8px;border-bottom:1px solid var(--border);
+    font-size:11px;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
+  td{padding:8px;border-bottom:1px solid #16233a;font-family:ui-monospace,Menlo,Consolas,monospace;white-space:nowrap}
+  th.r,td.r{text-align:right}
+  .tscroll{overflow-x:auto}
+  .tag{display:inline-block;font-family:inherit;font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--border)}
+  .tag.ok{color:var(--good);border-color:#1f6b3d} .tag.no{color:var(--muted)} .tag.warn{color:var(--accent);border-color:#7a5a12}
+  .chip{background:none;border:1px solid var(--border);color:var(--muted);border-radius:999px;padding:8px 16px;font-size:13px;cursor:pointer}
+  .chip:hover{color:var(--text)} .chip.on{background:var(--accent);border-color:var(--accent);color:#211603;font-weight:700}
+  .chk{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer}
+  .box{border-left:3px solid var(--accent);background:#0b1424;padding:12px 16px;border-radius:0 12px 12px 0;
+    font-size:14px;line-height:1.65;color:#c9d6ee}
+  .box b{color:var(--text)}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="brand">📈 BofA net akışı × BİST 100 getirisi</div>
+  <div style="display:flex;gap:8px">
+    <a class="back" href="/admin/{{ secret }}/bofa">← BofA</a>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center">
+      <p class="lead" style="margin:0;flex:1;min-width:280px">
+        <b>Akış ölçüsü:</b> günlük net TL ÷ o günkü BofA toplam hacmi (alış + satış). Hacim büyüdükçe artan nominal
+        TL'nin sonucu bozmaması için oranlanır. Fiyat <b>seviyesi</b> ile kümülatif net karşılaştırılmaz —
+        ikisi de yukarı trendli olduğundan sahte korelasyon verir; <b>getiri</b> ile akış karşılaştırılır.
+      </p>
+      <label class="chk"><input type="checkbox" id="funds"> Fon/ETF'leri (.F) dahil et</label>
+    </div>
+    <div class="hint" id="meta"></div>
+  </div>
+
+  <div class="card">
+    <h2>Özet</h2>
+    <div class="stats" id="cards"></div>
+  </div>
+
+  <div class="card">
+    <h2>Sonuç</h2>
+    <div class="box" id="verdict"></div>
+  </div>
+
+  <div class="card" id="trendCard">
+    <h2>Trend analizi — BofA nette alımda mı, satımda mı?</h2>
+    <p class="lead">Kural: son <b>N işlem gününün net akış toplamı</b> pozitifse <b class="pos">alım yönlü trend</b>,
+      negatifse <b class="neg">satım yönlü trend</b>. N = 5 gün (1 hafta), 10 gün (2 hafta), 21 gün (1 ay).
+      Rejim gün sonunda bilinir; ileri getiri o günün kapanışından hesaplanır (ileriye bakma yok).</p>
+    <div class="stats" id="trendNow"></div>
+    <div style="display:flex;gap:8px;margin:16px 0 10px;flex-wrap:wrap" id="trendTabs">
+      <button class="chip on" data-w="1h">1 hafta</button>
+      <button class="chip" data-w="2h">2 hafta</button>
+      <button class="chip" data-w="1a">1 ay</button>
+    </div>
+    <div class="chartbox" style="height:360px"><canvas id="trendChart"></canvas></div>
+    <div class="hint">BİST 100 kapanışı; arka plan <span class="pos">yeşil = alım yönlü</span>, <span class="neg">kırmızı = satım yönlü</span> trend.</div>
+    <h2 style="margin-top:18px" id="fwdTitle"></h2>
+    <div class="tscroll"><table id="fwdTbl"></table></div>
+    <div class="hint" id="trendNote"></div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Aynı gün: net akış (% hacim) ↔ BİST 100 getirisi (%)</h2>
+      <div class="chartbox"><canvas id="scatter"></canvas></div>
+      <div class="hint" id="scatterHint"></div>
+    </div>
+    <div class="card">
+      <h2>Gecikme analizi: akış(t) ↔ getiri(t+k)</h2>
+      <div class="chartbox"><canvas id="lags"></canvas></div>
+      <div class="hint">k=0 aynı gün. k&gt;0: BofA'nın bugünkü akışı k gün sonraki getiriyle; k&lt;0: k gün önceki getiriyle korelasyon. Kesikli çizgiler ≈%95 anlamlılık sınırı (±1,96/√n).</div>
+    </div>
+    <div class="card">
+      <h2>Akışa göre 10 dilim: ortalama getiri</h2>
+      <div class="chartbox"><canvas id="deciles"></canvas></div>
+      <div class="hint">Günler BofA net akışına göre küçükten büyüğe 10 eşit gruba bölünür (1 = en çok satıcı, 10 = en çok alıcı). Sütunlar: aynı gün ve ertesi gün ortalama BİST 100 getirisi.</div>
+    </div>
+    <div class="card">
+      <h2>Kayan 60 günlük korelasyon (aynı gün)</h2>
+      <div class="chartbox"><canvas id="rolling"></canvas></div>
+      <div class="hint">İlişkinin zaman içinde ne kadar kararlı olduğunu gösterir.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Tüm korelasyonlar</h2>
+    <div class="tscroll"><table id="tbl"></table></div>
+    <div class="hint">p-değerleri t-dağılımının normal yaklaşımıyla hesaplanır (küçük örneklemde, örn. aylık, biraz iyimserdir). Spearman: sıralar üzerinden, aykırı günlere daha dayanıklı.</div>
+  </div>
+</div>
+
+<script>
+const SECRET = {{ secret|tojson }};
+const $ = id => document.getElementById(id);
+const charts = {};
+const f2 = v => (v == null ? '—' : (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(2).replace('.', ','));
+const cls = v => v > 0 ? 'pos' : (v < 0 ? 'neg' : '');
+const pct = (v, d = 2) => v == null ? '—' : (v >= 0 ? '+' : '−') + Math.abs(v * 100).toFixed(d).replace('.', ',') + '%';
+const pfmt = p => p == null ? '—' : (p < 0.001 ? '<0,001' : p.toFixed(3).replace('.', ','));
+function sig(c) {
+  if (!c || c.p == null) return '<span class="tag no">—</span>';
+  return c.p < 0.01 ? '<span class="tag ok">anlamlı</span>' : c.p < 0.05 ? '<span class="tag warn">sınırda</span>' : '<span class="tag no">anlamsız</span>';
+}
+function mk(id, cfg) { if (charts[id]) charts[id].destroy(); charts[id] = new Chart($(id), cfg); }
+const AX = {ticks: {color: '#8ea3c4'}, grid: {color: '#16233a'}};
+
+async function load() {
+  const r = await fetch(`/admin/${SECRET}/bofa/analiz/data?funds=` + ($('funds').checked ? '1' : '0'));
+  const d = await r.json();
+  if (d.empty) { $('meta').textContent = 'Analiz için yeterli veri yok.'; return; }
+  $('meta').textContent = `${d.n} ortak işlem günü · ${d.first} → ${d.last} · BİST 100 (XU100) kapanışları TradingView'dan`;
+
+  // Kartlar
+  const sd = d.same_day, nx = d.next_day, pv = d.prev_day;
+  $('cards').innerHTML = `
+    <div class="stat"><div class="lbl">Aynı gün korelasyon</div><div class="val ${cls(sd.pearson)}">${f2(sd.pearson)}</div><div class="sub">Spearman ${f2(sd.spearman)} · n=${sd.n}</div></div>
+    <div class="stat"><div class="lbl">Yön isabeti</div><div class="val">${(d.direction_hit * 100).toFixed(0)}%</div><div class="sub">BofA net alıcı ↔ endeks yükseldi (aynı gün)</div></div>
+    <div class="stat"><div class="lbl">BofA bugün → yarının getirisi</div><div class="val ${cls(nx.pearson)}">${f2(nx.pearson)}</div><div class="sub">p=${pfmt(nx.p)} · ${nx.p >= 0.05 ? 'anlamsız' : 'anlamlı'}</div></div>
+    <div class="stat"><div class="lbl">Dünkü getiri → BofA bugün</div><div class="val ${cls(pv.pearson)}">${f2(pv.pearson)}</div><div class="sub">p=${pfmt(pv.p)} · hafif kontrarian</div></div>
+    <div class="stat"><div class="lbl">Haftalık korelasyon</div><div class="val ${cls(d.weekly.pearson)}">${f2(d.weekly.pearson)}</div><div class="sub">n=${d.weekly.n} hafta</div></div>
+    <div class="stat"><div class="lbl">Seviye (yanıltıcı)</div><div class="val dim">${f2(d.level.pearson)}</div><div class="sub">Kümülatif net ↔ fiyat; ikisi de trendli</div></div>`;
+
+  // Yorum
+  const top = d.deciles[9], bot = d.deciles[0];
+  $('verdict').innerHTML =
+    `BofA'nın günlük net akışı ile BİST 100'ün <b>aynı günkü</b> getirisi arasında güçlü pozitif ilişki var ` +
+    `(r = ${f2(sd.pearson)}). En çok alıcı olduğu %10'luk günlerde endeks ortalama <b class="pos">${pct(top.same)}</b>, ` +
+    `en çok satıcı olduğu %10'da <b class="neg">${pct(bot.same)}</b> hareket etmiş. ` +
+    `Ancak ilişki <b>eşzamanlı</b>: BofA'nın bugünkü akışı yarınki getiriyi tahmin etmiyor ` +
+    `(r = ${f2(nx.pearson)}, p = ${pfmt(nx.p)}); alım günlerinin ertesi günü ortalama ${pct(top.next)}, satım günlerinin ertesi günü ${pct(bot.next)}. ` +
+    `Endeks bir gün yükseldiyse BofA ertesi gün biraz daha satıcı oluyor (r = ${f2(pv.pearson)}). ` +
+    `Bu, BofA'nın piyasayı yönlendirdiğini değil, yükselen günde alıp düşen günde sattığını (ya da hacminin piyasa hareketini oluşturduğunu) gösterir; ` +
+    `"BofA aldı, yarın yükselir" sinyali için veri desteği yok.`;
+
+  // Serpilme
+  mk('scatter', {
+    type: 'scatter',
+    data: { datasets: [
+      { label: 'Gün', data: d.scatter.map(p => ({x: p[0], y: p[1]})), backgroundColor: '#5aa9ff66', pointRadius: 2.5 },
+      { label: 'Regresyon', type: 'line', pointRadius: 0, borderColor: '#f0b429', borderWidth: 2,
+        data: [{x: d.fit.xmin, y: d.fit.intercept * 100 + d.fit.slope * d.fit.xmin},
+               {x: d.fit.xmax, y: d.fit.intercept * 100 + d.fit.slope * d.fit.xmax}] }
+    ]},
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: {display: false}, tooltip: { callbacks: { label: c => `akış ${f2(c.parsed.x)}% · getiri ${f2(c.parsed.y)}%` } } },
+      scales: { x: {...AX, title: {display: true, text: 'BofA net / hacim (%)', color: '#8ea3c4'}},
+                y: {...AX, title: {display: true, text: 'BİST 100 günlük getiri (%)', color: '#8ea3c4'}} } }
+  });
+  $('scatterHint').textContent = `Eğim: akış %1 (hacme oranla) arttığında endeks ortalama ${(d.fit.slope).toFixed(2).replace('.', ',')} puan daha fazla getiri.`;
+
+  // Gecikmeler
+  const lim = 1.96 / Math.sqrt(d.n);
+  mk('lags', {
+    type: 'bar',
+    data: { labels: d.lags.map(x => x.k), datasets: [
+      { label: 'r', data: d.lags.map(x => x.r), backgroundColor: d.lags.map(x => x.k === 0 ? '#f0b429' : (Math.abs(x.r) > lim ? '#5aa9ff' : '#3b4c6b')) },
+      { type: 'line', label: '+sınır', data: d.lags.map(() => lim), borderColor: '#8ea3c4', borderDash: [5, 4], pointRadius: 0, borderWidth: 1 },
+      { type: 'line', label: '−sınır', data: d.lags.map(() => -lim), borderColor: '#8ea3c4', borderDash: [5, 4], pointRadius: 0, borderWidth: 1 }
+    ]},
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: {display: false}, tooltip: { callbacks: { label: c => 'r = ' + f2(c.parsed.y) } } },
+      scales: { x: {...AX, title: {display: true, text: 'k (gün)', color: '#8ea3c4'}}, y: AX } }
+  });
+
+  // Dilimler
+  mk('deciles', {
+    type: 'bar',
+    data: { labels: d.deciles.map(x => x.g), datasets: [
+      { label: 'Aynı gün', data: d.deciles.map(x => x.same * 100), backgroundColor: d.deciles.map(x => x.same >= 0 ? '#22c55e' : '#ef4444') },
+      { label: 'Ertesi gün', data: d.deciles.map(x => x.next == null ? null : x.next * 100), backgroundColor: '#8ea3c4' }
+    ]},
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: {labels: {color: '#8ea3c4'}}, tooltip: { callbacks: { label: c => c.dataset.label + ': ' + f2(c.parsed.y) + '%' } } },
+      scales: { x: {...AX, title: {display: true, text: 'Akış dilimi (1 = en çok satıcı … 10 = en çok alıcı)', color: '#8ea3c4'}},
+                y: {...AX, ticks: {color: '#8ea3c4', callback: v => v + '%'}} } }
+  });
+
+  // Kayan korelasyon
+  mk('rolling', {
+    type: 'line',
+    data: { labels: d.rolling.map(x => x.d), datasets: [{ data: d.rolling.map(x => x.r), borderColor: '#5aa9ff', backgroundColor: '#5aa9ff22', fill: 'origin', borderWidth: 2, pointRadius: 0, tension: .2 }] },
+    options: { responsive: true, maintainAspectRatio: false, interaction: {mode: 'index', intersect: false},
+      plugins: { legend: {display: false}, tooltip: { callbacks: { label: c => 'r = ' + f2(c.parsed.y) } } },
+      scales: { x: {ticks: {color: '#8ea3c4', maxTicksLimit: 9, maxRotation: 0}, grid: {color: '#16233a'}}, y: {...AX, min: -0.2, max: 1} } }
+  });
+
+  // Tablo
+  const rows = [
+    ['Aynı gün · akış (% hacim) ↔ getiri', d.same_day],
+    ['Aynı gün · net TL ↔ getiri', d.same_day_tl],
+    ['BofA(t) → getiri(t+1)', d.next_day],
+    ['Getiri(t−1) → BofA(t)', d.prev_day],
+    ['Haftalık · aynı hafta', d.weekly],
+    ['Haftalık · BofA(t) → getiri(t+1)', d.weekly_next],
+    ['Aylık · aynı ay', d.monthly],
+    ['Seviye · kümülatif net ↔ fiyat (sahte korelasyon riski)', d.level]
+  ];
+  $('tbl').innerHTML = '<thead><tr><th>Karşılaştırma</th><th class="r">n</th><th class="r">Pearson</th><th class="r">Spearman</th><th class="r">p</th><th>Sonuç</th></tr></thead><tbody>' +
+    rows.map(([n, c]) => `<tr><td style="font-family:inherit">${n}</td><td class="r">${c.n}</td><td class="r ${cls(c.pearson)}">${f2(c.pearson)}</td><td class="r">${f2(c.spearman)}</td><td class="r">${pfmt(c.p)}</td><td>${sig(c)}</td></tr>`).join('') + '</tbody>';
+}
+$('funds').addEventListener('change', load);
+load();
+
+// ── Trend analizi ───────────────────────────────────────────────────────────
+let TR = null, trW = '1h';
+const shade = {
+  id: 'regimeShade',
+  beforeDatasetsDraw(chart, _a, opts) {
+    const eps = opts.eps, dates = chart.data.labels; if (!eps) return;
+    const {ctx, chartArea, scales: {x}} = chart;
+    const idx = Object.fromEntries(dates.map((d, i) => [d, i]));
+    const half = (x.getPixelForValue(1) - x.getPixelForValue(0)) / 2;
+    ctx.save();
+    for (const e of eps) {
+      if (e.r === 0 || idx[e.s] == null) continue;
+      const x0 = x.getPixelForValue(idx[e.s]), x1 = x.getPixelForValue(idx[e.e]);
+      ctx.fillStyle = e.r > 0 ? 'rgba(34,197,94,.16)' : 'rgba(239,68,68,.16)';
+      ctx.fillRect(x0 - half, chartArea.top, (x1 - x0) + 2 * half, chartArea.bottom - chartArea.top);
+    }
+    ctx.restore();
+  }
+};
+const tlf = v => { const a = Math.abs(v), s = v < 0 ? '−' : '+';
+  return a >= 1e9 ? s + (a / 1e9).toFixed(2).replace('.', ',') + ' mr' : s + (a / 1e6).toFixed(0) + ' mn'; };
+const pc = (v, d = 2) => v == null ? '—' : (v >= 0 ? '+' : '−') + Math.abs(v * 100).toFixed(d).replace('.', ',') + '%';
+
+function renderTrend() {
+  const w = TR.windows[trW];
+  document.querySelectorAll('#trendTabs .chip').forEach(b => b.classList.toggle('on', b.dataset.w === trW));
+  mk('trendChart', {
+    type: 'line',
+    data: { labels: TR.dates, datasets: [{ label: 'BİST 100', data: TR.price, borderColor: '#5aa9ff', borderWidth: 1.8, pointRadius: 0, tension: .1 }] },
+    plugins: [shade],
+    options: { responsive: true, maintainAspectRatio: false, interaction: {mode: 'index', intersect: false},
+      plugins: { legend: {display: false}, regimeShade: {eps: w.episodes},
+        tooltip: { callbacks: { afterLabel: c => { const r = w.regime[c.dataIndex];
+          return r == null ? '' : (r > 0 ? 'Alım yönlü' : r < 0 ? 'Satım yönlü' : 'Nötr') + ' · ' + w.label + ' net ' + tlf(w.wsum[c.dataIndex]) + ' TL'; } } } },
+      scales: { x: {ticks: {color: '#8ea3c4', maxTicksLimit: 10, maxRotation: 0}, grid: {color: '#16233a'}}, y: AX } }
+  });
+  $('fwdTitle').textContent = w.label + ' rejimi sonrası BİST 100 ileri getirisi';
+  const past = w.past;
+  const rowsF = w.forward.map(f => `<tr><td style="font-family:inherit">Sonraki ${f.h} gün</td>
+    <td class="r pos">${pc(f.buy_mean)}</td><td class="r">%${(f.buy_hit * 100).toFixed(0)}</td><td class="r dim">${f.buy_n}</td>
+    <td class="r neg">${pc(f.sell_mean)}</td><td class="r">%${(f.sell_hit * 100).toFixed(0)}</td><td class="r dim">${f.sell_n}</td>
+    <td class="r ${cls(f.diff)}">${pc(f.diff)}</td><td class="r dim">${pc(f.base)}</td>
+    <td class="r">${pfmt(f.p_nonoverlap)}</td><td>${sig({p: f.p_nonoverlap})}</td></tr>`).join('');
+  $('fwdTbl').innerHTML = `<thead><tr><th>Ufuk</th><th class="r">Alım rejimi ort.</th><th class="r">↑ isabet</th><th class="r">gün</th>
+    <th class="r">Satım rejimi ort.</th><th class="r">↑ isabet</th><th class="r">gün</th><th class="r">Fark (alım−satım)</th><th class="r">Tüm günler</th><th class="r">p*</th><th>Sonuç</th></tr></thead><tbody>
+    <tr><td style="font-family:inherit"><b>Geriye: aynı ${w.N} gün</b></td><td class="r pos">${pc(past.buy)}</td><td class="r">%${(past.buy_hit * 100).toFixed(0)}</td><td class="r dim">${w.days_buy}</td>
+    <td class="r neg">${pc(past.sell)}</td><td class="r">%${(past.sell_hit * 100).toFixed(0)}</td><td class="r dim">${w.days_sell}</td>
+    <td class="r">${pc(past.buy - past.sell)}</td><td></td><td></td><td><span class="tag no">eşzamanlı</span></td></tr>${rowsF}</tbody>`;
+  $('trendNote').innerHTML = 'Ortalama rejim süresi: alım ' + w.avg_len_buy.toFixed(1) + ' gün, satım ' + w.avg_len_sell.toFixed(1) + ' gün. ' +
+    '"↑ isabet": ileri getirinin pozitif olduğu günlerin oranı (geriye satırında: rejimle aynı yönde hareket eden pencerelerin oranı). ' +
+    '<b>*p:</b> örtüşen pencereler örnekleri şişirdiği için örtüşmesiz alt örneklemle (her h. gün) Welch testi. ' +
+    '12 test yapıldığından tek tek sınırda çıkan p değerleri şansa bağlı olabilir.';
+}
+
+async function loadTrend() {
+  const r = await fetch(`/admin/${SECRET}/bofa/analiz/trend?funds=` + ($('funds').checked ? '1' : '0'));
+  TR = await r.json();
+  if (TR.empty) { $('trendCard').style.display = 'none'; return; }
+  $('trendNow').innerHTML = ['1h', '2h', '1a'].map(k => {
+    const w = TR.windows[k], c = w.current, buy = c.regime > 0;
+    return `<div class="stat"><div class="lbl">${w.label} · şu an (${c.date})</div>
+      <div class="val ${buy ? 'pos' : 'neg'}" style="font-size:20px">${buy ? '▲ Alım yönlü' : '▼ Satım yönlü'}</div>
+      <div class="sub">Son ${w.N} gün net ${tlf(c.window_net)} TL<br>Bu rejim ${c.streak} gündür sürüyor (${c.since} tarihinden beri)</div></div>`;
+  }).join('');
+  renderTrend();
+}
+document.querySelectorAll('#trendTabs .chip').forEach(b => b.addEventListener('click', () => { trW = b.dataset.w; renderTrend(); }));
+$('funds').addEventListener('change', loadTrend);
+loadTrend();
+</script>
+</body>
+</html>
