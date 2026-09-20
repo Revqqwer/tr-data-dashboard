@@ -38,7 +38,7 @@ def main() -> int:
     with open(tmp, 'w', encoding='utf-8') as f:
         json.dump({'dates': ds, 'closes': [merged[d] for d in ds]}, f)
     os.replace(tmp, PATH)                       # atomik: yarım dosya okunmaz
-    print(f'{datetime.now():%Y-%m-%d %H:%M} XU100: {before} → {len(ds)} gün, son {ds[-1]} = {merged[ds[-1]]}')
+    print(f'{datetime.now():%Y-%m-%d %H:%M} XU100: {before} -> {len(ds)} gün, son {ds[-1]} = {merged[ds[-1]]}')
     return 0
 
 
