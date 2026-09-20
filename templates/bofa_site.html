@@ -61,9 +61,17 @@
   .tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--border);color:var(--muted)}
   .tag.ok{color:var(--green);border-color:var(--green)} .tag.warn{color:var(--gold);border-color:var(--gold)}
   .hidden{display:none !important}
+  .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+  .stats .stat{padding:10px 13px}
+  .stats .stat .val{font-size:18px;margin-top:3px}
+  .stats .stat .note{margin-top:3px;font-size:11.5px}
+  .two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+  .two h3{margin-bottom:6px}
+  .chartbox.sm{height:300px}
   .legend{display:flex;gap:14px;font-size:12px;color:var(--muted);margin-top:8px}
   .sw{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
   .disc{font-size:11.5px;color:var(--muted);line-height:1.55;margin-top:6px}
+  @media (max-width:980px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))} .two{grid-template-columns:minmax(0,1fr)}}
   @media (max-width:860px){
     .hero{grid-template-columns:repeat(2,minmax(0,1fr))} .stat.big{grid-column:1/-1}
     .cols{grid-template-columns:minmax(0,1fr)} .chartbox{height:280px}
@@ -93,13 +101,13 @@
         <input id="code" type="text" placeholder="THYAO" maxlength="10"
           style="width:96px;margin-left:4px;padding:6px 9px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);text-transform:uppercase"></label>
       <button class="chip" id="codeClear">Tümüne dön</button>
-      <span id="unitRow" class="row hidden" style="margin-left:8px;gap:6px">
-        <span class="dim" style="font-size:12px">Birim:</span>
-        <button class="chip on" data-u="lot">Lot</button><button class="chip" data-u="tl">TL</button>
-      </span>
     </div>
     <div class="stats hidden" id="codeStats" style="margin-bottom:12px"></div>
-    <div class="chartbox"><canvas id="cumChart"></canvas></div>
+    <div id="oneChart" class="chartbox"><canvas id="cumChart"></canvas></div>
+    <div id="twoCharts" class="two hidden">
+      <div><h3>Kümülatif net TL</h3><div class="chartbox sm"><canvas id="tlChart"></canvas></div></div>
+      <div><h3>Kümülatif net lot</h3><div class="chartbox sm"><canvas id="lotChart"></canvas></div></div>
+    </div>
     <div class="hint" id="cumHint">Seçili aralığın başından itibaren günlük net TL'lerin toplamı (+ net alıcı, − net satıcı).</div>
   </div>
 
@@ -246,45 +254,50 @@ const lotf = (v, signed) => {
   if (a >= 1e4) return s + (a / 1e3).toFixed(0) + ' bin';
   return s + nf.format(a);
 };
-let unit = 'lot';
+
+function lineChart(id, labels, data, dailyArr, fmt, axisFmt, name, maxTicks) {
+  const up = data.length && data[data.length - 1] >= 0, col = up ? css('--green') : css('--red');
+  mk(id, {
+    type: 'line',
+    data: {labels, datasets: [{data, borderColor: col, backgroundColor: col + '22', fill: 'origin', borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, tension: .15}]},
+    options: {responsive: true, maintainAspectRatio: false, interaction: {mode: 'index', intersect: false},
+      plugins: {legend: {display: false}, tooltip: {callbacks: {
+        label: c => name + ' kümülatif: ' + fmt(c.parsed.y, true),
+        afterLabel: c => 'Günlük: ' + fmt(dailyArr[c.dataIndex], true)}}},
+      scales: {x: {ticks: {color: css('--muted'), maxTicksLimit: maxTicks || 8, maxRotation: 0}, grid: {color: css('--grid')}},
+               y: {ticks: {color: css('--muted'), callback: v => axisFmt(v)}, grid: {color: css('--grid')}}}}
+  });
+}
 
 async function loadCum() {
   const code = $('code').value.trim().toUpperCase();
   const single = !!code;
-  const u = single ? unit : 'tl';                       // tek hissede lot/TL seçilebilir, genelde yalnız TL
-  $('unitRow').classList.toggle('hidden', !single);
-  document.querySelectorAll('#unitRow .chip').forEach(b => b.classList.toggle('on', b.dataset.u === unit));
   const q = new URLSearchParams({start: range.start, end: range.end, limit: 10, funds: $('funds').checked ? '1' : '0'});
   if (code) q.set('code', code);
   const d = await (await fetch(`${API}/data?` + q)).json();
-  const s = d.cum.series, key = u === 'lot' ? 'cum_lot' : 'cum', dkey = u === 'lot' ? 'net_lot' : 'net';
-  const fmt = (v, sg) => u === 'lot' ? lotf(v, sg) + ' lot' : tl(v, sg) + ' TL';
-  const up = s.length && s[s.length - 1][key] >= 0, col = up ? css('--green') : css('--red');
-  $('cumTitle').textContent = (single ? code + ' — ' : '') + 'Kümülatif net alım / satım (' + (u === 'lot' ? 'lot' : 'TL') + ')';
-  $('cumHint').textContent = 'Seçili aralığın başından itibaren günlük net ' + (u === 'lot' ? 'lot adetlerinin' : "TL'lerin") + ' toplamı (+ net alıcı, − net satıcı).';
+  const s = d.cum.series, labels = s.map(x => x.date);
+  $('cumTitle').textContent = single ? code + ' — BofA net alım / satım' : 'Kümülatif net alım / satım (TL)';
+  $('oneChart').classList.toggle('hidden', single);
+  $('twoCharts').classList.toggle('hidden', !single);
+  $('cumHint').textContent = single
+    ? "Seçili aralığın başından itibaren günlük net TL ve net lot toplamları (+ net alıcı, − net satıcı). İki çizgi ters yönde gidebilir: fiyat değiştikçe aynı lot farklı TL eder."
+    : "Seçili aralığın başından itibaren günlük net TL'lerin toplamı (+ net alıcı, − net satıcı).";
 
   const cs = $('codeStats');
   if (single && s.length) {
-    const c = d.cum;
-    const opp = c.total_lot && c.total && (c.total_lot > 0) !== (c.total > 0);
+    const c = d.cum, opp = c.total_lot && c.total && (c.total_lot > 0) !== (c.total > 0);
     cs.classList.remove('hidden');
     cs.innerHTML = `
       <div class="stat"><div class="lbl">Aldığı</div><div class="val pos">${lotf(c.buy_lot)} lot</div><div class="note">${tl(c.buy_tl)} TL · ort. ${px(c.buy_avg)}</div></div>
       <div class="stat"><div class="lbl">Sattığı</div><div class="val neg">${lotf(c.sell_lot)} lot</div><div class="note">${tl(c.sell_tl)} TL · ort. ${px(c.sell_avg)}</div></div>
-      <div class="stat"><div class="lbl">Net lot</div><div class="val ${cls(c.total_lot)}">${lotf(c.total_lot, true)} lot</div><div class="note">${opp ? '⚠ Net TL ile ters işaretli: fiyat değişti' : 'aldığı − sattığı'}</div></div>
+      <div class="stat"><div class="lbl">Net lot</div><div class="val ${cls(c.total_lot)}">${lotf(c.total_lot, true)} lot</div><div class="note">${opp ? '⚠ Net TL ile ters işaretli' : 'aldığı − sattığı'}</div></div>
       <div class="stat"><div class="lbl">Net TL</div><div class="val ${cls(c.total)}">${tl(c.total, true)} TL</div><div class="note">alış TL − satış TL</div></div>`;
-  } else cs.classList.add('hidden');
-
-  mk('cumChart', {
-    type: 'line',
-    data: {labels: s.map(x => x.date), datasets: [{data: s.map(x => x[key]), borderColor: col, backgroundColor: col + '22', fill: 'origin', borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, tension: .15}]},
-    options: {responsive: true, maintainAspectRatio: false, interaction: {mode: 'index', intersect: false},
-      plugins: {legend: {display: false}, tooltip: {callbacks: {
-        label: c => (code ? code + ' ' : '') + 'kümülatif: ' + fmt(c.parsed.y, true),
-        afterLabel: c => 'Günlük: ' + fmt(s[c.dataIndex][dkey], true)}}},
-      scales: {x: {ticks: {color: css('--muted'), maxTicksLimit: 9, maxRotation: 0}, grid: {color: css('--grid')}},
-               y: {ticks: {color: css('--muted'), callback: v => u === 'lot' ? lotf(v) : tl(v)}, grid: {color: css('--grid')}}}}
-  });
+    lineChart('tlChart', labels, s.map(x => x.cum), s.map(x => x.net), (v, sg) => tl(v, sg) + ' TL', v => tl(v), code + ' TL', 4);
+    lineChart('lotChart', labels, s.map(x => x.cum_lot), s.map(x => x.net_lot), (v, sg) => lotf(v, sg) + ' lot', v => lotf(v), code + ' lot', 4);
+  } else {
+    cs.classList.add('hidden');
+    lineChart('cumChart', labels, s.map(x => x.cum), s.map(x => x.net), (v, sg) => tl(v, sg) + ' TL', v => tl(v), 'Toplam');
+  }
   tbl($('tBuy'), d.top.bought); tbl($('tSell'), d.top.sold);
 }
 
@@ -300,7 +313,6 @@ document.querySelectorAll('#cumPresets .chip').forEach(b => b.addEventListener('
 $('funds').addEventListener('change', () => { loadCum(); loadTrend(); });
 let t; $('code').addEventListener('input', () => { clearTimeout(t); t = setTimeout(loadCum, 250); });
 $('codeClear').addEventListener('click', () => { $('code').value = ''; loadCum(); });
-document.querySelectorAll('#unitRow .chip').forEach(b => b.addEventListener('click', () => { unit = b.dataset.u; loadCum(); }));
 document.addEventListener('click', e => { const c = e.target.closest('td.tk'); if (c) { $('code').value = c.dataset.code; loadCum(); } });
 </script>
 </body>
