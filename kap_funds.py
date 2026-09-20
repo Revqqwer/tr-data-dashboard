@@ -149,13 +149,22 @@ def _num(s: str) -> float:
     return float(s.replace('.', '').replace(',', '.').replace('%', ''))
 
 
+_pdf_lock = threading.Lock()      # PDFium iş parçacığı güvenli DEĞİL (çoklu iş parçacığında çöker)
+
+
 def _pdf_lines(pdf_bytes: bytes) -> list:
     try:
         import pypdfium2 as pdfium
-        pdf = pdfium.PdfDocument(pdf_bytes)
-        lines = []
-        for i in range(len(pdf)):
-            lines += pdf[i].get_textpage().get_text_range().replace('\r', '').split('\n')
+        with _pdf_lock:
+            pdf = pdfium.PdfDocument(pdf_bytes)
+            lines = []
+            for i in range(len(pdf)):
+                page = pdf[i]
+                tp = page.get_textpage()
+                lines += tp.get_text_range().replace('\r', '').split('\n')
+                tp.close()
+                page.close()
+            pdf.close()
         return lines
     except ImportError:
         import pdfplumber
