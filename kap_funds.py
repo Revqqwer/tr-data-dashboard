@@ -407,11 +407,51 @@ def expected_period(today=None) -> str:
 
 def monthly(budget_min=240, workers=2, log=print) -> int:
     """
-    PA günlük görevi (kendini tamamlar): beklenen dönem için raporu olmayan fonları kontrol eder.
+    PA görevi (saatlik çalıştırılabilir, kendini tamamlar): beklenen dönem için raporu olmayan fonları kontrol eder.
+      • tek örnek kilidi: süreç ölürse bir sonraki çalıştırma kaldığı yerden devam eder
       • ayın 12'sinde yeni ay başlar; kalan fonlar ertesi günlerde kaldığı yerden devam eder
       • hepsi tamamsa hiç istek atmadan çıkar
     Fon listesi ayın 12-13'ünde (ve tablo boşsa) KAP'tan tazelenir.
     """
+    if not _acquire_lock():
+        log('başka bir kap_funds monthly süreci çalışıyor, çıkılıyor')
+        return 0
+    try:
+        return _monthly(budget_min, workers, log)
+    finally:
+        _release_lock()
+
+
+LOCK_PATH = os.path.join(_ROOT, 'data', 'kap_monthly.lock')
+
+
+def _acquire_lock() -> bool:
+    """Tek örnek kilidi: pid dosyası; ölü bir sürecin kilidi (kill/konsol kapanması) devralınır."""
+    try:
+        with open(LOCK_PATH) as f:
+            pid = int(f.read().strip() or 0)
+        if pid and pid != os.getpid():
+            try:
+                os.kill(pid, 0)
+                return False                     # süreç yaşıyor
+            except OSError:
+                pass                             # ölü süreç → kilidi devral
+    except (OSError, ValueError):
+        pass
+    os.makedirs(os.path.dirname(LOCK_PATH), exist_ok=True)
+    with open(LOCK_PATH, 'w') as f:
+        f.write(str(os.getpid()))
+    return True
+
+
+def _release_lock():
+    try:
+        os.remove(LOCK_PATH)
+    except OSError:
+        pass
+
+
+def _monthly(budget_min, workers, log) -> int:
     today = date.today()
     per = expected_period(today)
     con = connect()
