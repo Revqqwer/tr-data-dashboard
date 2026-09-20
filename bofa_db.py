@@ -178,16 +178,17 @@ def cumulative(start: str, end: str, include_funds: bool = True, code: str = Non
     return {'series': out, 'total': run, 'total_lot': run_lot, **tot}
 
 
-def top(start: str, end: str, include_funds: bool = True, limit: int = 20) -> dict:
+def top(start: str, end: str, include_funds: bool = True, limit: int = 20, by: str = 'tl') -> dict:
     """
-    Aralıkta en çok net aldığı / sattığı kodlar (net TL'ye göre).
+    Aralıkta en çok net aldığı / sattığı kodlar. by='tl': net TL'ye göre, by='lot': net lota göre sıralı.
     Fiyatlar gerçek işlem fiyatlarıdır: buy_avg = Σ alış TL / Σ alış lot, sell_avg = Σ satış TL / Σ satış lot.
     (Net TL / net lot anlamsızdır: alışlar ucuzken, satışlar pahalıyken yapıldıysa net lot ile net TL ters işaretli olabilir.)
     """
+    col = 'SUM(net_size)' if by == 'lot' else 'SUM(net_volume)'
     base = ('SELECT code, SUM(buy_volume), SUM(sell_volume), SUM(net_volume), '
             'SUM(net_size), COUNT(*), SUM(buy_size), SUM(sell_size) FROM bofa_daily '
             'WHERE trade_date BETWEEN ? AND ?' + _scope(include_funds) +
-            ' GROUP BY code HAVING SUM(net_volume) {op} 0 ORDER BY SUM(net_volume) {ord} LIMIT ?')
+            ' GROUP BY code HAVING ' + col + ' {op} 0 ORDER BY ' + col + ' {ord} LIMIT ?')
     con = connect()
     try:
         def fetch(op, order):
@@ -197,7 +198,7 @@ def top(start: str, end: str, include_funds: bool = True, limit: int = 20) -> di
                      'buy_avg': (b / bs) if b and bs else None,
                      'sell_avg': (s / ss) if s and ss else None}
                     for c, b, s, n, lot, d, bs, ss in rows]
-        return {'bought': fetch('>', 'DESC'), 'sold': fetch('<', 'ASC')}
+        return {'bought': fetch('>', 'DESC'), 'sold': fetch('<', 'ASC'), 'by': by}
     finally:
         con.close()
 

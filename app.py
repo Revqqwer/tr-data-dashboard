@@ -1087,7 +1087,7 @@ def _bofa_data_payload():
     return {
         'meta': m, 'start': start, 'end': end,
         'cum': bofa_db.cumulative(start, end, funds, code),
-        'top': bofa_db.top(start, end, funds, limit),
+        'top': bofa_db.top(start, end, funds, limit, 'lot' if request.args.get('by') == 'lot' else 'tl'),
     }
 
 
