@@ -95,6 +95,10 @@
       <button class="chip" data-p="ytd">YBB</button><button class="chip" data-p="1y">1Y</button>
       <button class="chip on" data-p="all">Tümü</button>
       <span class="dim" style="font-size:12px;margin-left:6px" id="cumRange"></span>
+      <span class="row" id="unitRow" style="margin-left:auto;gap:6px">
+        <span class="dim" style="font-size:12px">Birim:</span>
+        <button class="chip on" data-u="tl">TL</button><button class="chip" data-u="lot">Lot</button>
+      </span>
     </div>
     <div class="row" style="margin-bottom:10px">
       <label class="dim" style="font-size:12px">Tek hisse:
@@ -118,7 +122,7 @@
       <div><h3 class="pos">▲ Net aldıkları</h3><div class="tscroll"><table id="tBuy"></table></div></div>
       <div><h3 class="neg">▼ Net sattıkları</h3><div class="tscroll"><table id="tSell"></table></div></div>
     </div>
-    <div class="hint">Dönem, yukarıdaki kümülatif grafiğin aralığıyla aynıdır. Ort. alış / satış: dönemdeki gerçek işlem fiyatlarının lot ağırlıklı ortalaması. Net lot ile net TL ters işaretli olabilir (ucuza alıp pahalıya satmışsa). Bir hisse koduna tıklayınca grafik o hisseye döner.</div>
+    <div class="hint">Dönem, yukarıdaki kümülatif grafiğin aralığıyla aynıdır. <span id="topHint"></span> Ort. alış / satış: dönemdeki gerçek işlem fiyatlarının lot ağırlıklı ortalaması. Net lot ile net TL ters işaretli olabilir (ucuza alıp pahalıya satmışsa). Bir hisse koduna tıklayınca grafik o hisseye döner.</div>
   </div>
 
   <!-- 1 aylık trend analizi (sayfanın en altında) -->
@@ -239,14 +243,20 @@ function setRange(p) {
   loadCum();
 }
 
-function tbl(el, rows) {
+function tbl(el, rows, by) {
   if (!rows.length) { el.innerHTML = '<tr><td class="dim">Kayıt yok</td></tr>'; return; }
-  el.innerHTML = '<thead><tr><th>#</th><th>Hisse</th><th class="r">Net TL</th><th class="r">Net lot</th><th class="r">Ort. alış</th><th class="r">Ort. satış</th></tr></thead><tbody>' +
-    rows.map((r, i) => `<tr><td class="dim">${i + 1}</td><td class="tk" data-code="${r.code}">${r.code}</td>
-      <td class="r ${cls(r.net)}">${tl(r.net, true)}</td><td class="r">${nf.format(r.net_lot)}</td>
-      <td class="r">${px(r.buy_avg)}</td><td class="r">${px(r.sell_avg)}</td></tr>`).join('') + '</tbody>';
+  const lotFirst = by === 'lot';
+  const cTL = r => `<td class="r ${cls(r.net)}">${tl(r.net, true)}</td>`;
+  const cLot = r => `<td class="r ${cls(r.net_lot)}">${lotf(r.net_lot, true)}</td>`;
+  el.innerHTML = '<thead><tr><th>#</th><th>Hisse</th>' +
+    (lotFirst ? '<th class="r">Net lot</th><th class="r">Net TL</th>' : '<th class="r">Net TL</th><th class="r">Net lot</th>') +
+    '<th class="r">Ort. alış</th><th class="r">Ort. satış</th></tr></thead><tbody>' +
+    rows.map((r, i) => `<tr><td class="dim">${i + 1}</td><td class="tk" data-code="${r.code}">${r.code}</td>` +
+      (lotFirst ? cLot(r) + cTL(r) : cTL(r) + cLot(r)) +
+      `<td class="r">${px(r.buy_avg)}</td><td class="r">${px(r.sell_avg)}</td></tr>`).join('') + '</tbody>';
 }
 
+let unit = 'tl';
 const lotf = (v, signed) => {
   const a = Math.abs(v), s = v < 0 ? '−' : (signed && v > 0 ? '+' : '');
   if (a >= 1e9) return s + (a / 1e9).toFixed(2).replace('.', ',') + ' mr';
@@ -272,16 +282,19 @@ function lineChart(id, labels, data, dailyArr, fmt, axisFmt, name, maxTicks) {
 async function loadCum() {
   const code = $('code').value.trim().toUpperCase();
   const single = !!code;
-  const q = new URLSearchParams({start: range.start, end: range.end, limit: 10, funds: $('funds').checked ? '1' : '0'});
+  const q = new URLSearchParams({start: range.start, end: range.end, limit: 10, funds: $('funds').checked ? '1' : '0', by: unit});
   if (code) q.set('code', code);
+  document.querySelectorAll('#unitRow .chip').forEach(b => b.classList.toggle('on', b.dataset.u === unit));
   const d = await (await fetch(`${API}/data?` + q)).json();
   const s = d.cum.series, labels = s.map(x => x.date);
-  $('cumTitle').textContent = single ? code + ' — BofA net alım / satım' : 'Kümülatif net alım / satım (TL)';
+  $('cumTitle').textContent = single ? code + ' — BofA net alım / satım' : 'Kümülatif net alım / satım (' + (unit === 'lot' ? 'lot' : 'TL') + ')';
   $('oneChart').classList.toggle('hidden', single);
   $('twoCharts').classList.toggle('hidden', !single);
   $('cumHint').textContent = single
     ? "Seçili aralığın başından itibaren günlük net TL ve net lot toplamları (+ net alıcı, − net satıcı). İki çizgi ters yönde gidebilir: fiyat değiştikçe aynı lot farklı TL eder."
-    : "Seçili aralığın başından itibaren günlük net TL'lerin toplamı (+ net alıcı, − net satıcı).";
+    : (unit === 'lot'
+        ? "Seçili aralığın başından itibaren tüm hisselerin günlük net lotlarının toplamı. Ucuz hisselerin lotları ağır bastığı için genel bakışta TL daha anlamlıdır; lot okuması için tek hisse seçin."
+        : "Seçili aralığın başından itibaren günlük net TL'lerin toplamı (+ net alıcı, − net satıcı).");
 
   const cs = $('codeStats');
   if (single && s.length) {
@@ -296,9 +309,11 @@ async function loadCum() {
     lineChart('lotChart', labels, s.map(x => x.cum_lot), s.map(x => x.net_lot), (v, sg) => lotf(v, sg) + ' lot', v => lotf(v), code + ' lot', 4);
   } else {
     cs.classList.add('hidden');
-    lineChart('cumChart', labels, s.map(x => x.cum), s.map(x => x.net), (v, sg) => tl(v, sg) + ' TL', v => tl(v), 'Toplam');
+    if (unit === 'lot') lineChart('cumChart', labels, s.map(x => x.cum_lot), s.map(x => x.net_lot), (v, sg) => lotf(v, sg) + ' lot', v => lotf(v), 'Toplam');
+    else lineChart('cumChart', labels, s.map(x => x.cum), s.map(x => x.net), (v, sg) => tl(v, sg) + ' TL', v => tl(v), 'Toplam');
   }
-  tbl($('tBuy'), d.top.bought); tbl($('tSell'), d.top.sold);
+  tbl($('tBuy'), d.top.bought, d.top.by); tbl($('tSell'), d.top.sold, d.top.by);
+  $('topHint').textContent = unit === 'lot' ? 'Sıralama net lota göredir.' : 'Sıralama net TL\'ye göredir.';
 }
 
 (async () => {
@@ -313,6 +328,7 @@ document.querySelectorAll('#cumPresets .chip').forEach(b => b.addEventListener('
 $('funds').addEventListener('change', () => { loadCum(); loadTrend(); });
 let t; $('code').addEventListener('input', () => { clearTimeout(t); t = setTimeout(loadCum, 250); });
 $('codeClear').addEventListener('click', () => { $('code').value = ''; loadCum(); });
+document.querySelectorAll('#unitRow .chip').forEach(b => b.addEventListener('click', () => { unit = b.dataset.u; loadCum(); }));
 document.addEventListener('click', e => { const c = e.target.closest('td.tk'); if (c) { $('code').value = c.dataset.code; loadCum(); } });
 </script>
 </body>
