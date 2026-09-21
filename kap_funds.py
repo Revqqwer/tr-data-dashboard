@@ -67,7 +67,7 @@ CREATE INDEX IF NOT EXISTS idx_kh_period ON kap_holdings (period);
 """
 
 _rate_lock = threading.Lock()
-PARSER_VERSION = 2            # ayrıştırıcı iyileşince artır: eski sürümle ayrıştırılan boş raporlar yeniden denenir
+PARSER_VERSION = 3            # ayrıştırıcı iyileşince artır: eski sürümle ayrıştırılan boş raporlar yeniden denenir
 
 _CLASS_RULES = (              # (sınıf, ad içinde aranacak kalıplar) — ilk eşleşen kazanır
     ('BYF', ('BORSA YATIRIM FONU',)),
@@ -374,21 +374,96 @@ def _fund_value(lines, num):
     return None
 
 
-_PARSERS = (_parse_a, _parse_b, _parse_c, _parse_d)
+# Şablon E (Aktif): tek satırda 'KOD ... ISIN nominal maliyet gg/aa/yy seans fiyat değer % % %'
+_ROW_E = re.compile(r'^([A-Z0-9]{3,6})\s+.*?(TR[A-Z0-9]{9}\d)\s+(\d[\d.]*,\d+)\s+(\d[\d.]*,\d+)\s+\d{2}/\d{2}/\d{2,4}\s+\S+\s+'
+                    r'(\d[\d.]*,\d+)\s+(\d[\d.]*,\d+)\s+(\d[\d.]*,\d+)\s+(\d[\d.]*,\d+)\s+(\d[\d.]*,\d+)$')
+# Şablon F (Astra/Ata/Atlas/...): 'KOD ŞİRKET nominal değer oran%'  (oran % ile başlayabilir/bitebilir; sayılar TR ya da EN)
+_ROW_F = re.compile(r'^([A-Z0-9]{3,6})\s+(.+?)\s+(\d[\d.,]*\d)\s+(\d[\d.,]*\d)\s+%?\s?(\d[\d.,]*\d)\s?%?$')
 
 
-def parse_report(pdf_bytes: bytes) -> dict:
-    """Hisse (PAY) pozisyonlarını hisse bazında toplar; şablonlar sırayla denenir (ilk sonuç veren kazanır)."""
-    lines = _pdf_lines(pdf_bytes)
-    num = _doc_num(lines)
+def _parse_e(lines, num) -> dict:
     agg = {}
+    tick = _tickers()
+    for ln in lines:
+        m = _ROW_E.match(ln.strip())
+        if not m or (tick and m.group(1) not in tick):
+            continue
+        code, isin, nominal, cost, _price, value, _g, _mid, tot = m.groups()
+        try:
+            _add(agg, code, isin, code, _num_tr(nominal), _num_tr(cost), _num_tr(value), _num_tr(tot))
+        except ValueError:
+            continue
+    return agg
+
+
+def _parse_f(lines, num) -> dict:
+    """Hisse kodu (bilinen kodlar) + ad + nominal + değer + oran. Ondalık biçimi belgeye göre (TR/EN)."""
+    agg = {}
+    tick = _tickers()
+    if not tick:
+        return agg
+    for ln in lines:
+        s0 = ln.strip()
+        if '%' not in s0:
+            continue
+        m = _ROW_F.match(s0)
+        if not m or m.group(1) not in tick:
+            continue
+        code, name, nominal, value, pct = m.groups()
+        try:
+            _add(agg, code, None, name, num(nominal), None, num(value), num(pct))
+        except ValueError:
+            continue
+    return agg
+
+
+_PARSERS = (_parse_a, _parse_b, _parse_c, _parse_d, _parse_e, _parse_f)
+
+
+def _plumber_lines(pdf_bytes: bytes, maxpages: int = 60) -> list:
+    """İkinci okuma: sayfadaki konuma göre satır kurar (sütun sütun yazılmış PDF'lerde satırlar doğru gelir)."""
+    try:
+        import pdfplumber
+    except ImportError:
+        return []
+    out = []
+    try:
+        with pdfplumber.open(io.BytesIO(pdf_bytes)) as p:
+            for pg in p.pages[:maxpages]:
+                out += (pg.extract_text() or '').split('\n')
+    except Exception:                                # noqa: BLE001
+        return []
+    return out
+
+
+def _looks_columnar(lines) -> bool:
+    """Hisse kodları tek başına satır satır dizilmişse (sütun düzeni) ikinci okuma değer."""
+    tick = _tickers()
+    return sum(1 for l in lines if l.strip() in tick) >= 3
+
+
+def _run_parsers(lines, num) -> dict:
     for fn in _PARSERS:
         try:
             agg = fn(lines, num)
         except Exception:                           # noqa: BLE001 — bir şablon çökse de diğerleri denensin
             agg = {}
         if agg:
-            break
+            return agg
+    return {}
+
+
+def parse_report(pdf_bytes: bytes) -> dict:
+    """Hisse (PAY) pozisyonlarını hisse bazında toplar; şablonlar sırayla denenir (ilk sonuç veren kazanır)."""
+    lines = _pdf_lines(pdf_bytes)
+    num = _doc_num(lines)
+    agg = _run_parsers(lines, num)
+    if not agg and _looks_columnar(lines):          # sütun düzeni: konuma göre satır kurup yeniden dene
+        pl = _plumber_lines(pdf_bytes)
+        if pl:
+            lines = pl
+            num = _doc_num(lines)
+            agg = _run_parsers(lines, num)
     holdings = []
     for a in agg.values():
         a['avg_cost'] = a['cost_x_lot'] / a['cost_lots'] if a['cost_lots'] else None
