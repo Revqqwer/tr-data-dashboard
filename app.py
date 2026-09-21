@@ -1156,6 +1156,12 @@ def api_fi_funds():
     return jsonify(fon_icerik.fund_search(request.args.get('q', ''), 60, request.args.get('cls') or None))
 
 
+@app.route('/api/fonicerik/class-funds')
+def api_fi_class_funds():
+    import fon_icerik
+    return jsonify(fon_icerik.class_funds(request.args.get('cls', ''), request.args.get('period') or None))
+
+
 @app.route('/api/fonicerik/fund')
 def api_fi_fund():
     import fon_icerik

@@ -67,7 +67,7 @@ CREATE INDEX IF NOT EXISTS idx_kh_period ON kap_holdings (period);
 """
 
 _rate_lock = threading.Lock()
-PARSER_VERSION = 3            # ayrıştırıcı iyileşince artır: eski sürümle ayrıştırılan boş raporlar yeniden denenir
+PARSER_VERSION = 4            # ayrıştırıcı iyileşince artır: eski sürümle ayrıştırılan boş raporlar yeniden denenir
 
 _CLASS_RULES = (              # (sınıf, ad içinde aranacak kalıplar) — ilk eşleşen kazanır
     ('BYF', ('BORSA YATIRIM FONU',)),
@@ -417,7 +417,93 @@ def _parse_f(lines, num) -> dict:
     return agg
 
 
-_PARSERS = (_parse_a, _parse_b, _parse_c, _parse_d, _parse_e, _parse_f)
+# Şablon G (OCR'lı/taranmış raporlar): 'KOD ŞİRKET ISIN nominal değer grup% toplam%' (yüzde işareti okunmayabilir;
+# OCR kod ile adı bitiştirebilir: 'TUPRSTUPRAS-TURKiYE...' → kod bilinen hisse kodlarından ayrılır)
+_ROW_G = re.compile(r'^(.+?)\s+(TR[A-Z0-9]{9,10})\s+(\d[\d.,]*\d)\s+(\d[\d.,]*\d)\s+(\d[\d.,]*\d)\s*%?\s+(\d[\d.,]*\d)\s*%?$')
+
+
+def _split_code(head: str, tick: set):
+    """('KOD ad ...' | 'KODad...') → (kod, ad); kod bilinen hisse kodlarında değilse (None, None)."""
+    parts = head.split(None, 1)
+    first = parts[0]
+    if first in tick:
+        return first, (parts[1] if len(parts) > 1 else '')
+    for n in (6, 5, 4, 3):                            # bitişik yazılmış: en uzun eşleşen kod
+        if len(first) > n and first[:n] in tick and first[:n].isalnum():
+            rest = first[n:] + (' ' + parts[1] if len(parts) > 1 else '')
+            return first[:n], rest
+    return None, None
+
+
+def _parse_g(lines, num) -> dict:
+    agg = {}
+    tick = _tickers()
+    if not tick:
+        return agg
+    for ln in lines:
+        m = _ROW_G.match(ln.strip())
+        if not m:
+            continue
+        head, isin, nominal, value, _grp, tot = m.groups()
+        if isin.startswith('TRY'):                    # TRY... = yatırım fonu payı, hisse değil
+            continue
+        code, name = _split_code(head, tick)
+        if not code:
+            continue
+        try:
+            _add(agg, code, isin[:12], name, num(nominal), None, num(value), num(tot))
+        except ValueError:
+            continue
+    return agg
+
+
+_PARSERS = (_parse_a, _parse_b, _parse_c, _parse_d, _parse_e, _parse_f, _parse_g)
+
+
+# ── OCR (taranmış/görüntü PDF'ler) ──────────────────────────────────────────
+_ocr_lock = threading.Lock()
+_ocr_engine = None
+
+
+def _ocr_lines(pdf_bytes: bytes, maxpages: int = 12) -> list:
+    """Metin katmanı olmayan PDF'i OCR ile okur; kutuları y konumuna göre satırlara dizer. OCR kütüphanesi yoksa []."""
+    global _ocr_engine
+    try:
+        import numpy as np
+        import pypdfium2 as pdfium
+        from rapidocr_onnxruntime import RapidOCR
+    except Exception:                                # noqa: BLE001
+        return []
+    out = []
+    with _ocr_lock:                                  # PDFium ve OCR motoru tek iş parçacığında
+        if _ocr_engine is None:
+            _ocr_engine = RapidOCR()
+        pdf = pdfium.PdfDocument(pdf_bytes)
+        for i in range(min(maxpages, len(pdf))):
+            page = pdf[i]
+            w = page.get_width()
+            scale = max(1.0, min(3.0, 1900.0 / w))   # ~1900 px genişlik: hızlı ve okunaklı
+            img = page.render(scale=scale).to_pil().convert('RGB')
+            page.close()
+            res, _ = _ocr_engine(np.array(img))
+            boxes = []
+            for b in (res or []):
+                ys = [pt[1] for pt in b[0]]
+                xs = [pt[0] for pt in b[0]]
+                boxes.append({'y': sum(ys) / 4, 'h': max(ys) - min(ys), 'x': min(xs), 't': b[1].strip()})
+            boxes.sort(key=lambda b: b['y'])
+            row, last_y, hs = [], None, [b['h'] for b in boxes] or [10]
+            tol = 0.6 * sorted(hs)[len(hs) // 2]
+            for b in boxes:
+                if last_y is not None and abs(b['y'] - last_y) > tol:
+                    out.append(' '.join(x['t'] for x in sorted(row, key=lambda z: z['x'])))
+                    row = []
+                row.append(b)
+                last_y = b['y'] if not row[:-1] else last_y
+            if row:
+                out.append(' '.join(x['t'] for x in sorted(row, key=lambda z: z['x'])))
+        pdf.close()
+    return out
 
 
 def _plumber_lines(pdf_bytes: bytes, maxpages: int = 60) -> list:
@@ -458,7 +544,13 @@ def parse_report(pdf_bytes: bytes) -> dict:
     lines = _pdf_lines(pdf_bytes)
     num = _doc_num(lines)
     agg = _run_parsers(lines, num)
-    if not agg and _looks_columnar(lines):          # sütun düzeni: konuma göre satır kurup yeniden dene
+    if not agg and sum(len(l) for l in lines) < 300:  # metin katmanı yok (taranmış görüntü): OCR
+        ol = _ocr_lines(pdf_bytes)
+        if ol:
+            lines = ol
+            num = _doc_num(lines)
+            agg = _run_parsers(lines, num)
+    elif not agg and _looks_columnar(lines):        # sütun düzeni: konuma göre satır kurup yeniden dene
         pl = _plumber_lines(pdf_bytes)
         if pl:
             lines = pl
