@@ -154,6 +154,10 @@ def fund_reports(oid: str, subject: str, days: int) -> list:
     return res
 
 
+class NoPdf(RuntimeError):
+    """Duyuruda PDF eki yok: fon (nitelikli yatırımcı fonu vb.) portföy dağılım raporu yükümlülüğünden muaf; okunacak veri yok."""
+
+
 def report_pdf(disclosure_index: int) -> bytes:
     det = _get(f'api/notification/attachment-detail/{disclosure_index}')
     ids = []
@@ -169,7 +173,7 @@ def report_pdf(disclosure_index: int) -> bytes:
                 walk(v)
     walk(det)
     if not ids:
-        raise RuntimeError(f'{disclosure_index}: PDF eki yok')
+        raise NoPdf(f'{disclosure_index}: PDF eki yok')
     return _get(f'api/file/download/{ids[0]}', raw=True)
 
 
@@ -657,6 +661,8 @@ def _process_fund(fund: dict, days: int, have: set, max_new=None) -> dict:
         for rep in new:
             try:
                 res['reports'].append((rep, parse_report(report_pdf(rep['index']))))
+            except NoPdf:
+                continue                             # muaf fon: hata değil, atla
             except Exception as e:                   # noqa: BLE001
                 res['errors'].append(f"{rep['period']}: {str(e)[:80]}")
     except Exception as e:                           # noqa: BLE001
