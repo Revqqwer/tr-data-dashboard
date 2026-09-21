@@ -47,12 +47,17 @@ def months() -> dict:
         rows = con.execute('SELECT period, COUNT(*) n FROM kap_reports GROUP BY period ORDER BY period DESC').fetchall()
         cmap = _class_map(con)
         latest = rows[0]['period'] if rows else None
-        cnt = {}
+        stat = {}
+        for r in con.execute('SELECT code, COALESCE(status, \'\') st FROM kap_funds'):
+            k = cmap.get(r['code'], 'Diğer')
+            d = stat.setdefault(k, {'total': 0, 'with_report': 0, 'with_stocks': 0})
+            d['total'] += 1
         if latest:
+            for r in con.execute('SELECT DISTINCT fund_code FROM kap_reports WHERE period=?', (latest,)):
+                stat.setdefault(cmap.get(r[0], 'Diğer'), {'total': 0, 'with_report': 0, 'with_stocks': 0})['with_report'] += 1
             for r in con.execute('SELECT DISTINCT fund_code FROM kap_holdings WHERE period=?', (latest,)):
-                c = cmap.get(r[0], 'Diğer')
-                cnt[c] = cnt.get(c, 0) + 1
-        classes = [{'name': k, 'funds': v} for k, v in sorted(cnt.items(), key=lambda x: -x[1])]
+                stat.setdefault(cmap.get(r[0], 'Diğer'), {'total': 0, 'with_report': 0, 'with_stocks': 0})['with_stocks'] += 1
+        classes = [{'name': k, **v, 'funds': v['with_stocks']} for k, v in sorted(stat.items(), key=lambda x: (-x[1]['with_stocks'], -x[1]['total']))]
         return {'periods': [{'period': r['period'], 'funds': r['n']} for r in rows], 'classes': classes}
     finally:
         con.close()
@@ -210,6 +215,39 @@ def top_moves(period: str = None, limit: int = 25, cls: str = None, q: str = Non
                 'total_buy': sum(x['d_tl'] for x in out if x['d_tl'] > 0),
                 'total_sell': sum(x['d_tl'] for x in out if x['d_tl'] < 0),
                 'bought': bought, 'sold': sold}
+    finally:
+        con.close()
+
+
+def class_funds(cls: str, period: str = None) -> dict:
+    """Bir sınıftaki fonlar: KAP'taki toplam, raporu olanlar ve hisse portföyü okunanlar (liste + sayaçlar)."""
+    con = _con()
+    if not con or not cls:
+        return {'empty': True}
+    try:
+        periods = _periods(con)
+        per = period if period in periods else (periods[0] if periods else None)
+        cmap = _class_map(con)
+        total = skipped = no_report = 0
+        for r in con.execute("SELECT code, COALESCE(status,'') st FROM kap_funds"):
+            if cmap.get(r['code'], 'Diğer') != cls:
+                continue
+            total += 1
+            skipped += r['st'] == 'skipped'
+            no_report += r['st'] == 'no_report'
+        funds = []
+        if per:
+            rows = con.execute(
+                "SELECT f.code, f.name, r.fund_value, r.stock_pct, "
+                "(SELECT COUNT(*) FROM kap_holdings h WHERE h.fund_code=f.code AND h.period=?) nh "
+                "FROM kap_funds f JOIN kap_reports r ON r.fund_code=f.code AND r.period=?", (per, per)).fetchall()
+            for r in rows:
+                if cmap.get(r['code'], 'Diğer') != cls:
+                    continue
+                funds.append({'code': r['code'], 'name': r['name'], 'holdings': r['nh'], 'stock_pct': r['stock_pct'], 'fund_value': r['fund_value']})
+        funds.sort(key=lambda x: (-(x['holdings'] > 0), -(x['fund_value'] or 0)))
+        return {'empty': False, 'cls': cls, 'period': per, 'total': total, 'skipped': skipped, 'no_report': no_report,
+                'with_report': len(funds), 'with_stocks': sum(1 for f in funds if f['holdings'] > 0), 'funds': funds}
     finally:
         con.close()
 
