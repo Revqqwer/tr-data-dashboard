@@ -158,7 +158,7 @@ class NoPdf(RuntimeError):
     """Duyuruda PDF eki yok: fon (nitelikli yatırımcı fonu vb.) portföy dağılım raporu yükümlülüğünden muaf; okunacak veri yok."""
 
 
-def report_pdf(disclosure_index: int) -> bytes:
+def _pdf_ids(disclosure_index: int) -> list:
     det = _get(f'api/notification/attachment-detail/{disclosure_index}')
     ids = []
 
@@ -174,7 +174,11 @@ def report_pdf(disclosure_index: int) -> bytes:
     walk(det)
     if not ids:
         raise NoPdf(f'{disclosure_index}: PDF eki yok')
-    return _get(f'api/file/download/{ids[0]}', raw=True)
+    return list(dict.fromkeys(ids))
+
+
+def report_pdf(disclosure_index: int) -> bytes:
+    return _get(f'api/file/download/{_pdf_ids(disclosure_index)[0]}', raw=True)
 
 
 # ── PDF ayrıştırma ──────────────────────────────────────────────────────────
@@ -243,6 +247,10 @@ _ROW_C = re.compile(r'^\s*\d+\s+([A-Z0-9]{3,6})\.E\s+(.*?)\s+(\d[\d.]*,\d+)\s+(\
 # Şablon D (Yapı Kredi): 'KOD ISIN ŞİRKET nominal değer oran'   (sayılar İngilizce: 600,200.00)
 _ROW_D = re.compile(r'^([A-Z0-9]{3,6})\s+(TR[A-Z0-9]{9}\d)\s+(.+?)\s+(\d[\d,]*\.\d+)\s+(\d[\d,]*\.\d+)\s+(\d[\d,]*\.\d+)\s*$')
 _ISIN = re.compile(r'^TR[A-Z0-9]{9}\d$')
+# Şablon H (İş/AK Portföy vb.): 'KOD TL [ŞİRKET] ISIN nominal maliyet gg/aa/yy fiyat değer grup% ara% toplam%'
+_N = r'(\d[\d.,]*)'
+_ROW_H = re.compile(r'^([A-Z0-9]{3,6})\s+TL\s+(?:(.*?)\s+)?(TR[A-Z0-9]{9}\d)\s+' + _N + r'\s+' + _N + r'\s+(\d{2}/\d{2}/\d{2,4})\s+(?:\d{8,}\s+)?'
+                    + _N + r'\s+' + _N + r'\s+' + _N + r'\s+' + _N + r'\s+' + _N + r'$')
 _tickers_cache = None
 
 
@@ -486,7 +494,53 @@ def _parse_g(lines, num) -> dict:
     return agg
 
 
-_PARSERS = (_parse_a, _parse_b, _parse_c, _parse_d, _parse_e, _parse_f, _parse_g)
+def _parse_h(lines, num) -> dict:
+    """Şablon H: satır başında hisse kodu + 'TL' (ticker-ilk düzen). Repo teminat satırları (değer 0) atlanır."""
+    tick = _tickers()
+    agg = {}
+    for ln in lines:
+        m = _ROW_H.match(ln.strip())
+        if not m or m.group(1) not in tick:
+            continue
+        code, name, isin, nominal, cost, _d, _price, value, _g, _mid, tot = m.groups()
+        if re.search(r'\d{2}/\d{2}/\d{2}', name or ''):
+            continue
+        try:
+            v = num(value)
+            if v <= 0:
+                continue
+            _add(agg, code, isin, name or '', num(nominal), num(cost), v, num(tot))
+        except ValueError:
+            continue
+    return agg
+
+
+_ROW_I = re.compile(r'^([A-Z0-9]{3,6})\s+(\d[\d.,]*)\s+(\d[\d.,]*)\s+%?\s*(\d[\d.,]*)\s*%?$')
+
+
+def _parse_i(lines, num) -> dict:
+    """Şablon I (Rota vb.): 'KOD nominal değer oran%' — yalnızca 4 parçalı, oranı olan satırlar; maliyet yok."""
+    tick = _tickers()
+    agg = {}
+    for ln in lines:
+        t = ln.strip()
+        if '%' not in t:
+            continue
+        m = _ROW_I.match(t)
+        if not m or m.group(1) not in tick:
+            continue
+        code, nominal, value, pct = m.groups()
+        try:
+            n_, v_, p_ = num(nominal), num(value), num(pct)
+        except ValueError:
+            continue
+        if v_ <= 0 or not (0 < p_ <= 100):
+            continue
+        _add(agg, code, None, '', n_, None, v_, p_)
+    return agg
+
+
+_PARSERS = (_parse_a, _parse_b, _parse_c, _parse_d, _parse_e, _parse_f, _parse_g, _parse_h, _parse_i)
 
 
 # ── OCR (taranmış/görüntü PDF'ler) ──────────────────────────────────────────
@@ -562,7 +616,7 @@ def _plumber_lines(pdf_bytes: bytes, maxpages: int = 40) -> list:
 def _looks_columnar(lines) -> bool:
     """Hisse kodları tek başına satır satır dizilmişse (sütun düzeni) ikinci okuma değer."""
     tick = _tickers()
-    return sum(1 for l in lines if l.strip() in tick) >= 3
+    return sum(1 for l in lines if l.strip() in tick or (l.split()[:1] and l.split()[0] in tick)) >= 3
 
 
 def _run_parsers(lines, num) -> dict:
@@ -600,6 +654,23 @@ def parse_report(pdf_bytes: bytes) -> dict:
         holdings.append(a)
     holdings.sort(key=lambda x: -x['weight_pct'])
     return {'fund_value': _fund_value(lines, num), 'stock_pct': sum(h['weight_pct'] for h in holdings), 'holdings': holdings}
+
+
+def parse_disclosure(disclosure_index: int) -> dict:
+    """Duyurudaki PDF eklerini sırayla dener (bazı fonlar portföy tablosunu ikinci ekte yollar); hisse çıkan ilk ek kazanır."""
+    best, fund_value = None, None
+    for oid in _pdf_ids(disclosure_index):
+        r = parse_report(_get(f'api/file/download/{oid}', raw=True))
+        if r['fund_value'] and fund_value is None:
+            fund_value = r['fund_value']
+        if r['holdings']:
+            if r['fund_value'] is None:
+                r['fund_value'] = fund_value
+            return r
+        best = best or r
+    if best is not None and best['fund_value'] is None:
+        best['fund_value'] = fund_value
+    return best
 
 
 # ── Depolama ────────────────────────────────────────────────────────────────
@@ -660,7 +731,7 @@ def _process_fund(fund: dict, days: int, have: set, max_new=None) -> dict:
             new = new[:max_new]                      # en yeni max_new rapor (liste yeniden eskiye sıralı)
         for rep in new:
             try:
-                res['reports'].append((rep, parse_report(report_pdf(rep['index']))))
+                res['reports'].append((rep, parse_disclosure(rep['index'])))
             except NoPdf:
                 continue                             # muaf fon: hata değil, atla
             except Exception as e:                   # noqa: BLE001
@@ -760,7 +831,7 @@ def reparse(budget_min=45, workers=2, log=print) -> int:
     def work(row):
         code, period, index, published = row
         try:
-            return row, parse_report(report_pdf(index)), None
+            return row, parse_disclosure(index), None
         except Exception as e:                       # noqa: BLE001
             return row, None, str(e)[:100]
 
