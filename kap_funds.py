@@ -179,6 +179,31 @@ def _num(s: str) -> float:
 
 
 _pdf_lock = threading.Lock()      # PDFium iş parçacığı güvenli DEĞİL (çoklu iş parçacığında çöker)
+_heavy_lock = threading.Lock()    # pdfplumber / OCR: bellek yiyen okumalar aynı anda tek tane
+
+MEM_LIMIT_MB = int(os.environ.get('KAP_MEM_LIMIT_MB', '1400'))   # PA hesap sınırı 3 GB; süreç bunu aşmadan kendini bitirir
+
+
+def _rss_mb() -> float:
+    """Sürecin bellek kullanımı (MB); /proc yoksa (Windows) 0."""
+    try:
+        with open('/proc/self/status') as f:
+            for line in f:
+                if line.startswith('VmRSS:'):
+                    return int(line.split()[1]) / 1024
+    except OSError:
+        pass
+    return 0.0
+
+
+def _mem_ok(log=None) -> bool:
+    """Bellek sınırı aşıldıysa False: yeni iş başlatılmaz, süreç temiz kapanır (saatlik görev taze süreçle devam eder)."""
+    m = _rss_mb()
+    if m > MEM_LIMIT_MB:
+        if log:
+            log(f'bellek {m:.0f} MB > {MEM_LIMIT_MB} MB: yeni iş başlatılmıyor, süreç kapanıyor (sonraki çalıştırma devam eder)')
+        return False
+    return True
 
 
 def _pdf_lines(pdf_bytes: bytes) -> list:
@@ -475,7 +500,7 @@ def _ocr_lines(pdf_bytes: bytes, maxpages: int = 12) -> list:
     except Exception:                                # noqa: BLE001
         return []
     out = []
-    with _ocr_lock:                                  # PDFium ve OCR motoru tek iş parçacığında
+    with _heavy_lock, _pdf_lock, _ocr_lock:                   # PDFium ve OCR motoru tek iş parçacığında
         if _ocr_engine is None:
             _ocr_engine = RapidOCR()
         pdf = pdfium.PdfDocument(pdf_bytes)
@@ -485,7 +510,10 @@ def _ocr_lines(pdf_bytes: bytes, maxpages: int = 12) -> list:
             scale = max(1.0, min(3.0, 1900.0 / w))   # ~1900 px genişlik: hızlı ve okunaklı
             img = page.render(scale=scale).to_pil().convert('RGB')
             page.close()
-            res, _ = _ocr_engine(np.array(img))
+            arr = np.array(img)
+            del img
+            res, _ = _ocr_engine(arr)
+            del arr
             boxes = []
             for b in (res or []):
                 ys = [pt[1] for pt in b[0]]
@@ -503,10 +531,12 @@ def _ocr_lines(pdf_bytes: bytes, maxpages: int = 12) -> list:
             if row:
                 out.append(' '.join(x['t'] for x in sorted(row, key=lambda z: z['x'])))
         pdf.close()
+    import gc
+    gc.collect()
     return out
 
 
-def _plumber_lines(pdf_bytes: bytes, maxpages: int = 60) -> list:
+def _plumber_lines(pdf_bytes: bytes, maxpages: int = 40) -> list:
     """İkinci okuma: sayfadaki konuma göre satır kurar (sütun sütun yazılmış PDF'lerde satırlar doğru gelir)."""
     try:
         import pdfplumber
@@ -514,11 +544,14 @@ def _plumber_lines(pdf_bytes: bytes, maxpages: int = 60) -> list:
         return []
     out = []
     try:
-        with pdfplumber.open(io.BytesIO(pdf_bytes)) as p:
+        with _heavy_lock, pdfplumber.open(io.BytesIO(pdf_bytes)) as p:
             for pg in p.pages[:maxpages]:
                 out += (pg.extract_text() or '').split('\n')
+                pg.flush_cache()                     # sayfa nesneleri birikip belleği şişirmesin
     except Exception:                                # noqa: BLE001
         return []
+    import gc
+    gc.collect()
     return out
 
 
@@ -662,7 +695,7 @@ def run(days=130, budget_min=60, workers=2, only_codes=None, log=print, skip_che
         pending = set()
 
         def submit_next():
-            if time.time() > deadline:
+            if time.time() > deadline or not _mem_ok(log):
                 return False
             f = next(it, None)
             if f is None:
@@ -730,7 +763,7 @@ def reparse(budget_min=45, workers=2, log=print) -> int:
         pending = set()
 
         def nxt():
-            if time.time() > deadline:
+            if time.time() > deadline or not _mem_ok(log):
                 return False
             r = next(it, None)
             if r is None:
@@ -889,6 +922,9 @@ if __name__ == '__main__':
     ap.add_argument('--budget', type=int, default=60, help='dakika')
     ap.add_argument('--workers', type=int, default=2)
     a = ap.parse_args()
+    if a.cmd in ('run', 'history', 'reparse', 'fund') and not _acquire_lock():
+        print('başka bir kap_funds süreci çalışıyor (data/kap_monthly.lock), çıkılıyor')
+        sys.exit(0)
     if a.cmd == 'discover':
         c = connect()
         discover(c)
