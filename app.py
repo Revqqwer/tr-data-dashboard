@@ -1134,7 +1134,8 @@ def api_fi_top():
         limit = max(5, min(100, int(request.args.get('limit', 25))))
     except ValueError:
         limit = 25
-    return jsonify(fon_icerik.top_moves(request.args.get('period') or None, limit))
+    return jsonify(fon_icerik.top_moves(request.args.get('period') or None, limit,
+                                        request.args.get('cls') or None, request.args.get('q') or None))
 
 
 @app.route('/api/fonicerik/stocks')
@@ -1152,7 +1153,7 @@ def api_fi_stock():
 @app.route('/api/fonicerik/funds')
 def api_fi_funds():
     import fon_icerik
-    return jsonify(fon_icerik.fund_search(request.args.get('q', '')))
+    return jsonify(fon_icerik.fund_search(request.args.get('q', ''), 60, request.args.get('cls') or None))
 
 
 @app.route('/api/fonicerik/fund')

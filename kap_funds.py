@@ -67,6 +67,35 @@ CREATE INDEX IF NOT EXISTS idx_kh_period ON kap_holdings (period);
 """
 
 _rate_lock = threading.Lock()
+PARSER_VERSION = 2            # ayrıştırıcı iyileşince artır: eski sürümle ayrıştırılan boş raporlar yeniden denenir
+
+_CLASS_RULES = (              # (sınıf, ad içinde aranacak kalıplar) — ilk eşleşen kazanır
+    ('BYF', ('BORSA YATIRIM FONU',)),
+    ('Fon Sepeti', ('FON SEPETİ', 'FON SEPETI')),
+    ('Serbest', ('SERBEST',)),
+    ('Hisse Senedi Yoğun', ('HİSSE SENEDİ', 'HISSE SENEDI')),
+    ('Değişken', ('DEĞİŞKEN', 'DEGISKEN')),
+    ('Karma', ('KARMA',)),
+    ('Endeks', ('ENDEKS',)),
+    ('Altın / Kıymetli Maden', ('ALTIN', 'KIYMETLİ MADEN', 'GÜMÜŞ', 'PLATİN')),
+    ('Borçlanma Araçları', ('BORÇLANMA ARAÇLARI', 'BORCLANMA ARACLARI')),
+    ('Para Piyasası / Likit', ('PARA PİYASASI', 'PARA PIYASASI', 'LİKİT', 'LIKIT')),
+    ('Katılım', ('KATILIM',)),
+    ('Yabancı', ('YABANCI', 'FUNDS', ' SICAV')),
+)
+
+
+def classify(name: str) -> str:
+    """Fon adından klasman (KAP fon adında sınıf ifadesi geçer: '(HİSSE SENEDİ YOĞUN FON)', 'SERBEST FON' vb.)."""
+    u = (name or '').upper()
+    for cls, keys in _CLASS_RULES:
+        if any(k in u for k in keys):
+            return cls
+    return 'Diğer'
+
+
+# Hisse taşıması beklenmeyen sınıflar: yeniden ayrıştırmada atlanır
+_NO_STOCK_CLASSES = ('Fon Sepeti', 'Borçlanma Araçları', 'Para Piyasası / Likit', 'Altın / Kıymetli Maden')
 
 
 def _get(path: str, raw=False, tries=5):
@@ -146,7 +175,7 @@ def report_pdf(disclosure_index: int) -> bytes:
 
 # ── PDF ayrıştırma ──────────────────────────────────────────────────────────
 def _num(s: str) -> float:
-    return float(s.replace('.', '').replace(',', '.').replace('%', ''))
+    return float(s.replace('.', '').replace(',', '.').replace('%', ''))      # Türkçe (eski ad)
 
 
 _pdf_lock = threading.Lock()      # PDFium iş parçacığı güvenli DEĞİL (çoklu iş parçacığında çöker)
@@ -180,8 +209,41 @@ _NUM = r'(\d[\d.]*,\d+)'
 # Şablon B satırı:  TL [ISIN] nominal maliyet gg/aa/yy seansNo fiyat değer grup% ara% toplam%
 _ROW_B = re.compile(r'^TL\s+(?:(TR[A-Z0-9]{9}\d)\s+)?' + _NUM + r'\s+' + _NUM + r'\s+(\d{2}/\d{2}/\d{2,4})\s+\S+\s+'
                     + _NUM + r'\s+' + _NUM + r'\s+' + _NUM + r'\s+' + _NUM + r'\s+' + _NUM + r'$')
+# Şablon C (Ziraat): 'sıra KOD.E ŞİRKET nominal değer oran% fiyat'   (sayılar Türkçe: 1.400.001,000)
+_ROW_C = re.compile(r'^\s*\d+\s+([A-Z0-9]{3,6})\.E\s+(.*?)\s+(\d[\d.]*,\d+)\s+(\d[\d.]*,\d+)\s+(\d[\d.]*,\d+)\s+(\d[\d.]*,\d+)\s*$')
+# Şablon D (Yapı Kredi): 'KOD ISIN ŞİRKET nominal değer oran'   (sayılar İngilizce: 600,200.00)
+_ROW_D = re.compile(r'^([A-Z0-9]{3,6})\s+(TR[A-Z0-9]{9}\d)\s+(.+?)\s+(\d[\d,]*\.\d+)\s+(\d[\d,]*\.\d+)\s+(\d[\d,]*\.\d+)\s*$')
 _ISIN = re.compile(r'^TR[A-Z0-9]{9}\d$')
 _tickers_cache = None
+
+
+def _num_tr(s: str) -> float:
+    return float(s.replace('.', '').replace(',', '.').replace('%', ''))
+
+
+def _num_en(s: str) -> float:
+    return float(s.replace(',', '').replace('%', ''))
+
+
+def _num_auto(s: str) -> float:
+    """Biçimi kendisi çözer: hem ',' hem '.' varsa sonuncusu ondalıktır."""
+    s = s.strip().replace('%', '')
+    if ',' in s and '.' in s:
+        return _num_en(s) if s.rfind('.') > s.rfind(',') else _num_tr(s)
+    if ',' in s:
+        return _num_en(s) if re.fullmatch(r'\d{1,3}(,\d{3})+', s) else _num_tr(s)
+    if '.' in s:
+        return _num_tr(s) if re.fullmatch(r'\d{1,3}(\.\d{3})+', s) else float(s)
+    return float(s)
+
+
+def _doc_num(lines):
+    """Belgenin sayı biçimi: İngilizce (1,234.56) ağırlıklıysa _num_en, değilse _num_tr."""
+    en = tr = 0
+    for l in lines:
+        en += bool(re.search(r'\d{1,3}(,\d{3})+\.\d{2}\b', l))
+        tr += bool(re.search(r'\d{1,3}(\.\d{3})+,\d{2}\b', l))
+    return _num_en if en > tr else _num_tr
 
 
 def _tickers() -> set:
@@ -203,16 +265,20 @@ def _tickers() -> set:
 
 def _add(agg, code, isin, name, nominal, cost, value, pct):
     a = agg.setdefault(code, {'stock': code, 'isin': isin, 'name': name, 'lots': 0.0, 'value': 0.0,
-                              'weight_pct': 0.0, 'cost_x_lot': 0.0})
+                              'weight_pct': 0.0, 'cost_x_lot': 0.0, 'cost_lots': 0.0})
     if isin and not a['isin']:
         a['isin'] = isin
+    if len(name or '') > len(a['name'] or ''):
+        a['name'] = name
     a['lots'] += nominal
     a['value'] += value
     a['weight_pct'] += pct
-    a['cost_x_lot'] += cost * nominal
+    if cost is not None:                       # bazı şablonlarda alış maliyeti yok
+        a['cost_x_lot'] += cost * nominal
+        a['cost_lots'] += nominal
 
 
-def _parse_a(lines) -> dict:
+def _parse_a(lines, num) -> dict:
     """Şablon A: 'KOD.E  ŞİRKET ADI  ISIN ... nominal maliyet gg.aa.yyyy ... değer grup% toplam%'"""
     agg = {}
     for ln in lines:
@@ -226,15 +292,15 @@ def _parse_a(lines) -> dict:
         if not isin or di is None or di < 3:
             continue
         try:
-            nominal, cost = _num(t[di - 2]), _num(t[di - 1])
-            value, pct = _num(t[-3]), _num(t[-1])
+            nominal, cost = num(t[di - 2]), num(t[di - 1])
+            value, pct = num(t[-3]), num(t[-1])
         except ValueError:
             continue
         _add(agg, t[0].split('.')[0], isin, ' '.join(t[1:t.index(isin)]), nominal, cost, value, pct)
     return agg
 
 
-def _parse_b(lines) -> dict:
+def _parse_b(lines, num) -> dict:
     """Şablon B: 'KOD ŞİRKET' satırı + ad parçaları + 'TL [ISIN] nominal maliyet gg/aa/yy ... değer % % %' satırı."""
     tick = _tickers()
     agg, cur, cur_name = {}, None, ''
@@ -252,27 +318,84 @@ def _parse_b(lines) -> dict:
                 if 0 <= j < len(lines) and _ISIN.match(lines[j].strip()):
                     isin = lines[j].strip()
                     break
-        _add(agg, cur, isin, cur_name, _num(nominal), _num(cost), _num(value), _num(tot))
+        try:
+            _add(agg, cur, isin, cur_name, num(nominal), num(cost), num(value), num(tot))
+        except ValueError:
+            continue
     return agg
 
 
-def parse_report(pdf_bytes: bytes) -> dict:
-    """Hisse (PAY) pozisyonlarını hisse bazında toplar; şablon A, olmazsa B denenir."""
-    lines = _pdf_lines(pdf_bytes)
-    fund_value = None
+def _parse_c(lines, num) -> dict:
+    """Şablon C (Ziraat): 'sıra KOD.E ŞİRKET nominal değer oran% fiyat' — maliyet yok; '.F' (fon) satırları atlanır."""
+    agg = {}
+    for ln in lines:
+        m = _ROW_C.match(ln)
+        if not m:
+            continue
+        code, name, nominal, value, pct, _price = m.groups()
+        try:
+            _add(agg, code, None, name, _num_tr(nominal), None, _num_tr(value), _num_tr(pct))
+        except ValueError:
+            continue
+    return agg
+
+
+def _parse_d(lines, num) -> dict:
+    """Şablon D (Yapı Kredi): 'KOD ISIN ŞİRKET nominal değer oran' — İngilizce sayılar; yalnızca 'A) HİSSE SENETLERİ' bölümü."""
+    agg, inside = {}, False
+    for ln in lines:
+        u = ln.strip().upper().replace('İ', 'I')
+        if re.match(r'^A\)\s*HISSE SENETLERI', u):
+            inside = True
+            continue
+        if inside and re.match(r'^[B-Z]\)\s*\S', u):
+            inside = False
+        if not inside:
+            continue
+        m = _ROW_D.match(ln.strip())
+        if not m:
+            continue
+        code, isin, name, nominal, value, pct = m.groups()
+        try:
+            _add(agg, code, isin, name, _num_en(nominal), None, _num_en(value), _num_en(pct))
+        except ValueError:
+            continue
+    return agg
+
+
+def _fund_value(lines, num):
     for ln in lines:
         m = re.search(r'TOPLAM DE.ER:\s*\(TL\)\s*([\d.,]+)', ln)
         if m:
-            fund_value = _num(m.group(1))
+            try:
+                return _num_auto(m.group(1))
+            except ValueError:
+                return None
+    return None
+
+
+_PARSERS = (_parse_a, _parse_b, _parse_c, _parse_d)
+
+
+def parse_report(pdf_bytes: bytes) -> dict:
+    """Hisse (PAY) pozisyonlarını hisse bazında toplar; şablonlar sırayla denenir (ilk sonuç veren kazanır)."""
+    lines = _pdf_lines(pdf_bytes)
+    num = _doc_num(lines)
+    agg = {}
+    for fn in _PARSERS:
+        try:
+            agg = fn(lines, num)
+        except Exception:                           # noqa: BLE001 — bir şablon çökse de diğerleri denensin
+            agg = {}
+        if agg:
             break
-    agg = _parse_a(lines) or _parse_b(lines)
     holdings = []
     for a in agg.values():
-        a['avg_cost'] = a['cost_x_lot'] / a['lots'] if a['lots'] else None
-        del a['cost_x_lot']
+        a['avg_cost'] = a['cost_x_lot'] / a['cost_lots'] if a['cost_lots'] else None
+        del a['cost_x_lot'], a['cost_lots']
         holdings.append(a)
     holdings.sort(key=lambda x: -x['weight_pct'])
-    return {'fund_value': fund_value, 'stock_pct': sum(h['weight_pct'] for h in holdings), 'holdings': holdings}
+    return {'fund_value': _fund_value(lines, num), 'stock_pct': sum(h['weight_pct'] for h in holdings), 'holdings': holdings}
 
 
 # ── Depolama ────────────────────────────────────────────────────────────────
@@ -280,13 +403,24 @@ def connect():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     con = sqlite3.connect(DB_PATH, timeout=60)
     con.executescript(SCHEMA)
+    for ddl in ('ALTER TABLE kap_funds ADD COLUMN fund_class TEXT',
+                'ALTER TABLE kap_reports ADD COLUMN parse_ver INTEGER DEFAULT 1'):
+        try:
+            con.execute(ddl)
+        except sqlite3.OperationalError:
+            pass                                     # sütun zaten var
+    # klasmanı olmayan fonları doldur
+    rows = con.execute('SELECT code, name FROM kap_funds WHERE fund_class IS NULL').fetchall()
+    if rows:
+        con.executemany('UPDATE kap_funds SET fund_class=? WHERE code=?', [(classify(n), c) for c, n in rows])
+        con.commit()
     return con
 
 
 def save_report(con, code: str, rep: dict, parsed: dict):
     con.execute('DELETE FROM kap_holdings WHERE fund_code=? AND period=?', (code, rep['period']))
-    con.execute('INSERT OR REPLACE INTO kap_reports VALUES (?,?,?,?,?,?)',
-                (code, rep['period'], rep['index'], rep['published'], parsed['fund_value'], parsed['stock_pct']))
+    con.execute('INSERT OR REPLACE INTO kap_reports (fund_code, period, disclosure_index, published, fund_value, stock_pct, parse_ver) VALUES (?,?,?,?,?,?,?)',
+                (code, rep['period'], rep['index'], rep['published'], parsed['fund_value'], parsed['stock_pct'], PARSER_VERSION))
     con.executemany('INSERT INTO kap_holdings VALUES (?,?,?,?,?,?,?,?,?)',
                     [(code, rep['period'], h['stock'], h['isin'], h['name'], h['lots'], h['value'], h['weight_pct'], h['avg_cost'])
                      for h in parsed['holdings']])
@@ -298,8 +432,8 @@ def discover(con, log=print):
     for t in FUND_TYPES:
         for f in list_funds(t):
             status = 'skipped' if SKIP_NAME.search(f['name']) else None
-            cur = con.execute('INSERT OR IGNORE INTO kap_funds (code,name,type,permalink,status) VALUES (?,?,?,?,?)',
-                              (f['code'], f['name'], t, f['permalink'], status))
+            cur = con.execute('INSERT OR IGNORE INTO kap_funds (code,name,type,permalink,status,fund_class) VALUES (?,?,?,?,?,?)',
+                              (f['code'], f['name'], t, f['permalink'], status, classify(f['name'])))
             n_new += cur.rowcount
         con.commit()
     log(f'fon listesi: {n_new} yeni fon eklendi')
@@ -394,6 +528,67 @@ def run(days=130, budget_min=60, workers=2, only_codes=None, log=print, skip_che
     return left
 
 
+def reparse(budget_min=45, workers=2, log=print) -> int:
+    """
+    Eski ayrıştırıcı sürümüyle hisse çıkarılamayan raporları (hisse satırı olmayan) yeniden indirip dener.
+    Yine boş çıkarsa parse_ver güncellenir; böylece aynı rapor tekrar tekrar denenmez.
+    """
+    con = connect()
+    skip = ','.join('?' * len(_NO_STOCK_CLASSES))
+    rows = con.execute(f"""
+        SELECT r.fund_code, r.period, r.disclosure_index, r.published
+        FROM kap_reports r JOIN kap_funds f ON f.code = r.fund_code
+        WHERE COALESCE(r.parse_ver, 1) < ?
+          AND NOT EXISTS (SELECT 1 FROM kap_holdings h WHERE h.fund_code = r.fund_code AND h.period = r.period)
+          AND COALESCE(f.fund_class, '') NOT IN ({skip})
+        ORDER BY r.period DESC, r.fund_code""", (PARSER_VERSION, *_NO_STOCK_CLASSES)).fetchall()
+    log(f'yeniden ayrıştırılacak rapor: {len(rows)}')
+    deadline = time.time() + budget_min * 60
+    done = fixed = 0
+
+    def work(row):
+        code, period, index, published = row
+        try:
+            return row, parse_report(report_pdf(index)), None
+        except Exception as e:                       # noqa: BLE001
+            return row, None, str(e)[:100]
+
+    with ThreadPoolExecutor(max_workers=workers) as ex:
+        it = iter(rows)
+        pending = set()
+
+        def nxt():
+            if time.time() > deadline:
+                return False
+            r = next(it, None)
+            if r is None:
+                return False
+            pending.add(ex.submit(work, r))
+            return True
+
+        for _ in range(workers * 2):
+            if not nxt():
+                break
+        while pending:
+            for fut in as_completed(list(pending)):
+                pending.discard(fut)
+                (code, period, index, published), parsed, err = fut.result()
+                if parsed is not None:
+                    save_report(con, code, {'period': period, 'index': index, 'published': published}, parsed)
+                    fixed += bool(parsed['holdings'])
+                else:
+                    log(f'  ! {code} {period}: {err}')
+                con.commit()
+                done += 1
+                if done % 25 == 0:
+                    log(f'reparse {done}/{len(rows)}, {fixed} rapor düzeldi')
+                nxt()
+                break
+    con.close()
+    log(f'reparse bitti: {done} rapor denendi, {fixed} tanesinde hisse bulundu, {len(rows) - done} kaldı')
+    return len(rows) - done
+
+
 def expected_period(today=None) -> str:
     """Bugün itibarıyla tamamlanmış olması beklenen son rapor ayı.
     Raporlar ayın ~8'inde yayımlanır; ayın 12'sinden itibaren geçen ay beklenir, öncesinde bir önceki ay."""
@@ -463,11 +658,16 @@ def _monthly(budget_min, workers, log) -> int:
             if c not in have]
     con.close()
     log(f'{today} hedef dönem {per}: {len(have)} fonun raporu var, {len(todo)} fon kontrol edilecek')
-    if not todo:
-        return 0
-    # Aynı gün zaten kontrol edilen fonları (raporu henüz yayımlanmamış olabilir) yeniden sorgulama
-    return run(days=70, budget_min=budget_min, workers=workers, only_codes=set(todo), log=log, skip_checked_today=True,
-               do_discover=False)
+    t0 = time.time()
+    left = 0
+    if todo:
+        # Aynı gün zaten kontrol edilen fonları (raporu henüz yayımlanmamış olabilir) yeniden sorgulama
+        left = run(days=70, budget_min=budget_min, workers=workers, only_codes=set(todo), log=log, skip_checked_today=True,
+                   do_discover=False)
+    remaining = budget_min - (time.time() - t0) / 60
+    if left == 0 and remaining > 1:                       # bekleyen fon kalmadıysa boş kalan raporları yeniden ayrıştır
+        left = reparse(budget_min=remaining, workers=workers, log=log)
+    return left
 
 
 def status() -> dict:
@@ -485,7 +685,7 @@ def status() -> dict:
 
 if __name__ == '__main__':
     ap = argparse.ArgumentParser()
-    ap.add_argument('cmd', choices=['discover', 'run', 'monthly', 'fund', 'status'])
+    ap.add_argument('cmd', choices=['discover', 'run', 'monthly', 'fund', 'status', 'reparse'])
     ap.add_argument('arg', nargs='?')
     ap.add_argument('--days', type=int, default=130)
     ap.add_argument('--budget', type=int, default=60, help='dakika')
@@ -500,6 +700,8 @@ if __name__ == '__main__':
         print(status())
     elif a.cmd == 'monthly':
         monthly(a.budget, a.workers)
+    elif a.cmd == 'reparse':
+        reparse(a.budget, a.workers)
     elif a.cmd == 'fund':
         run(a.days, a.budget, 1, only_codes={a.arg.upper()})
         print(status())

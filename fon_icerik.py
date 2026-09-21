@@ -8,6 +8,12 @@ Aylık değişim hesabı yalnızca HER İKİ dönemde de raporu olan fonlar üze
 import os
 import sqlite3
 
+try:
+    from kap_funds import classify
+except Exception:                                    # noqa: BLE001
+    def classify(name):
+        return 'Diğer'
+
 _ROOT = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(_ROOT, 'data', 'kap_fund_holdings.db')
 
@@ -18,6 +24,11 @@ def _con():
     con = sqlite3.connect(f'file:{DB_PATH}?mode=ro', uri=True, timeout=30)
     con.row_factory = sqlite3.Row
     return con
+
+
+def _class_map(con) -> dict:
+    """{fon kodu: klasman} — fon adından hesaplanır (DB şemasından bağımsız)."""
+    return {r['code']: classify(r['name']) for r in con.execute('SELECT code, name FROM kap_funds')}
 
 
 def _prev(periods: list, period: str):
@@ -34,7 +45,15 @@ def months() -> dict:
         return {'periods': []}
     try:
         rows = con.execute('SELECT period, COUNT(*) n FROM kap_reports GROUP BY period ORDER BY period DESC').fetchall()
-        return {'periods': [{'period': r['period'], 'funds': r['n']} for r in rows]}
+        cmap = _class_map(con)
+        latest = rows[0]['period'] if rows else None
+        cnt = {}
+        if latest:
+            for r in con.execute('SELECT DISTINCT fund_code FROM kap_holdings WHERE period=?', (latest,)):
+                c = cmap.get(r[0], 'Diğer')
+                cnt[c] = cnt.get(c, 0) + 1
+        classes = [{'name': k, 'funds': v} for k, v in sorted(cnt.items(), key=lambda x: -x[1])]
+        return {'periods': [{'period': r['period'], 'funds': r['n']} for r in rows], 'classes': classes}
     finally:
         con.close()
 
@@ -102,7 +121,7 @@ def stock_detail(code: str, period: str = None) -> dict:
             pl = prev_lots.get(r['fund_code'])
             comparable = r['fund_code'] in prev_has
             funds.append({
-                'fund': r['fund_code'], 'name': r['fname'], 'weight': r['weight_pct'], 'lots': r['lots'],
+                'fund': r['fund_code'], 'name': r['fname'], 'fclass': classify(r['fname']), 'weight': r['weight_pct'], 'lots': r['lots'],
                 'value': r['value'], 'avg_cost': r['avg_cost'],
                 'prev_lots': pl if comparable else None,
                 'delta_lots': (r['lots'] - (pl or 0)) if comparable else None,
@@ -127,7 +146,7 @@ def stock_detail(code: str, period: str = None) -> dict:
         con.close()
 
 
-def top_moves(period: str = None, limit: int = 25) -> dict:
+def top_moves(period: str = None, limit: int = 25, cls: str = None, q: str = None) -> dict:
     """
     Dönem içinde fonların en çok aldığı / sattığı hisseler.
     Yalnızca iki dönemde de raporu olan fonlar; değişim = Σ (lot_bu_ay − lot_önceki_ay); TL karşılığı bu ayın ima edilen fiyatı ile.
@@ -143,6 +162,9 @@ def top_moves(period: str = None, limit: int = 25) -> dict:
             return {'empty': True, 'periods': periods}
         both = [r[0] for r in con.execute(
             'SELECT a.fund_code FROM kap_reports a JOIN kap_reports b ON a.fund_code=b.fund_code AND b.period=? WHERE a.period=?', (prev, per))]
+        if cls:                                          # yalnızca seçili klasmandaki fonlar
+            cmap = _class_map(con)
+            both = [c for c in both if cmap.get(c, 'Diğer') == cls]
         con.execute('CREATE TEMP TABLE both(fund_code TEXT PRIMARY KEY)')
         con.executemany('INSERT INTO both VALUES (?)', [(c,) for c in both])
         rows = con.execute("""
@@ -179,9 +201,12 @@ def top_moves(period: str = None, limit: int = 25) -> dict:
             out.append({'code': r['stock'], 'name': r['name'], 'cur_lots': r['cur_lots'], 'prev_lots': r['prev_lots'],
                         'd_lots': r['d_lots'], 'd_tl': r['d_lots'] * price, 'price': price,
                         'n_new': r['n_new'], 'n_up': r['n_up'], 'n_down': r['n_down'], 'n_exit': r['n_exit'], 'n_hold': r['n_hold']})
+        qq = (q or '').strip().upper()
+        if qq:                                           # hisse filtresi: kod ya da ad içinde arar
+            out = [x for x in out if qq in x['code'] or qq in (x['name'] or '').upper()]
         bought = sorted([x for x in out if x['d_tl'] > 0], key=lambda x: -x['d_tl'])[:limit]
         sold = sorted([x for x in out if x['d_tl'] < 0], key=lambda x: x['d_tl'])[:limit]
-        return {'empty': False, 'period': per, 'prev': prev, 'periods': periods, 'comparable_funds': len(both),
+        return {'empty': False, 'period': per, 'prev': prev, 'periods': periods, 'comparable_funds': len(both), 'cls': cls, 'q': qq,
                 'total_buy': sum(x['d_tl'] for x in out if x['d_tl'] > 0),
                 'total_sell': sum(x['d_tl'] for x in out if x['d_tl'] < 0),
                 'bought': bought, 'sold': sold}
@@ -189,19 +214,29 @@ def top_moves(period: str = None, limit: int = 25) -> dict:
         con.close()
 
 
-def fund_search(q: str, limit: int = 30) -> list:
+def fund_search(q: str, limit: int = 30, cls: str = None) -> list:
+    """Kod/ad araması; klasman verilirse o klasmandaki fonlar (arama boşsa da listelenir)."""
     q = (q or '').strip()
     con = _con()
-    if not con or not q:
+    if not con or (not q and not cls):
         return []
     try:
         like = f'%{q.upper()}%'
         rows = con.execute(
-            "SELECT f.code, f.name, f.type, (SELECT MAX(period) FROM kap_reports r WHERE r.fund_code=f.code) last "
+            "SELECT f.code, f.name, f.type, (SELECT MAX(period) FROM kap_reports r WHERE r.fund_code=f.code) last, "
+            "(SELECT COUNT(*) FROM kap_holdings h WHERE h.fund_code=f.code AND h.period=(SELECT MAX(period) FROM kap_reports r2 WHERE r2.fund_code=f.code)) nh "
             "FROM kap_funds f WHERE (UPPER(f.code) LIKE ? OR UPPER(f.name) LIKE ?) "
-            "AND EXISTS (SELECT 1 FROM kap_reports r WHERE r.fund_code=f.code) ORDER BY (UPPER(f.code)=?) DESC, f.code LIMIT ?",
-            (like, like, q.upper(), limit)).fetchall()
-        return [{'code': r['code'], 'name': r['name'], 'type': r['type'], 'last': r['last']} for r in rows]
+            "AND EXISTS (SELECT 1 FROM kap_reports r WHERE r.fund_code=f.code) ORDER BY (UPPER(f.code)=?) DESC, nh DESC, f.code",
+            (like, like, q.upper())).fetchall()
+        out = []
+        for r in rows:
+            c = classify(r['name'])
+            if cls and c != cls:
+                continue
+            out.append({'code': r['code'], 'name': r['name'], 'type': r['type'], 'last': r['last'], 'fclass': c, 'holdings': r['nh']})
+            if len(out) >= limit:
+                break
+        return out
     finally:
         con.close()
 
@@ -239,7 +274,7 @@ def fund_detail(code: str, period: str = None) -> dict:
         weights = {}
         for r in con.execute('SELECT period, stock, weight_pct FROM kap_holdings WHERE fund_code=?', (code,)):
             weights.setdefault(r['stock'], {})[r['period']] = r['weight_pct']
-        return {'empty': False, 'fund': {'code': f['code'], 'name': f['name'], 'type': f['type']}, 'period': per, 'prev': prev,
+        return {'empty': False, 'fund': {'code': f['code'], 'name': f['name'], 'type': f['type'], 'fclass': classify(f['name'])}, 'period': per, 'prev': prev,
                 'periods': periods, 'reports': [dict(r) for r in rep], 'holdings': holdings, 'exited': exited, 'weights': weights}
     finally:
         con.close()
