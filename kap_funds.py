@@ -713,7 +713,7 @@ def run(days=130, budget_min=60, workers=2, only_codes=None, log=print, skip_che
                 if r['status'] != 'error' or r['oid']:
                     con.execute('UPDATE kap_funds SET oid=?, subject_oid=?, status=?, last_checked=? WHERE code=?',
                                 (r['oid'], r['subject_oid'], r['status'], today, r['code']))
-                    if mark_hist and r['status'] == 'ok':
+                    if mark_hist and r['status'] == 'ok' and not r['errors']:      # hatalı fon işaretlenmez, bir sonraki turda yeniden denenir
                         con.execute('UPDATE kap_funds SET hist_checked=? WHERE code=?', (today, r['code']))
                 for rep, parsed in r['reports']:
                     save_report(con, r['code'], rep, parsed)
