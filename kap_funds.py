@@ -67,7 +67,7 @@ CREATE INDEX IF NOT EXISTS idx_kh_period ON kap_holdings (period);
 """
 
 _rate_lock = threading.Lock()
-PARSER_VERSION = 4            # ayrıştırıcı iyileşince artır: eski sürümle ayrıştırılan boş raporlar yeniden denenir
+PARSER_VERSION = 5            # ayrıştırıcı iyileşince artır: eski sürümle ayrıştırılan boş raporlar yeniden denenir
 
 _CLASS_RULES = (              # (sınıf, ad içinde aranacak kalıplar) — ilk eşleşen kazanır
     ('BYF', ('BORSA YATIRIM FONU',)),
