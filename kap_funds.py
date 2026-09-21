@@ -142,7 +142,7 @@ def resolve_fund(permalink: str):
 
 
 def fund_reports(oid: str, subject: str, days: int) -> list:
-    items = _get(f'api/disclosure/filter/FILTERYFBF/{oid}/{subject}/{days}')
+    items = _get(f'api/disclosure/filter/FILTERYFBF/{oid}/{subject}/{min(days, 365)}')   # KAP 365 günden fazlasında boş liste döner
     res = []
     for it in items:
         b = it['disclosureBasic']
@@ -813,7 +813,7 @@ def history(budget_min=60, workers=2, log=print) -> int:
     log(f'geçmiş raporu çekilecek (seyrek raporlayan) fon: {len(stale)}')
     if not stale:
         return 0
-    return run(days=400, budget_min=budget_min, workers=workers, only_codes=set(stale), log=log, do_discover=False,
+    return run(days=365, budget_min=budget_min, workers=workers, only_codes=set(stale), log=log, do_discover=False,
                max_new=3, mark_hist=True)
 
 
