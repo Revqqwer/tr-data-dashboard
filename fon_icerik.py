@@ -31,6 +31,176 @@ def _class_map(con) -> dict:
     return {r['code']: classify(r['name']) for r in con.execute('SELECT code, name FROM kap_funds')}
 
 
+def _month_add(period: str, delta: int) -> str:
+    y, m = int(period[:4]), int(period[5:])
+    t = y * 12 + (m - 1) + delta
+    return f'{t // 12}-{t % 12 + 1:02d}'
+
+
+def _asof(con, per: str, max_age_months: int = 12) -> dict:
+    """{fon: seçili dönem itibarıyla en son rapor dönemi} (en fazla max_age_months eski)."""
+    lo = _month_add(per, -(max_age_months - 1))
+    return {r[0]: r[1] for r in con.execute(
+        'SELECT fund_code, MAX(period) FROM kap_reports WHERE period<=? AND period>=? GROUP BY fund_code', (per, lo))}
+
+
+def _prev_reports(con) -> dict:
+    """{fon: [dönemler, yeniden eskiye]}"""
+    out = {}
+    for r in con.execute('SELECT fund_code, period FROM kap_reports ORDER BY period DESC'):
+        out.setdefault(r[0], []).append(r[1])
+    return out
+
+
+def _prev_of(plist, period):
+    for p in plist:
+        if p < period:
+            return p
+    return None
+
+
+def _stock_detail_asof(code, period):
+    con = _con()
+    if not con:
+        return {'empty': True}
+    try:
+        periods = _periods(con)
+        per = period if period in periods else (periods[0] if periods else None)
+        if not per:
+            return {'empty': True}
+        asof = _asof(con, per)
+        plist = _prev_reports(con)
+        names = {r['code']: r['name'] for r in con.execute('SELECT code, name FROM kap_funds')}
+        rows = con.execute('SELECT fund_code, period, lots, value, weight_pct, avg_cost FROM kap_holdings WHERE stock=?', (code,)).fetchall()
+        by = {}
+        for r in rows:
+            by.setdefault((r['fund_code'], r['period']), r)
+        funds, exited = [], []
+        for fc, ap in asof.items():
+            cur = by.get((fc, ap))
+            pp = _prev_of(plist.get(fc, []), ap)
+            prv = by.get((fc, pp)) if pp else None
+            if cur:
+                pl = prv['lots'] if prv else 0
+                funds.append({'fund': fc, 'name': names.get(fc), 'fclass': classify(names.get(fc)), 'weight': cur['weight_pct'],
+                              'lots': cur['lots'], 'value': cur['value'], 'avg_cost': cur['avg_cost'], 'rperiod': ap, 'prev_rperiod': pp,
+                              'prev_lots': pl if pp else None, 'delta_lots': (cur['lots'] - pl) if pp else None,
+                              'status': None if not pp else ('new' if not pl else ('up' if cur['lots'] > pl else ('down' if cur['lots'] < pl else 'same')))})
+            elif prv:
+                exited.append({'fund': fc, 'name': names.get(fc), 'prev_lots': prv['lots'], 'rperiod': ap})
+        funds.sort(key=lambda f: -(f['value'] or 0))
+        series = [dict(r) for r in con.execute(
+            'SELECT period, COUNT(*) funds, SUM(lots) lots, SUM(value) value FROM kap_holdings WHERE stock=? GROUP BY period ORDER BY period', (code,))]
+        nm = con.execute('SELECT name FROM kap_holdings WHERE stock=? ORDER BY LENGTH(name) DESC LIMIT 1', (code,)).fetchone()
+        return {'empty': False, 'scope': 'asof', 'code': code, 'name': nm[0] if nm else None, 'period': per, 'prev': None,
+                'periods': periods, 'funds': funds, 'exited': exited, 'series': series}
+    finally:
+        con.close()
+
+
+def _top_moves_asof(period, limit, cls, q):
+    """Her fonun seçili dönem itibarıyla SON raporu ile bir önceki raporu arasındaki lot değişimi (aylık + seyrek raporlayanlar)."""
+    con = _con()
+    if not con:
+        return {'empty': True}
+    try:
+        periods = _periods(con)
+        per = period if period in periods else (periods[0] if periods else None)
+        if not per:
+            return {'empty': True, 'periods': periods}
+        asof = _asof(con, per)
+        plist = _prev_reports(con)
+        cmap = _class_map(con) if cls else {}
+        pairs = {}
+        for fc, ap in asof.items():
+            if cls and cmap.get(fc, 'Diğer') != cls:
+                continue
+            pp = _prev_of(plist.get(fc, []), ap)
+            if pp:
+                pairs[fc] = (ap, pp)
+        if not pairs:
+            return {'empty': True, 'periods': periods}
+        need = {(fc, ap) for fc, (ap, pp) in pairs.items()} | {(fc, pp) for fc, (ap, pp) in pairs.items()}
+        cur, prv, price = {}, {}, {}
+        for r in con.execute('SELECT fund_code, period, stock, lots, value FROM kap_holdings'):
+            key = (r['fund_code'], r['period'])
+            if key not in need:
+                continue
+            ap, pp = pairs[r['fund_code']]
+            (cur if r['period'] == ap else prv).setdefault(r['stock'], {})[r['fund_code']] = r['lots']
+            if r['lots'] and r['value'] and (r['period'] == ap or r['stock'] not in price):
+                price[r['stock']] = r['value'] / r['lots']
+        names = {r['stock']: r['name'] for r in con.execute('SELECT stock, MAX(name) name FROM kap_holdings GROUP BY stock')}
+        qq = (q or '').strip().upper()
+        out = []
+        for st in set(cur) | set(prv):
+            if qq and qq not in st and qq not in (names.get(st) or '').upper():
+                continue
+            px = price.get(st)
+            if not px:
+                continue
+            c, p_ = cur.get(st, {}), prv.get(st, {})
+            n_new = n_up = n_down = n_exit = 0
+            d_lots = cur_l = prev_l = 0.0
+            for fc in set(c) | set(p_):
+                a, b = c.get(fc, 0.0), p_.get(fc, 0.0)
+                cur_l += a
+                prev_l += b
+                d_lots += a - b
+                if a > b and b == 0:
+                    n_new += 1
+                elif a > b:
+                    n_up += 1
+                elif a < b and a > 0:
+                    n_down += 1
+                elif a == 0 and b > 0:
+                    n_exit += 1
+            out.append({'code': st, 'name': names.get(st), 'cur_lots': cur_l, 'prev_lots': prev_l, 'd_lots': d_lots, 'd_tl': d_lots * px,
+                        'price': px, 'n_new': n_new, 'n_up': n_up, 'n_down': n_down, 'n_exit': n_exit, 'n_hold': sum(1 for v in c.values() if v > 0)})
+        bought = sorted([x for x in out if x['d_tl'] > 0], key=lambda x: -x['d_tl'])[:limit]
+        sold = sorted([x for x in out if x['d_tl'] < 0], key=lambda x: x['d_tl'])[:limit]
+        stale = sum(1 for fc, (ap, pp) in pairs.items() if ap != per)
+        return {'empty': False, 'scope': 'asof', 'period': per, 'prev': None, 'periods': periods, 'comparable_funds': len(pairs),
+                'stale_funds': stale, 'cls': cls, 'q': qq,
+                'total_buy': sum(x['d_tl'] for x in out if x['d_tl'] > 0), 'total_sell': sum(x['d_tl'] for x in out if x['d_tl'] < 0),
+                'bought': bought, 'sold': sold}
+    finally:
+        con.close()
+
+
+def _class_funds_asof(cls, period):
+    con = _con()
+    if not con or not cls:
+        return {'empty': True}
+    try:
+        periods = _periods(con)
+        per = period if period in periods else (periods[0] if periods else None)
+        cmap = _class_map(con)
+        total = skipped = no_report = 0
+        for r in con.execute("SELECT code, COALESCE(status,'') st FROM kap_funds"):
+            if cmap.get(r['code'], 'Diğer') != cls:
+                continue
+            total += 1
+            skipped += r['st'] == 'skipped'
+            no_report += r['st'] == 'no_report'
+        funds = []
+        if per:
+            asof = _asof(con, per)
+            for r in con.execute('SELECT f.code, f.name FROM kap_funds f'):
+                if cmap.get(r['code'], 'Diğer') != cls or r['code'] not in asof:
+                    continue
+                ap = asof[r['code']]
+                rep = con.execute('SELECT fund_value, stock_pct FROM kap_reports WHERE fund_code=? AND period=?', (r['code'], ap)).fetchone()
+                nh = con.execute('SELECT COUNT(*) FROM kap_holdings WHERE fund_code=? AND period=?', (r['code'], ap)).fetchone()[0]
+                funds.append({'code': r['code'], 'name': r['name'], 'holdings': nh, 'stock_pct': rep['stock_pct'] if rep else None,
+                              'fund_value': rep['fund_value'] if rep else None, 'rperiod': ap})
+        funds.sort(key=lambda x: (-(x['holdings'] > 0), -(x['fund_value'] or 0)))
+        return {'empty': False, 'scope': 'asof', 'cls': cls, 'period': per, 'total': total, 'skipped': skipped, 'no_report': no_report,
+                'with_report': len(funds), 'with_stocks': sum(1 for f in funds if f['holdings'] > 0), 'funds': funds}
+    finally:
+        con.close()
+
+
 def _prev(periods: list, period: str):
     """periods: yeniden eskiye sıralı; verilen dönemin bir önceki ayı (listede varsa)."""
     y, m = int(period[:4]), int(period[5:])
@@ -57,7 +227,18 @@ def months() -> dict:
                 stat.setdefault(cmap.get(r[0], 'Diğer'), {'total': 0, 'with_report': 0, 'with_stocks': 0})['with_report'] += 1
             for r in con.execute('SELECT DISTINCT fund_code FROM kap_holdings WHERE period=?', (latest,)):
                 stat.setdefault(cmap.get(r[0], 'Diğer'), {'total': 0, 'with_report': 0, 'with_stocks': 0})['with_stocks'] += 1
-        classes = [{'name': k, **v, 'funds': v['with_stocks']} for k, v in sorted(stat.items(), key=lambda x: (-x[1]['with_stocks'], -x[1]['total']))]
+        if latest:                                                # son rapor (as-of) sayaçları
+            asof = _asof(con, latest)
+            hold = {(r[0], r[1]) for r in con.execute('SELECT DISTINCT fund_code, period FROM kap_holdings')}
+            for fc, ap in asof.items():
+                d = stat.setdefault(cmap.get(fc, 'Diğer'), {'total': 0, 'with_report': 0, 'with_stocks': 0})
+                d['with_report_asof'] = d.get('with_report_asof', 0) + 1
+                if (fc, ap) in hold:
+                    d['with_stocks_asof'] = d.get('with_stocks_asof', 0) + 1
+        for v in stat.values():
+            v.setdefault('with_report_asof', 0)
+            v.setdefault('with_stocks_asof', 0)
+        classes = [{'name': k, **v, 'funds': v['with_stocks']} for k, v in sorted(stat.items(), key=lambda x: (-x[1]['with_stocks_asof'], -x[1]['total']))]
         return {'periods': [{'period': r['period'], 'funds': r['n']} for r in rows], 'classes': classes}
     finally:
         con.close()
@@ -99,9 +280,11 @@ def stock_list(period: str = None) -> list:
         con.close()
 
 
-def stock_detail(code: str, period: str = None) -> dict:
+def stock_detail(code: str, period: str = None, scope: str = 'monthly') -> dict:
     """Bir hisseyi hangi fonlar taşıyor + önceki aya göre değişim + aylık toplam seri."""
     code = (code or '').strip().upper()
+    if scope == 'asof':
+        return _stock_detail_asof(code, period)
     con = _con()
     if not con:
         return {'empty': True}
@@ -151,11 +334,13 @@ def stock_detail(code: str, period: str = None) -> dict:
         con.close()
 
 
-def top_moves(period: str = None, limit: int = 25, cls: str = None, q: str = None) -> dict:
+def top_moves(period: str = None, limit: int = 25, cls: str = None, q: str = None, scope: str = 'monthly') -> dict:
     """
     Dönem içinde fonların en çok aldığı / sattığı hisseler.
     Yalnızca iki dönemde de raporu olan fonlar; değişim = Σ (lot_bu_ay − lot_önceki_ay); TL karşılığı bu ayın ima edilen fiyatı ile.
     """
+    if scope == 'asof':
+        return _top_moves_asof(period, limit, cls, q)
     con = _con()
     if not con:
         return {'empty': True}
@@ -219,8 +404,10 @@ def top_moves(period: str = None, limit: int = 25, cls: str = None, q: str = Non
         con.close()
 
 
-def class_funds(cls: str, period: str = None) -> dict:
+def class_funds(cls: str, period: str = None, scope: str = 'monthly') -> dict:
     """Bir sınıftaki fonlar: KAP'taki toplam, raporu olanlar ve hisse portföyü okunanlar (liste + sayaçlar)."""
+    if scope == 'asof':
+        return _class_funds_asof(cls, period)
     con = _con()
     if not con or not cls:
         return {'empty': True}

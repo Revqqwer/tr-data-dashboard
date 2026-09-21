@@ -78,6 +78,7 @@
   <div class="row" style="margin-bottom:14px">
     <label class="f">Dönem <select id="period"></select></label>
     <label class="f">Fon sınıfı <select id="clsSel"><option value="">Tümü</option></select></label>
+    <label class="f">Kapsam <select id="scopeSel"><option value="monthly">Aylık raporlayan fonlar</option><option value="asof">Tüm fonlar (son rapor)</option></select></label>
     <span class="dim" style="font-size:12px" id="cov"></span>
   </div>
 
@@ -130,7 +131,7 @@
   </div>
 
   <div class="hint" style="margin-top:6px">Kaynak: KAP "Portföy Dağılım Raporu" (fonların aylık bildirimi; ay sonu durumu, ayın ~8'inde yayımlanır). Yalnızca KAP'a rapor veren
-    ve raporu ayrıştırılabilen fonlar dahildir; değişimler her iki ayda da raporu olan fonlar üzerinden hesaplanır. Fon sınıfı, KAP fon adındaki ifadelerden (Serbest, Hisse Senedi Yoğun, Değişken vb.) türetilir. Yatırım tavsiyesi değildir.</div>
+    ve raporu ayrıştırılabilen fonlar dahildir. "Aylık raporlayan fonlar" kapsamında değişimler iki ayda da raporu olan fonlar üzerinden hesaplanır; "Tüm fonlar (son rapor)" kapsamında üç aylık/seyrek raporlayan fonlar da her birinin son raporuyla dahil edilir. Fon sınıfı, KAP fon adındaki ifadelerden (Serbest, Hisse Senedi Yoğun, Değişken vb.) türetilir. Yatırım tavsiyesi değildir.</div>
 </div>
 
 <script>
@@ -156,8 +157,16 @@ function mk(id, cfg) { if (charts[id]) charts[id].destroy(); charts[id] = new Ch
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
 const debounce = (fn, ms = 300) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
 
+let CLASSES = [];
+function fillClasses() {
+  const cur = $('clsSel').value, a = ASOF();
+  $('clsSel').innerHTML = '<option value="">Tümü</option>' + CLASSES.map(c => `<option value="${esc(c.name)}">${esc(c.name)} — ${a ? c.with_stocks_asof : c.with_stocks} hisse fonu / ${c.total} fon</option>`).join('');
+  $('clsSel').value = cur;
+}
 let PERIODS = [], TAB = 'top', STOCK = null, FUND = null, CLSDATA = null;
 const selCls = () => $('clsSel').value;
+const selScope = () => $('scopeSel').value;
+const ASOF = () => selScope() === 'asof';
 
 function setTab(t) {
   TAB = t;
@@ -176,18 +185,19 @@ function moveTable(el, rows, buy) {
       <td class="r">${r.n_hold}</td></tr>`).join('') + '</tbody>';
 }
 async function loadTop() {
-  const q = new URLSearchParams({period: $('period').value || '', limit: $('topLimit').value, cls: selCls(), q: $('topQ').value.trim()});
+  const q = new URLSearchParams({period: $('period').value || '', limit: $('topLimit').value, cls: selCls(), q: $('topQ').value.trim(), scope: selScope()});
   const d = await api('/api/fonicerik/top?' + q);
   if (d.empty) {
     $('topStats').innerHTML = ''; $('tBuy').innerHTML = $('tSell').innerHTML = '';
     $('topNote').textContent = 'Karşılaştırma için art arda iki ayın raporları gerekir (seçili dönem ve bir önceki ay).'; return;
   }
   $('topStats').innerHTML = `
-    <div class="stat"><div class="lbl">Karşılaştırılan fon</div><div class="val">${nf.format(d.comparable_funds)}</div><div class="note">${pname(d.prev)} ve ${pname(d.period)} raporu olan${d.cls ? ' · ' + esc(d.cls) : ''}</div></div>
+    <div class="stat"><div class="lbl">Karşılaştırılan fon</div><div class="val">${nf.format(d.comparable_funds)}</div><div class="note">${d.scope === 'asof' ? `her fonun son raporu ve bir önceki raporu (${nf.format(d.stale_funds)} fonun raporu ${pname(d.period)} değil)` : pname(d.prev) + ' ve ' + pname(d.period) + ' raporu olan'}${d.cls ? ' · ' + esc(d.cls) : ''}</div></div>
     <div class="stat"><div class="lbl">Toplam net alım</div><div class="val pos">${tl(d.total_buy, true)}</div><div class="note">TL, ay sonu fiyatıyla</div></div>
     <div class="stat"><div class="lbl">Toplam net satım</div><div class="val neg">${tl(d.total_sell, true)}</div><div class="note">TL, ay sonu fiyatıyla</div></div>`;
   moveTable($('tBuy'), d.bought, true); moveTable($('tSell'), d.sold, false);
-  $('topNote').textContent = `${pname(d.prev)} → ${pname(d.period)}. Net TL = fonların toplam lot değişimi × ay sonu fiyatı. Hisse koduna tıklayınca hangi fonların taşıdığı açılır.` +
+  $('topNote').textContent = (d.scope === 'asof' ? `${pname(d.period)} itibarıyla her fonun son raporu, kendi bir önceki raporuyla karşılaştırıldı (üç aylık raporlayan fonlar dahil; değişim birden çok ayı kapsayabilir).` : `${pname(d.prev)} → ${pname(d.period)}.`) +
+    ` Net TL = fonların toplam lot değişimi × rapor fiyatı. Hisse koduna tıklayınca hangi fonların taşıdığı açılır.` +
     (d.q ? ` Filtre: "${d.q}".` : '');
 }
 
@@ -196,20 +206,20 @@ function renderClsTable() {
   const d = CLSDATA; if (!d || d.empty) return;
   const q = $('clsFundQ').value.trim().toUpperCase();
   const rows = d.funds.filter(f => !q || f.code.includes(q) || (f.name || '').toUpperCase().includes(q));
-  $('clsTbl').innerHTML = '<thead><tr><th>Fon</th><th>Ad</th><th class="r">Hisse sayısı</th><th class="r">Hisse oranı</th><th class="r">Fon büyüklüğü</th></tr></thead><tbody>' +
-    (rows.length ? rows.map(f => `<tr><td class="link" data-fund="${f.code}">${f.code}</td><td class="nm" title="${esc(f.name)}">${esc(f.name)}</td>
+  $('clsTbl').innerHTML = '<thead><tr><th>Fon</th><th>Ad</th><th>Rapor dönemi</th><th class="r">Hisse sayısı</th><th class="r">Hisse oranı</th><th class="r">Fon büyüklüğü</th></tr></thead><tbody>' +
+    (rows.length ? rows.map(f => `<tr><td class="link" data-fund="${f.code}">${f.code}</td><td class="nm" title="${esc(f.name)}">${esc(f.name)}</td><td>${f.rperiod ? pname(f.rperiod) + (f.rperiod !== d.period ? ' <span class="badge">son rapor</span>' : '') : '—'}</td>
       <td class="r">${f.holdings ? f.holdings : '<span class="dim">—</span>'}</td><td class="r">${f.holdings ? '%' + f2(f.stock_pct) : '<span class="dim">—</span>'}</td>
-      <td class="r">${f.fund_value ? tl(f.fund_value) + ' TL' : '—'}</td></tr>`).join('') : '<tr><td colspan="5" class="dim">Fon yok</td></tr>') + '</tbody>';
+      <td class="r">${f.fund_value ? tl(f.fund_value) + ' TL' : '—'}</td></tr>`).join('') : '<tr><td colspan="6" class="dim">Fon yok</td></tr>') + '</tbody>';
 }
 async function loadClsFunds() {
   const c = selCls();
   if (!c) { $('clsCard').classList.add('hidden'); CLSDATA = null; return; }
-  const d = await api('/api/fonicerik/class-funds?cls=' + encodeURIComponent(c) + '&period=' + ($('period').value || ''));
+  const d = await api('/api/fonicerik/class-funds?cls=' + encodeURIComponent(c) + '&period=' + ($('period').value || '') + '&scope=' + selScope());
   if (d.empty) { $('clsCard').classList.add('hidden'); return; }
   CLSDATA = d;
   $('clsCard').classList.remove('hidden');
   $('clsTitle').textContent = `${d.cls} fonları · ${d.period ? pname(d.period) : ''}`;
-  $('clsNote').innerHTML = `KAP'ta bu sınıfta <b>${nf.format(d.total)}</b> fon kayıtlı. Bunların <b>${nf.format(d.with_report)}</b> tanesi ${d.period ? pname(d.period) : ''} raporunu yayımlamış, ` +
+  $('clsNote').innerHTML = `KAP'ta bu sınıfta <b>${nf.format(d.total)}</b> fon kayıtlı. Bunların <b>${nf.format(d.with_report)}</b> tanesi ${d.scope === 'asof' ? pname(d.period) + ' itibarıyla (son 12 ayda) bir rapor yayımlamış' : d.period ? pname(d.period) + ' raporunu yayımlamış' : ''}, ` +
     `<b>${nf.format(d.with_stocks)}</b> tanesinin hisse portföyü okunabilmiş (gerisi hisse taşımıyor, raporunu yayımlamamış ya da raporu okunamıyor). ` +
     (d.no_report ? `${nf.format(d.no_report)} fonun KAP'ta portföy raporu hiç yok.` : '');
   renderClsTable();
@@ -220,17 +230,17 @@ function renderStockTable() {
   const d = STOCK; if (!d) return;
   const c = selCls(), fq = ($('stockFundQ') ? $('stockFundQ').value : '').trim().toUpperCase();
   const rows = d.funds.filter(f => (!c || f.fclass === c) && (!fq || f.fund.includes(fq) || (f.name || '').toUpperCase().includes(fq)));
-  $('stockTbl').innerHTML = '<thead><tr><th>Fon</th><th>Ad</th><th>Sınıf</th><th class="r">Ağırlık</th><th class="r">Lot</th><th class="r">Değer</th><th class="r">Ort. maliyet</th><th class="r">Δ lot</th><th>Durum</th></tr></thead><tbody>' +
-    (rows.length ? rows.map(f => `<tr><td class="link" data-fund="${f.fund}">${f.fund}</td><td class="nm" title="${esc(f.name)}">${esc(f.name)}</td><td>${clsTag(f.fclass)}</td>
+  $('stockTbl').innerHTML = '<thead><tr><th>Fon</th><th>Ad</th><th>Sınıf</th><th>Rapor</th><th class="r">Ağırlık</th><th class="r">Lot</th><th class="r">Değer</th><th class="r">Ort. maliyet</th><th class="r">Δ lot</th><th>Durum</th></tr></thead><tbody>' +
+    (rows.length ? rows.map(f => `<tr><td class="link" data-fund="${f.fund}">${f.fund}</td><td class="nm" title="${esc(f.name)}">${esc(f.name)}</td><td>${clsTag(f.fclass)}</td><td>${f.rperiod ? pname(f.rperiod) : pname(d.period)}</td>
       <td class="r">%${f2(f.weight)}</td><td class="r">${lot(f.lots)}</td><td class="r">${tl(f.value)}</td><td class="r">${f.avg_cost ? f2(f.avg_cost) : '—'}</td>
       <td class="r ${cls(f.delta_lots)}">${lot(f.delta_lots, true)}</td><td>${badge(f.status)}</td></tr>`).join('') :
-      '<tr><td colspan="9" class="dim">Bu filtreyle fon yok</td></tr>') + '</tbody>';
+      '<tr><td colspan="10" class="dim">Bu filtreyle fon yok</td></tr>') + '</tbody>';
   $('stockCount').textContent = `${rows.length} / ${d.funds.length} fon`;
 }
 async function showStock(code) {
   code = (code || '').trim().toUpperCase(); if (!code) return;
   $('stockQ').value = code; setTab('stock');
-  const d = await api(`/api/fonicerik/stock?code=${encodeURIComponent(code)}&period=` + ($('period').value || ''));
+  const d = await api(`/api/fonicerik/stock?code=${encodeURIComponent(code)}&scope=${selScope()}&period=` + ($('period').value || ''));
   if (d.empty || !d.funds.length) { STOCK = null; $('stockOut').innerHTML = `<div class="card dim">${esc(code)} için ${d.period ? pname(d.period) : 'bu dönemde'} kayıt bulunamadı.</div>`; return; }
   STOCK = d;
   const tot = d.funds.reduce((a, f) => a + f.value, 0), totLots = d.funds.reduce((a, f) => a + f.lots, 0);
@@ -240,8 +250,8 @@ async function showStock(code) {
     <div class="stats">
       <div class="stat"><div class="lbl">${esc(code)} · ${pname(d.period)}</div><div class="val">${d.funds.length} fon</div><div class="note">${esc(d.name || '')}</div></div>
       <div class="stat"><div class="lbl">Fonların toplam pozisyonu</div><div class="val">${tl(tot)} TL</div><div class="note">${lot(totLots)} lot</div></div>
-      <div class="stat"><div class="lbl">Aylık lot değişimi</div><div class="val ${cls(dLots)}">${d.prev ? lot(dLots, true) : '—'}</div><div class="note">${d.prev ? pname(d.prev) + ' → ' + pname(d.period) + ' (karşılaştırılabilir fonlar)' : 'önceki ay yok'}</div></div>
-      <div class="stat"><div class="lbl">Yeni giren / çıkan fon</div><div class="val"><span class="pos">${d.funds.filter(f => f.status === 'new').length}</span> / <span class="neg">${d.exited.length}</span></div><div class="note">bir önceki aya göre</div></div>
+      <div class="stat"><div class="lbl">Aylık lot değişimi</div><div class="val ${cls(dLots)}">${d.prev || d.scope === 'asof' ? lot(dLots, true) : '—'}</div><div class="note">${d.scope === 'asof' ? 'her fonun son raporu, kendi önceki raporuna göre' : d.prev ? pname(d.prev) + ' → ' + pname(d.period) + ' (karşılaştırılabilir fonlar)' : 'önceki ay yok'}</div></div>
+      <div class="stat"><div class="lbl">Yeni giren / çıkan fon</div><div class="val"><span class="pos">${d.funds.filter(f => f.status === 'new').length}</span> / <span class="neg">${d.exited.length}</span></div><div class="note">${d.scope === 'asof' ? 'bir önceki rapora göre' : 'bir önceki aya göre'}</div></div>
     </div>
     <div class="card"><h2>Fonların toplam ${esc(code)} pozisyonu (aylık)</h2><div class="chartbox"><canvas id="stockChart"></canvas></div></div>
     <div class="card"><div class="row" style="justify-content:space-between;margin-bottom:8px"><h2 style="margin:0">${esc(code)} taşıyan fonlar <span class="dim" id="stockCount" style="text-transform:none;letter-spacing:0"></span></h2>
@@ -320,7 +330,8 @@ async function showFund(code) {
   PERIODS = m.periods || [];
   if (!PERIODS.length) { $('cov').textContent = 'Henüz veri yok.'; return; }
   $('period').innerHTML = PERIODS.map(p => `<option value="${p.period}">${pname(p.period)} (${p.funds} fon)</option>`).join('');
-  $('clsSel').innerHTML = '<option value="">Tümü</option>' + (m.classes || []).map(c => `<option value="${esc(c.name)}">${esc(c.name)} — ${c.with_stocks} hisse fonu / ${c.total} fon</option>`).join('');
+  CLASSES = m.classes || [];
+  fillClasses();
   const c = m.coverage || {};
   if (c.funds_total) $('cov').textContent = `KAP'ta ${nf.format(c.funds_total)} fon tarandı · ${nf.format(c.funds_with_stocks || 0)} fonun hisse portföyü okunabildi`;
   loadTop();
@@ -332,6 +343,7 @@ const reloadCurrent = () => {
   else if (TAB === 'fund') { if ($('fundQ').value && FUND && $('fundQ').value.toUpperCase() === FUND.fund.code) showFund(FUND.fund.code); else searchFund(); }
 };
 $('period').addEventListener('change', () => { loadClsFunds(); reloadCurrent(); });
+$('scopeSel').addEventListener('change', () => { fillClasses(); loadClsFunds(); reloadCurrent(); });
 $('clsSel').addEventListener('change', () => { loadClsFunds(); if (TAB === 'stock') renderStockTable(); else reloadCurrent(); });
 $('clsFundQ').addEventListener('input', debounce(renderClsTable, 150));
 document.querySelectorAll('#tabs .tab').forEach(b => b.addEventListener('click', () => setTab(b.dataset.t)));

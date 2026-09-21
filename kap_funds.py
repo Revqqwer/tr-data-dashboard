@@ -571,7 +571,8 @@ def connect():
     con = sqlite3.connect(DB_PATH, timeout=60)
     con.executescript(SCHEMA)
     for ddl in ('ALTER TABLE kap_funds ADD COLUMN fund_class TEXT',
-                'ALTER TABLE kap_reports ADD COLUMN parse_ver INTEGER DEFAULT 1'):
+                'ALTER TABLE kap_reports ADD COLUMN parse_ver INTEGER DEFAULT 1',
+                'ALTER TABLE kap_funds ADD COLUMN hist_checked TEXT'):
         try:
             con.execute(ddl)
         except sqlite3.OperationalError:
@@ -606,7 +607,7 @@ def discover(con, log=print):
     log(f'fon listesi: {n_new} yeni fon eklendi')
 
 
-def _process_fund(fund: dict, days: int, have: set) -> dict:
+def _process_fund(fund: dict, days: int, have: set, max_new=None) -> dict:
     """Ağ + PDF işi (iş parçacığında). DB yazımı çağıran tarafta."""
     res = {'code': fund['code'], 'oid': fund['oid'], 'subject_oid': fund['subject_oid'], 'status': 'ok',
            'reports': [], 'errors': []}
@@ -617,9 +618,10 @@ def _process_fund(fund: dict, days: int, have: set) -> dict:
             if not oid or not subj:
                 res['status'] = 'no_report'
                 return res
-        for rep in fund_reports(res['oid'], res['subject_oid'], days):
-            if rep['period'] in have:
-                continue
+        new = [r for r in fund_reports(res['oid'], res['subject_oid'], days) if r['period'] not in have]
+        if max_new:
+            new = new[:max_new]                      # en yeni max_new rapor (liste yeniden eskiye sıralı)
+        for rep in new:
             try:
                 res['reports'].append((rep, parse_report(report_pdf(rep['index']))))
             except Exception as e:                   # noqa: BLE001
@@ -630,7 +632,8 @@ def _process_fund(fund: dict, days: int, have: set) -> dict:
     return res
 
 
-def run(days=130, budget_min=60, workers=2, only_codes=None, log=print, skip_checked_today=False, do_discover=True):
+def run(days=130, budget_min=60, workers=2, only_codes=None, log=print, skip_checked_today=False, do_discover=True,
+        max_new=None, mark_hist=False):
     con = connect()
     if do_discover:
         discover(con, log)
@@ -664,7 +667,7 @@ def run(days=130, budget_min=60, workers=2, only_codes=None, log=print, skip_che
             f = next(it, None)
             if f is None:
                 return False
-            pending.add(ex.submit(_process_fund, f, days, have_by.get(f['code'], set())))
+            pending.add(ex.submit(_process_fund, f, days, have_by.get(f['code'], set()), max_new))
             return True
 
         for _ in range(workers * 2):
@@ -677,6 +680,8 @@ def run(days=130, budget_min=60, workers=2, only_codes=None, log=print, skip_che
                 if r['status'] != 'error' or r['oid']:
                     con.execute('UPDATE kap_funds SET oid=?, subject_oid=?, status=?, last_checked=? WHERE code=?',
                                 (r['oid'], r['subject_oid'], r['status'], today, r['code']))
+                    if mark_hist and r['status'] == 'ok':
+                        con.execute('UPDATE kap_funds SET hist_checked=? WHERE code=?', (today, r['code']))
                 for rep, parsed in r['reports']:
                     save_report(con, r['code'], rep, parsed)
                     new_reports += 1
@@ -756,6 +761,29 @@ def reparse(budget_min=45, workers=2, log=print) -> int:
     return len(rows) - done
 
 
+def history(budget_min=60, workers=2, log=print) -> int:
+    """
+    Seyrek (üç aylık vb.) raporlayan fonlar: son iki aydır hiç raporu olmayan 'ok' fonların 400 günlük geçmişinden
+    en yeni 3 raporu alınır; sayfada "son rapor" olarak gösterilir. Bir fon ayda bir yeniden denenir (hist_checked).
+    """
+    per = expected_period()
+    y, m = int(per[:4]), int(per[5:])
+    y, m = (y, m - 1) if m > 1 else (y - 1, 12)
+    per_prev = f'{y}-{m:02d}'
+    con = connect()
+    stale = [c for (c,) in con.execute("""
+        SELECT f.code FROM kap_funds f
+        WHERE f.status = 'ok'
+          AND (f.hist_checked IS NULL OR f.hist_checked < date('now', '-30 day'))
+          AND COALESCE((SELECT MAX(period) FROM kap_reports r WHERE r.fund_code = f.code), '') < ?""", (per_prev,))]
+    con.close()
+    log(f'geçmiş raporu çekilecek (seyrek raporlayan) fon: {len(stale)}')
+    if not stale:
+        return 0
+    return run(days=400, budget_min=budget_min, workers=workers, only_codes=set(stale), log=log, do_discover=False,
+               max_new=3, mark_hist=True)
+
+
 def expected_period(today=None) -> str:
     """Bugün itibarıyla tamamlanmış olması beklenen son rapor ayı.
     Raporlar ayın ~8'inde yayımlanır; ayın 12'sinden itibaren geçen ay beklenir, öncesinde bir önceki ay."""
@@ -832,6 +860,9 @@ def _monthly(budget_min, workers, log) -> int:
         left = run(days=70, budget_min=budget_min, workers=workers, only_codes=set(todo), log=log, skip_checked_today=True,
                    do_discover=False)
     remaining = budget_min - (time.time() - t0) / 60
+    if left == 0 and remaining > 1:                       # seyrek raporlayan fonların geçmişi
+        left = history(budget_min=remaining, workers=workers, log=log)
+        remaining = budget_min - (time.time() - t0) / 60
     if left == 0 and remaining > 1:                       # bekleyen fon kalmadıysa boş kalan raporları yeniden ayrıştır
         left = reparse(budget_min=remaining, workers=workers, log=log)
     return left
@@ -852,7 +883,7 @@ def status() -> dict:
 
 if __name__ == '__main__':
     ap = argparse.ArgumentParser()
-    ap.add_argument('cmd', choices=['discover', 'run', 'monthly', 'fund', 'status', 'reparse'])
+    ap.add_argument('cmd', choices=['discover', 'run', 'monthly', 'fund', 'status', 'reparse', 'history'])
     ap.add_argument('arg', nargs='?')
     ap.add_argument('--days', type=int, default=130)
     ap.add_argument('--budget', type=int, default=60, help='dakika')
@@ -867,6 +898,8 @@ if __name__ == '__main__':
         print(status())
     elif a.cmd == 'monthly':
         monthly(a.budget, a.workers)
+    elif a.cmd == 'history':
+        history(a.budget, a.workers)
     elif a.cmd == 'reparse':
         reparse(a.budget, a.workers)
     elif a.cmd == 'fund':

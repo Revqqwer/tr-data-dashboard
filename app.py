@@ -1135,7 +1135,8 @@ def api_fi_top():
     except ValueError:
         limit = 25
     return jsonify(fon_icerik.top_moves(request.args.get('period') or None, limit,
-                                        request.args.get('cls') or None, request.args.get('q') or None))
+                                        request.args.get('cls') or None, request.args.get('q') or None,
+                                        request.args.get('scope', 'monthly')))
 
 
 @app.route('/api/fonicerik/stocks')
@@ -1147,7 +1148,8 @@ def api_fi_stocks():
 @app.route('/api/fonicerik/stock')
 def api_fi_stock():
     import fon_icerik
-    return jsonify(fon_icerik.stock_detail(request.args.get('code', ''), request.args.get('period') or None))
+    return jsonify(fon_icerik.stock_detail(request.args.get('code', ''), request.args.get('period') or None,
+                                           request.args.get('scope', 'monthly')))
 
 
 @app.route('/api/fonicerik/funds')
@@ -1159,7 +1161,8 @@ def api_fi_funds():
 @app.route('/api/fonicerik/class-funds')
 def api_fi_class_funds():
     import fon_icerik
-    return jsonify(fon_icerik.class_funds(request.args.get('cls', ''), request.args.get('period') or None))
+    return jsonify(fon_icerik.class_funds(request.args.get('cls', ''), request.args.get('period') or None,
+                                          request.args.get('scope', 'monthly')))
 
 
 @app.route('/api/fonicerik/fund')
