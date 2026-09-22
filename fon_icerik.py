@@ -253,7 +253,11 @@ def coverage() -> dict:
         st = dict(con.execute("SELECT COALESCE(status,'pending'), COUNT(*) FROM kap_funds GROUP BY 1").fetchall())
         with_rep = con.execute('SELECT COUNT(DISTINCT fund_code) FROM kap_reports').fetchone()[0]
         with_stock = con.execute('SELECT COUNT(DISTINCT fund_code) FROM kap_holdings').fetchone()[0]
-        return {'status': st, 'funds_total': sum(st.values()), 'funds_with_reports': with_rep, 'funds_with_stocks': with_stock}
+        ok = st.get('ok', 0)
+        return {'status': st, 'funds_total': sum(st.values()), 'funds_with_reports': with_rep, 'funds_with_stocks': with_stock,
+                # sayfadaki kapsam notu için ayrıntı: KAP'ta rapor konusu bulunamayan / yapısı gereği atlanan / henüz okunamayan
+                'no_report': st.get('no_report', 0), 'skipped': st.get('skipped', 0), 'error': st.get('error', 0),
+                'ok': ok, 'ok_without_stocks': max(ok - with_stock, 0)}
     finally:
         con.close()
 
