@@ -67,7 +67,7 @@ CREATE INDEX IF NOT EXISTS idx_kh_period ON kap_holdings (period);
 """
 
 _rate_lock = threading.Lock()
-PARSER_VERSION = 5            # ayrıştırıcı iyileşince artır: eski sürümle ayrıştırılan boş raporlar yeniden denenir
+PARSER_VERSION = 6            # ayrıştırıcı iyileşince artır: eski sürümle ayrıştırılan boş raporlar yeniden denenir
 
 _CLASS_RULES = (              # (sınıf, ad içinde aranacak kalıplar) — ilk eşleşen kazanır
     ('BYF', ('BORSA YATIRIM FONU',)),
@@ -613,6 +613,65 @@ def _plumber_lines(pdf_bytes: bytes, maxpages: int = 40) -> list:
     return out
 
 
+_NUM_TL_TOKEN = re.compile(r'^-?\d[\d.]*,\d+$')
+
+
+def _parse_wordtable(pdf_bytes: bytes) -> dict:
+    """Son çare: bazı raporlarda şirket adı yazı tipi yüzünden harf harf ayrık basılıyor, metin çıkarımı
+    (extract_text) bunları başka satırların harfleriyle karıştırıp anlamsız çorbaya çeviriyor. Ama aynı
+    belgede rakamlar (nominal, fiyat, değer, yüzdeler) ve ISIN kodu tek parça kelime olarak sağlam çıkıyor.
+    Bu yüzden isme hiç dokunmadan: bilinen hisse kodu kelimelerini satır çapası kabul edip, aralarındaki
+    virgüllü sayı kelimelerini x-konumuna göre sıralayarak nominal/maliyet/güncel fiyat/değer/ağırlık% okur."""
+    try:
+        import pdfplumber
+    except ImportError:
+        return {}
+    tick = _tickers()
+    agg = {}
+    # "HİSSE SENETLERİ" alt-bölümünden sonraki ilk hisse-dışı kategoriye kadar: aksi halde repo teminatı gibi
+    # başka bölümlerde tekrar eden aynı hisse kodları (teminat referansı) yanlışlıkla pozisyon sanılır.
+    _STOP = ('BORÇLANMA', 'REPO', 'TAKASBANK', 'TAKAS', 'DEVLET', 'ÖZEL SEKTÖR', 'TÜREV', 'VARLIĞA',
+             'KİRA SERTİFİKA', 'MEVDUAT', 'FİNANSMAN', 'TPP', 'BPP', 'YATIRIM FONU', 'T.REPO')
+    in_section = False                                    # bölüm bir sayfadan diğerine başlıksız devam edebilir
+    try:
+        with _heavy_lock, pdfplumber.open(io.BytesIO(pdf_bytes)) as p:
+            for pg in p.pages:
+                words = pg.extract_words(use_text_flow=False, keep_blank_chars=False)
+                pg.flush_cache()
+                hdr = next((w['top'] for w in words if w['text'].upper().startswith('HİSSE') and w['x0'] < pg.width * 0.05), None)
+                start = hdr if hdr is not None else (0 if in_section else None)
+                if start is None:
+                    continue
+                stop = next((w['top'] for w in words if w['top'] > start + 5 and w['x0'] < pg.width * 0.05
+                             and any(w['text'].upper().startswith(s) for s in _STOP)), None)
+                in_section = stop is None                 # bu sayfada bölüm bitmediyse devamı bir sonraki sayfada
+                sect = [w for w in words if start <= w['top'] < (stop if stop is not None else 999999)]
+                anchors = sorted((w for w in sect if w['x0'] < pg.width * 0.05 and w['text'] in tick),
+                                  key=lambda w: w['top'])
+                for i, a in enumerate(anchors):
+                    top0 = a['top']
+                    top1 = anchors[i + 1]['top'] if i + 1 < len(anchors) else (stop if stop is not None else 999999)
+                    block = [w for w in sect if top0 <= w['top'] < top1]
+                    isin = next((w['text'] for w in block if _ISIN.match(w['text'])), None)
+                    nums = sorted((w['text'] for w in block if _NUM_TL_TOKEN.match(w['text'])),
+                                  key=lambda t: next(w['x0'] for w in block if w['text'] == t))
+                    if len(nums) < 7:
+                        continue
+                    try:
+                        nominal, cost = _num_tr(nums[0]), _num_tr(nums[1])
+                        value, tot = _num_tr(nums[-4]), _num_tr(nums[-1])
+                    except ValueError:
+                        continue
+                    if value <= 0 or not (0 < tot <= 100):
+                        continue
+                    _add(agg, a['text'], isin, '', nominal, cost, value, tot)
+    except Exception:                                    # noqa: BLE001
+        return {}
+    import gc
+    gc.collect()
+    return agg
+
+
 def _looks_columnar(lines) -> bool:
     """Hisse kodları tek başına satır satır dizilmişse (sütun düzeni) ikinci okuma değer."""
     tick = _tickers()
@@ -635,6 +694,7 @@ def parse_report(pdf_bytes: bytes) -> dict:
     lines = _pdf_lines(pdf_bytes)
     num = _doc_num(lines)
     agg = _run_parsers(lines, num)
+    columnar = False
     if not agg and sum(len(l) for l in lines) < 300:  # metin katmanı yok (taranmış görüntü): OCR
         ol = _ocr_lines(pdf_bytes)
         if ol:
@@ -642,11 +702,16 @@ def parse_report(pdf_bytes: bytes) -> dict:
             num = _doc_num(lines)
             agg = _run_parsers(lines, num)
     elif not agg and _looks_columnar(lines):        # sütun düzeni: konuma göre satır kurup yeniden dene
+        columnar = True
         pl = _plumber_lines(pdf_bytes)
         if pl:
             lines = pl
             num = _doc_num(lines)
             agg = _run_parsers(lines, num)
+    else:
+        columnar = False
+    if not agg and columnar:
+        agg = _parse_wordtable(pdf_bytes)              # isim yazı tipi harf harf ayrık basılan raporlar
     holdings = []
     for a in agg.values():
         a['avg_cost'] = a['cost_x_lot'] / a['cost_lots'] if a['cost_lots'] else None
