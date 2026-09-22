@@ -80,7 +80,9 @@
     <label class="f">Fon sınıfı <select id="clsSel"><option value="">Tümü</option></select></label>
     <label class="f">Kapsam <select id="scopeSel"><option value="monthly">Aylık raporlayan fonlar</option><option value="asof">Tüm fonlar (son rapor)</option></select></label>
     <span class="dim" style="font-size:12px" id="cov"></span>
+    <span class="dim" style="font-size:12px;cursor:pointer;text-decoration:underline" id="covDetailToggle">neden hepsi değil?</span>
   </div>
+  <div class="hint" id="covDetail" style="display:none;margin:-8px 0 14px"></div>
 
   <!-- 1) En çok alınan / satılan -->
   <div id="v-top">
@@ -341,7 +343,15 @@ async function showFund(code) {
   CLASSES = m.classes || [];
   fillClasses();
   const c = m.coverage || {};
-  if (c.funds_total) $('cov').textContent = `KAP'ta ${nf.format(c.funds_total)} fon tarandı · ${nf.format(c.funds_with_stocks || 0)} fonun hisse portföyü okunabildi`;
+  if (c.funds_total) {
+    $('cov').textContent = `KAP'ta ${nf.format(c.funds_total)} fon tarandı · ${nf.format(c.funds_with_stocks || 0)} fonun hisse portföyü okunabildi`;
+    $('covDetail').innerHTML = `<b>${nf.format(c.funds_total)} fonun tamamı neden görünmüyor?</b><br>
+      • <b>${nf.format(c.no_report || 0)} fonun</b> bu rapor türü ("Portföy Dağılım Raporu") KAP'ta hiç yok — çoğunlukla paylarını yalnızca nitelikli yatırımcıya satan, bu raporu hazırlamaktan muaf fonlar.<br>
+      • <b>${nf.format(c.skipped || 0)} fon</b> yapısı gereği BIST hissesi taşımayan sınıflardan (para piyasası/likit, borçlanma araçları vb.) olduğu için KAP'a hiç istek atılmadan atlandı.<br>
+      • <b>${nf.format(c.error || 0)} fonda</b> KAP'a erişimde geçici bir hata oldu; düzenli olarak yeniden denenir.<br>
+      • Geri kalan <b>${nf.format(c.ok || 0)} fonun</b> rapor konusu KAP'ta bulundu; bunların <b>${nf.format(c.funds_with_stocks || 0)}'inde</b> hisse portföyü okunabildi. Kalan <b>${nf.format(c.ok_without_stocks || 0)} fon</b> ise ya gerçekten BIST hissesi taşımıyor (örn. fon sepeti, altın, yabancı hisse, döviz/mevduat ağırlıklı serbest fonlar) ya da raporunun sayfa düzeni ayrıştırıcı tarafından henüz tanınmıyor — düzen tanındıkça bu fonlar da otomatik eklenir.`;
+  }
+  $('covDetailToggle').addEventListener('click', () => { $('covDetail').style.display = $('covDetail').style.display === 'none' ? 'block' : 'none'; });
   loadTop();
   api('/api/fonicerik/stocks').then(list => { $('stockList').innerHTML = list.map(s => `<option value="${s.code}">${esc(s.name)}</option>`).join(''); });
 })();
