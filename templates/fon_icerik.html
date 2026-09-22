@@ -331,9 +331,12 @@ async function showFund(code) {
   if (!PERIODS.length) { $('cov').textContent = 'Henüz veri yok.'; return; }
   // Dönem seçicide yalnızca kapsamlı taranmış (neredeyse tüm fonlar kontrol edilmiş) aylar listelenir;
   // seyrek raporlayan fonların eski/dağınık ay sayıları burada kafa karıştırır — onlara "Tüm fonlar (son rapor)"
-  // kapsamından ulaşılır (bkz. fon_icerik.py _asof).
+  // kapsamından ulaşılır (bkz. fon_icerik.py _asof). En eski kapsamlı ay da listeden çıkarılır: o ayın
+  // "bir önceki raporu" veri setimizde yok (veri o aydan başlıyor), bu yüzden karşılaştırılan fon sayısı
+  // yapay şekilde çok düşük kalıyordu (Temmuz 2026: 70 fon, Ağustos: 661 fon gibi).
   const topN = PERIODS[0].funds;
-  const shown = PERIODS.filter(p => p.funds >= topN * 0.25);
+  let shown = PERIODS.filter(p => p.funds >= topN * 0.25);
+  if (shown.length > 1) shown = shown.slice(0, -1);
   $('period').innerHTML = shown.map(p => `<option value="${p.period}">${pname(p.period)} (${p.funds} fon)</option>`).join('');
   CLASSES = m.classes || [];
   fillClasses();
