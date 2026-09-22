@@ -76,7 +76,7 @@
     <button class="tab" data-t="fund">Fon → içeriği</button>
   </div>
   <div class="row" style="margin-bottom:14px">
-    <label class="f">Dönem <select id="period"></select></label>
+    <label class="f">Dönem <select id="period" title="Yalnızca hemen hemen tüm fonların kontrol edildiği, kapsamlı taranmış aylar listelenir."></select></label>
     <label class="f">Fon sınıfı <select id="clsSel"><option value="">Tümü</option></select></label>
     <label class="f">Kapsam <select id="scopeSel"><option value="monthly">Aylık raporlayan fonlar</option><option value="asof">Tüm fonlar (son rapor)</option></select></label>
     <span class="dim" style="font-size:12px" id="cov"></span>
@@ -329,7 +329,12 @@ async function showFund(code) {
   const m = await api('/api/fonicerik/months');
   PERIODS = m.periods || [];
   if (!PERIODS.length) { $('cov').textContent = 'Henüz veri yok.'; return; }
-  $('period').innerHTML = PERIODS.map(p => `<option value="${p.period}">${pname(p.period)} (${p.funds} fon)</option>`).join('');
+  // Dönem seçicide yalnızca kapsamlı taranmış (neredeyse tüm fonlar kontrol edilmiş) aylar listelenir;
+  // seyrek raporlayan fonların eski/dağınık ay sayıları burada kafa karıştırır — onlara "Tüm fonlar (son rapor)"
+  // kapsamından ulaşılır (bkz. fon_icerik.py _asof).
+  const topN = PERIODS[0].funds;
+  const shown = PERIODS.filter(p => p.funds >= topN * 0.25);
+  $('period').innerHTML = shown.map(p => `<option value="${p.period}">${pname(p.period)} (${p.funds} fon)</option>`).join('');
   CLASSES = m.classes || [];
   fillClasses();
   const c = m.coverage || {};
