@@ -18,7 +18,7 @@ from datetime import datetime, date
 from collections import defaultdict
 
 OLD_PDF_PATH  = os.path.join(os.path.dirname(__file__), '..', '..', 'Downloads', 'Ekstre3 (1).pdf')
-NEW_PDF_PATH  = os.path.join(os.path.dirname(__file__), '..', '..', 'Downloads', 'Ekstre3 (6).pdf')
+NEW_PDF_PATH  = os.path.join(os.path.dirname(__file__), '..', '..', 'Downloads', 'Ekstre3 (7).pdf')
 CUTOVER_DATE  = date(2026, 1, 1)
 OUT_PATH      = os.path.join(os.path.dirname(__file__), 'data', 'portfolio.json')
 
