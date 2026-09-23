@@ -244,6 +244,13 @@ def months() -> dict:
         con.close()
 
 
+# Elle doğrulanmış "rapor var, hisse var ama sayfa düzeni ayrıştırıcı tarafından hâlâ tanınmıyor" fonlar
+# (589 hissesiz fonun tamamı 2026-09'da tek tek incelendi; bunlar dışındakiler ya yapısı gereği hissesiz
+# ya da henüz hiç raporu çekilmemiş — bkz. project_fon_icerikleri hafıza notu). Yeni tanınmayan format
+# bulundukça buraya eklenir/çıkarılır (parser düzeltilince çıkar).
+_KNOWN_FORMAT_GAP = {'KUB', 'NVT'}
+
+
 def coverage() -> dict:
     """Kapsam özeti: KAP'ta taranan fonlar ve rapor sayıları (sayfadaki bilgi notu için)."""
     con = _con()
@@ -254,10 +261,20 @@ def coverage() -> dict:
         with_rep = con.execute('SELECT COUNT(DISTINCT fund_code) FROM kap_reports').fetchone()[0]
         with_stock = con.execute('SELECT COUNT(DISTINCT fund_code) FROM kap_holdings').fetchone()[0]
         ok = st.get('ok', 0)
+        unresolved = con.execute("""
+            SELECT f.code, f.fund_class, (SELECT MAX(period) FROM kap_reports r WHERE r.fund_code = f.code) mp
+            FROM kap_funds f WHERE f.status = 'ok' AND f.code NOT IN (SELECT fund_code FROM kap_holdings)""").fetchall()
+        structural = sum(1 for r in unresolved if r['fund_class'] in ('Fon Sepeti', 'Katılım', 'Altın / Kıymetli Maden', 'BYF'))
+        foreign = sum(1 for r in unresolved if r['fund_class'] == 'Hisse Senedi Yoğun')
+        no_report_yet = sum(1 for r in unresolved if r['fund_class'] in ('Serbest', 'Değişken') and not r['mp'])
+        format_gap = sum(1 for r in unresolved if r['code'] in _KNOWN_FORMAT_GAP)
+        stockless_confirmed = len(unresolved) - structural - foreign - no_report_yet - format_gap
         return {'status': st, 'funds_total': sum(st.values()), 'funds_with_reports': with_rep, 'funds_with_stocks': with_stock,
                 # sayfadaki kapsam notu için ayrıntı: KAP'ta rapor konusu bulunamayan / yapısı gereği atlanan / henüz okunamayan
                 'no_report': st.get('no_report', 0), 'skipped': st.get('skipped', 0), 'error': st.get('error', 0),
-                'ok': ok, 'ok_without_stocks': max(ok - with_stock, 0)}
+                'ok': ok, 'ok_without_stocks': max(ok - with_stock, 0),
+                'ok_structural': structural, 'ok_foreign': foreign, 'ok_no_report_yet': no_report_yet,
+                'ok_stockless_confirmed': stockless_confirmed, 'ok_format_gap': format_gap}
     finally:
         con.close()
 
