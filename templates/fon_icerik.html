@@ -194,7 +194,7 @@ async function loadTop() {
     $('topNote').textContent = 'Karşılaştırma için art arda iki ayın raporları gerekir (seçili dönem ve bir önceki ay).'; return;
   }
   $('topStats').innerHTML = `
-    <div class="stat"><div class="lbl">Karşılaştırılan fon</div><div class="val">${nf.format(d.comparable_funds)}</div><div class="note">${d.scope === 'asof' ? `her fonun son raporu ve bir önceki raporu (${nf.format(d.stale_funds)} fonun raporu ${pname(d.period)} değil)` : pname(d.prev) + ' ve ' + pname(d.period) + ' raporu olan'}${d.cls ? ' · ' + esc(d.cls) : ''}</div></div>
+    <div class="stat"><div class="lbl">Karşılaştırılan fon</div><div class="val">${nf.format(d.comparable_funds)}</div><div class="note">${d.scope === 'asof' ? `her fonun son raporu ve bir önceki raporu (${nf.format(d.stale_funds)} fonun raporu ${pname(d.period)} değil)` : pname(d.prev) + ' ve ' + pname(d.period) + ' raporu olan — hisse taşıyıp taşımadığına bakılmaksızın; yukarıdaki "sınıf" sayısı yalnızca gerçekten hisse taşıyanları sayar'}${d.cls ? ' · ' + esc(d.cls) : ''}</div></div>
     <div class="stat"><div class="lbl">Toplam net alım</div><div class="val pos">${tl(d.total_buy, true)}</div><div class="note">TL, ay sonu fiyatıyla</div></div>
     <div class="stat"><div class="lbl">Toplam net satım</div><div class="val neg">${tl(d.total_sell, true)}</div><div class="note">TL, ay sonu fiyatıyla</div></div>`;
   moveTable($('tBuy'), d.bought, true); moveTable($('tSell'), d.sold, false);
