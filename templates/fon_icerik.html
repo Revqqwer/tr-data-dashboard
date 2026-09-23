@@ -349,7 +349,12 @@ async function showFund(code) {
       • <b>${nf.format(c.no_report || 0)} fonun</b> bu rapor türü ("Portföy Dağılım Raporu") KAP'ta hiç yok — çoğunlukla paylarını yalnızca nitelikli yatırımcıya satan, bu raporu hazırlamaktan muaf fonlar.<br>
       • <b>${nf.format(c.skipped || 0)} fon</b> yapısı gereği BIST hissesi taşımayan sınıflardan (para piyasası/likit, borçlanma araçları vb.) olduğu için KAP'a hiç istek atılmadan atlandı.<br>
       • <b>${nf.format(c.error || 0)} fonda</b> KAP'a erişimde geçici bir hata oldu; düzenli olarak yeniden denenir.<br>
-      • Geri kalan <b>${nf.format(c.ok || 0)} fonun</b> rapor konusu KAP'ta bulundu; bunların <b>${nf.format(c.funds_with_stocks || 0)}'inde</b> hisse portföyü okunabildi. Kalan <b>${nf.format(c.ok_without_stocks || 0)} fon</b> ise ya gerçekten BIST hissesi taşımıyor (örn. fon sepeti, altın, yabancı hisse, döviz/mevduat ağırlıklı serbest fonlar) ya da raporunun sayfa düzeni ayrıştırıcı tarafından henüz tanınmıyor — düzen tanındıkça bu fonlar da otomatik eklenir.`;
+      • Geri kalan <b>${nf.format(c.ok || 0)} fonun</b> rapor konusu KAP'ta bulundu; bunların <b>${nf.format(c.funds_with_stocks || 0)}'inde</b> hisse portföyü okunabildi. Kalan <b>${nf.format(c.ok_without_stocks || 0)} fon</b>, tek tek incelendi:<br>
+      &nbsp;&nbsp;— <b>${nf.format(c.ok_structural || 0)} fon</b> yapısı gereği hissesiz (fon sepeti/kira sertifikası-katılım/altın/BYF sınıfı — başka fona, sukuka ya da altına yatırım yapıyor)<br>
+      &nbsp;&nbsp;— <b>${nf.format(c.ok_foreign || 0)} fon</b> yabancı hisse taşıyor (BIST dışı, bu sayfanın kapsamı değil)<br>
+      &nbsp;&nbsp;— <b>${nf.format(c.ok_no_report_yet || 0)} fonun</b> henüz hiç raporu çekilmedi (KAP'ta rapor konusu var ama seyrek yayımlıyor; toplayıcı sırayla ulaşacak)<br>
+      &nbsp;&nbsp;— <b>${nf.format(c.ok_stockless_confirmed || 0)} fon</b> raporu okundu ve gerçekten %0 BIST hissesi taşıdığı doğrulandı (döviz/mevduat ağırlıklı serbest fonlar)<br>
+      &nbsp;&nbsp;— <b>${nf.format(c.ok_format_gap || 0)} fonun</b> raporu var ve hisse taşıyor ama sayfa düzeni ayrıştırıcı tarafından henüz tanınmıyor — bunlar gerçek eksik, düzeltilecek`;
   }
   $('covDetailToggle').addEventListener('click', () => { $('covDetail').style.display = $('covDetail').style.display === 'none' ? 'block' : 'none'; });
   loadTop();
