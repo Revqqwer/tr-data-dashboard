@@ -701,3 +701,17 @@ body.sidebar-collapsed .sb-toggle-btn svg { transform: rotate(180deg); }
 .nav-group-items { padding-left: 10px; margin-left: 12px; border-left: 1px solid var(--sb-border); }
 .nav-group-items.collapsed { display: none; }
 .nav-group-items .nav-section { margin-top: 2px; }
+
+/* Grup içi hiyerarşi: bölüm başlıkları belirgin, alt sayfalar küçük + girintili + kılavuz çizgili */
+.nav-group-items .nav-section-title { color: var(--sb-text); font-size: 10.5px !important; }
+.nav-group-items .nav-section-items {
+  margin: 2px 0 6px 19px; padding-left: 8px;
+  border-left: 1px dashed var(--sb-border);
+}
+.nav-group-items .nav-section-items .nav-item {
+  padding: 6px 10px; font-size: 12.5px; font-weight: 400;
+  color: var(--sb-muted); text-transform: none; letter-spacing: 0;
+}
+.nav-group-items .nav-section-items .nav-item svg { width: 13px; height: 13px; opacity: .7; }
+.nav-group-items .nav-section-items .nav-item:hover { color: var(--sb-text); }
+.nav-group-items .nav-section-items .nav-item.active { color: #6ba3ff; }
