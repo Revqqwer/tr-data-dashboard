@@ -1,5 +1,5 @@
 ﻿from flask import Flask, jsonify, render_template, session, redirect, url_for, request, send_from_directory
-import sqlite3, os, secrets, string, smtplib, random
+import sqlite3, os, secrets, string, smtplib, random, hmac
 from datetime import datetime, timedelta
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -76,7 +76,7 @@ DISCORD_GUILD_ID      = os.environ.get('DISCORD_GUILD_ID',      '111937393088554
 DISCORD_ROLE_ID       = os.environ.get('DISCORD_ROLE_ID',       '1196022785114378380')
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', 'tr-3nfinans-gizli-anahtar-2024')
+app.secret_key = os.environ.get('SECRET_KEY') or secrets.token_hex(32)  # .env yoksa geçici rastgele anahtar (sabit yedek yok)
 
 # ── Oturum: kullanıcı "Çıkış"a basmadıkça açık kalsın ─────────────────────
 # Flask'ın varsayılanı "tarayıcı oturumu" cookie'sidir: tarayıcı (veya PC)
@@ -220,7 +220,7 @@ def carkifelek_admin_login():
     if request.method == 'POST':
         uid = (request.form.get('id') or '').strip()
         pw = request.form.get('password') or ''
-        if uid == WHEEL_ADMIN_ID and pw == WHEEL_ADMIN_PASS:
+        if WHEEL_ADMIN_PASS and uid == WHEEL_ADMIN_ID and hmac.compare_digest(pw, WHEEL_ADMIN_PASS):
             session['wheel_admin'] = True
             session.permanent = True
             return redirect(url_for('carkifelek'))
@@ -315,14 +315,13 @@ def tefas_static(path):
         return send_from_directory(_TEFAS_BUILD, path)
     # React Router client-side route → index.html döndür
     return send_from_directory(_TEFAS_BUILD, 'index.html')
-ADMIN_SECRET = os.environ.get('ADMIN_SECRET', '3n-admin-gizli')
+ADMIN_SECRET = os.environ.get('ADMIN_SECRET', '')  # boşsa admin paneli kapalı
 
 
 def _admin_ok(secret) -> bool:
-    import hmac
-    return hmac.compare_digest(str(secret or ''), ADMIN_SECRET)
-WHEEL_ADMIN_ID = os.environ.get('WHEEL_ADMIN_ID', 'Tahtaci')
-WHEEL_ADMIN_PASS = os.environ.get('WHEEL_ADMIN_PASS', 'bist31')
+    return bool(ADMIN_SECRET) and hmac.compare_digest(str(secret or ''), ADMIN_SECRET)
+WHEEL_ADMIN_ID = os.environ.get('WHEEL_ADMIN_ID', '')
+WHEEL_ADMIN_PASS = os.environ.get('WHEEL_ADMIN_PASS', '')
 
 DB_PATH = os.path.join(os.path.dirname(__file__), 'data', 'cache.db')
 
