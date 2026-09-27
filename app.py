@@ -1208,7 +1208,7 @@ def api_bofa_trend():
 
 
 # ── Fon İçerikleri (KAP portföy dağılım raporları; giriş gerekli) ──
-CONTACT_EMAIL = os.environ.get('CONTACT_EMAIL', 'bulten@3nfinans.com')
+CONTACT_EMAIL = os.environ.get('CONTACT_EMAIL', 'destek@3nfinans.com')
 
 
 @app.route('/gizlilik')
