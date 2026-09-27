@@ -93,6 +93,11 @@ app.config.update(
 )
 
 
+@app.context_processor
+def _inject_admin():
+    return {'is_admin': _admin_ok()}
+
+
 @app.after_request
 def _security_headers(resp):
     """Temel tarayıcı güvenlik başlıkları (Cloudflare bunları eklemiyor)."""
@@ -315,11 +320,13 @@ def tefas_static(path):
         return send_from_directory(_TEFAS_BUILD, path)
     # React Router client-side route → index.html döndür
     return send_from_directory(_TEFAS_BUILD, 'index.html')
-ADMIN_SECRET = os.environ.get('ADMIN_SECRET', '')  # boşsa admin paneli kapalı
+# Admin yetkisi site hesabına bağlı: yalnızca bu kullanıcı adlarıyla giriş yapmış oturumlar.
+# URL'deki /admin/<x>/ parçası artık gizli değil, sadece yol (ör. /admin/panel).
+ADMIN_USERS = {u.strip().lower() for u in os.environ.get('ADMIN_USERS', 'hakandeveli').split(',') if u.strip()}
 
 
-def _admin_ok(secret) -> bool:
-    return bool(ADMIN_SECRET) and hmac.compare_digest(str(secret or ''), ADMIN_SECRET)
+def _admin_ok(secret=None) -> bool:
+    return bool(session.get('logged_in')) and (session.get('username') or '').lower() in ADMIN_USERS
 WHEEL_ADMIN_ID = os.environ.get('WHEEL_ADMIN_ID', '')
 WHEEL_ADMIN_PASS = os.environ.get('WHEEL_ADMIN_PASS', '')
 
@@ -1101,6 +1108,11 @@ def _data_status():
         pass
 
     return items
+
+
+@app.route('/admin')
+def admin_home():
+    return redirect('/admin/panel')
 
 
 @app.route('/admin/<secret>')

@@ -295,9 +295,10 @@ python build_tefas.py
   kayıt akışı artık kod istemiyor.)
 - **Giriş şartı:** `SELECT ... WHERE username=? AND active=1`. Bir üyeyi engellemenin
   tek yolu admin panelinden pasife almaktır (`active=0`).
-- **Admin paneli:** `/admin/<ADMIN_SECRET>` — gizli anahtar `.env`'deki `ADMIN_SECRET`'ten
-  gelir; **tanımlı değilse** kod içi varsayılan `3n-admin-gizli` kullanılır.
-  Portföy düzenleme ayrı sayfada: `/admin/<ADMIN_SECRET>/portfoy`.
+- **Admin paneli:** `/admin` (→ `/admin/panel`). Yetki **site hesabına bağlı**: yalnızca
+  `ADMIN_USERS` (env, varsayılan `hakandeveli`) kullanıcısıyla giriş yapmış oturum girebilir.
+  URL'deki `/admin/<x>/` parçası artık gizli değil (eski `ADMIN_SECRET` kullanılmıyor).
+  Admin oturumunda sidebar'da ad yerine "ADMİN" + "Admin Paneli" linki görünür.
 - **`SECRET_KEY`** `.env`'den okunur; yoksa repo'daki sabit yedeğe düşer (güvensiz —
   üretimde mutlaka `.env`'de tanımlı olmalı). Değiştirilirse **tüm oturumlar düşer**.
 - Tüm `/api/*` endpoint'leri `_auth()` kontrolü yapar; `_require_login` before_request'i
