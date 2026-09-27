@@ -610,12 +610,25 @@ def api_subscribers_count():
 
 
 # ── Ziyaretçi Takibi (sayfa görüntüleme + süre) ──────────────────────────────
+def _load_track_pages() -> set:
+    import re as _re
+    try:
+        with open(os.path.join(os.path.dirname(__file__), 'templates', 'index.html'), encoding='utf-8') as f:
+            pages = set(_re.findall(r'data-page="([\w-]+)"', f.read()))
+    except OSError:
+        pages = set()
+    return pages | {'landing'}
+
+
+_TRACK_PAGES = _load_track_pages()
+
+
 @app.route('/api/track', methods=['POST'])
 def api_track():
     """Sayfa görüntüleme + kalınan süre kaydı. sendBeacon ile gelir, auth gerektirmez."""
     data = request.get_json(silent=True) or {}
     page = str(data.get('page', '')).strip()[:60]
-    if not page:
+    if page not in _TRACK_PAGES:           # yalnızca sitedeki gerçek sayfa adları (dışarıdan uydurma kayıt olmasın)
         return jsonify({'ok': False}), 204
     try:
         seconds = int(float(data.get('seconds', 0)))
