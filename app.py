@@ -2350,8 +2350,41 @@ def profile():
         user = conn.execute('SELECT * FROM users WHERE username=?', (me,)).fetchone()
     if not user:
         session.clear(); return redirect(url_for('login'))
-    return render_template('profile.html', user=dict(user), error=error, success=success)
+    del_err = {'1': 'Onay için kullanıcı adınızı doğru yazın.',
+               '2': 'Admin hesabı buradan silinemez.'}.get(request.args.get('del_err'))
+    return render_template('profile.html', user=dict(user), error=error, success=success, del_err=del_err)
 
+
+
+@app.route('/profile/delete', methods=['POST'])
+def profile_delete():
+    """Hesabı ve kişisel verileri kalıcı olarak sil (App Store 5.1.1(v) şartı).
+    Onay: kullanıcı adını yazmak — Discord ile açılmış şifresiz hesaplar da silebilsin."""
+    me = session.get('username')
+    if not session.get('logged_in') or not me:
+        return redirect(url_for('login'))
+    if (request.form.get('confirm') or '').strip().lower() != me.lower():
+        return redirect(url_for('profile', del_err=1))
+    if me.lower() in ADMIN_USERS:
+        return redirect(url_for('profile', del_err=2))
+    with sqlite3.connect(DB_PATH) as conn:
+        row = conn.execute('SELECT email FROM users WHERE username=?', (me,)).fetchone()
+        email = (row[0] or '').lower() if row else ''
+        for sql in ('DELETE FROM user_layouts WHERE username=?',
+                    'DELETE FROM push_subscriptions WHERE username=?',
+                    'DELETE FROM wheel_suggestions WHERE username=?',
+                    'UPDATE page_views SET username=NULL WHERE username=?',
+                    'DELETE FROM users WHERE username=?'):
+            try:
+                conn.execute(sql, (me,))
+            except sqlite3.OperationalError:
+                pass                                   # tablo henüz oluşmamış olabilir
+        if email:
+            for sql in ('DELETE FROM password_reset WHERE email=?',
+                        'DELETE FROM report_subscribers WHERE email=?'):
+                conn.execute(sql, (email,))
+    session.clear()
+    return render_template('login.html', error=True, error_msg='Hesabınız ve verileriniz silindi.')
 
 if __name__ == '__main__':
     app.run(debug=False, port=5000)
