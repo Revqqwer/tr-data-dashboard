@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ 'Destek' if page == 'destek' else 'Gizlilik Politikası' }} — 3N Finans</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#0f1420;color:#e8edf7;line-height:1.65}
+  .wrap{max-width:780px;margin:0 auto;padding:32px 18px 64px}
+  a{color:#6ba3ff}
+  .logo{font-size:22px;font-weight:800;text-decoration:none;color:#e8edf7}.logo span{color:#6ba3ff}
+  h1{font-size:26px;margin:22px 0 6px} h2{font-size:17px;margin:26px 0 8px;color:#f0b429}
+  p,li{font-size:15px;color:#c9d3e6} ul{padding-left:20px;margin:6px 0} li{margin:4px 0}
+  .muted{color:#8b9ab8;font-size:13px}
+  .card{background:#161d2e;border:1px solid #26314a;border-radius:12px;padding:16px 18px;margin-top:14px}
+  nav{margin-top:10px;font-size:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="logo" href="/">3N<span>Finans</span></a>
+  <nav><a href="/gizlilik">Gizlilik Politikası</a> · <a href="/destek">Destek</a></nav>
+
+{% if page == 'destek' %}
+  <h1>Destek</h1>
+  <p>3N Finans; Türkiye makro verileri, TEFAS fon akışları, BİST endeksleri ve global piyasa özetlerini tek yerde sunan ücretsiz bir veri panosudur.</p>
+  <div class="card">
+    <p><b>İletişim:</b> <a href="mailto:{{ contact }}">{{ contact }}</a></p>
+    <p class="muted">Sorularınıza genellikle 2 iş günü içinde dönüş yapıyoruz.</p>
+  </div>
+  <h2>Sık sorulanlar</h2>
+  <ul>
+    <li><b>Şifremi unuttum:</b> Giriş ekranındaki "Şifremi unuttum" bağlantısıyla e-postanıza sıfırlama kodu gönderilir.</li>
+    <li><b>Hesabımı silmek istiyorum:</b> Profil sayfasındaki "Hesabı Sil" bölümünden hesabınızı ve verilerinizi kalıcı olarak silebilirsiniz.</li>
+    <li><b>Bildirimleri kapatmak:</b> iPhone'da Ayarlar → 3N Finans → Bildirimler bölümünden kapatabilirsiniz.</li>
+    <li><b>Bülten aboneliğinden çıkmak:</b> Her bülten e-postasının altındaki "abonelikten çık" bağlantısını kullanın.</li>
+  </ul>
+  <p class="muted" style="margin-top:18px">Sitedeki içerikler yalnızca bilgilendirme amaçlıdır, yatırım tavsiyesi değildir.</p>
+{% else %}
+  <h1>Gizlilik Politikası</h1>
+  <p class="muted">Son güncelleme: 27 Eylül 2026</p>
+  <p>Bu politika, 3N Finans web sitesi (www.3nfinans.com) ve iOS uygulaması ("Hizmet") kullanılırken hangi verilerin toplandığını ve nasıl kullanıldığını açıklar. Veri sorumlusu: Hakan Develi.</p>
+
+  <h2>Topladığımız veriler</h2>
+  <ul>
+    <li><b>Hesap bilgileri:</b> kullanıcı adı, ad, e-posta adresi ve şifrenizin tek yönlü şifrelenmiş (hash) hali. Discord ile giriş yaparsanız Discord kullanıcı kimliğiniz.</li>
+    <li><b>Kullanım verileri:</b> hangi sayfaları ne kadar süre görüntülediğiniz (hizmeti geliştirmek için), son giriş zamanı ve panel düzeni tercihleriniz.</li>
+    <li><b>Analitik:</b> Google Analytics aracılığıyla anonim ziyaret istatistikleri (sayfa görüntüleme, cihaz/tarayıcı türü, yaklaşık konum).</li>
+    <li><b>Bildirimler:</b> bildirimlere izin verirseniz cihazınızın bildirim anahtarı (push token).</li>
+    <li><b>Bülten:</b> e-posta bültenine abone olursanız e-posta adresiniz ve bültenin açılıp açılmadığı bilgisi.</li>
+    <li><b>Güvenlik:</b> kaba kuvvet saldırılarını önlemek için başarısız giriş denemelerinde IP adresi (24 saat sonra silinir).</li>
+    <li><b>Çarkıfelek:</b> yaptığınız hisse önerileri, kullanıcı adınızla birlikte.</li>
+  </ul>
+
+  <h2>Verileri ne için kullanıyoruz</h2>
+  <ul>
+    <li>Hesabınızı oluşturmak, giriş yapmanızı ve şifre sıfırlamayı sağlamak,</li>
+    <li>istediğiniz bildirimleri ve bültenleri göndermek,</li>
+    <li>hizmetin güvenliğini sağlamak ve hangi özelliklerin kullanıldığını anlayarak geliştirmek.</li>
+  </ul>
+  <p>Verilerinizi <b>satmıyoruz</b>, reklam amacıyla kullanmıyoruz ve sizi başka uygulama veya sitelerde takip etmiyoruz.</p>
+
+  <h2>Hizmet sağlayıcılar</h2>
+  <ul>
+    <li>PythonAnywhere (sunucu ve veritabanı barındırma)</li>
+    <li>Cloudflare (alan adı, güvenlik ve içerik dağıtımı)</li>
+    <li>Brevo (e-posta gönderimi)</li>
+    <li>Google Analytics (ziyaret istatistikleri)</li>
+    <li>Apple Push Notification service (iOS bildirimleri)</li>
+  </ul>
+
+  <h2>Saklama ve silme</h2>
+  <p>Verileriniz hesabınız açık olduğu sürece saklanır. Profil sayfasındaki <b>"Hesabı Sil"</b> bölümünden hesabınızı ve ilişkili tüm kişisel verilerinizi (tercihler, bildirim kayıtları, öneriler, bülten kaydı) istediğiniz zaman kalıcı olarak silebilirsiniz. Anonimleştirilmiş sayfa istatistikleri silinmez, ancak artık size bağlanamaz.</p>
+
+  <h2>Haklarınız</h2>
+  <p>6698 sayılı KVKK ve ilgili mevzuat kapsamında verilerinize erişme, düzeltilmesini veya silinmesini isteme haklarına sahipsiniz. Talepleriniz için <a href="mailto:{{ contact }}">{{ contact }}</a> adresine yazabilirsiniz.</p>
+
+  <h2>Çocuklar</h2>
+  <p>Hizmet 13 yaşından küçük çocuklara yönelik değildir ve bilerek bu yaştaki çocuklardan veri toplamayız.</p>
+
+  <h2>Değişiklikler</h2>
+  <p>Bu politikayı güncelleyebiliriz; güncel sürüm her zaman bu sayfada yayımlanır.</p>
+{% endif %}
+</div>
+</body>
+</html>

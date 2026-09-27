@@ -1208,6 +1208,19 @@ def api_bofa_trend():
 
 
 # ── Fon İçerikleri (KAP portföy dağılım raporları; giriş gerekli) ──
+CONTACT_EMAIL = os.environ.get('CONTACT_EMAIL', 'bulten@3nfinans.com')
+
+
+@app.route('/gizlilik')
+def gizlilik_page():
+    return render_template('gizlilik.html', page='gizlilik', contact=CONTACT_EMAIL)
+
+
+@app.route('/destek')
+def destek_page():
+    return render_template('gizlilik.html', page='destek', contact=CONTACT_EMAIL)
+
+
 @app.route('/global-portfoy')
 def global_portfoy_page():
     return render_template('global_portfoy.html')
@@ -1449,7 +1462,7 @@ def _update_last_seen():
 # ── Giriş kapısı: girişsiz kullanıcı sadece public yolları açabilir ──────────
 _PUBLIC_EXACT = {
     '/', '/login', '/register', '/logout', '/forgot-password', '/reset-password',
-    '/sitemap.xml', '/robots.txt',
+    '/sitemap.xml', '/robots.txt', '/gizlilik', '/destek',
     # PWA: giriş yapmamış ziyaretçi de kurabilmeli. Bunlar login'e yönlendirilirse
     # tarayıcı manifest yerine HTML alır, site "kurulabilir" sayılmaz ve service
     # worker hiç kaydolmaz.
