@@ -534,7 +534,7 @@ async function loadPageviews(){
       body.innerHTML = '<tr><td colspan="4" class="muted" style="text-align:center;padding:20px;">Henüz veri yok.</td></tr>';
     } else {
       body.innerHTML = d.pages.map(p => `<tr>
-        <td style="font-weight:600;">${pageLabel(p.page)}</td>
+        <td style="font-weight:600;">${String(pageLabel(p.page)).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}</td>
         <td style="text-align:right;font-family:monospace;color:#f0b429;">${p.views.toLocaleString('tr-TR')}</td>
         <td style="text-align:right;font-family:monospace;color:#94a3b8;">${fmtDur(p.avg_sec)}</td>
         <td style="text-align:right;font-family:monospace;color:#94a3b8;">${fmtDur(p.total_sec)}</td>
