@@ -685,3 +685,19 @@ body.sidebar-collapsed .sb-toggle-btn svg { transform: rotate(180deg); }
 }
 
 
+
+/* ── Ana menü grupları (Türkiye Piyasaları / Global Piyasalar) ── */
+.nav-group { margin-top: 6px; }
+.nav-group-title {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: 8px;
+  font-size: 11px; font-weight: 800; letter-spacing: 0.1em;
+  text-transform: uppercase; color: #6ba3ff;
+  cursor: pointer; user-select: none;
+}
+.nav-group-title:hover { background: var(--sb-surface); }
+.nav-group-title svg { width: 15px; height: 15px; flex-shrink: 0; transition: transform 0.2s; }
+.nav-group-title.collapsed svg { transform: rotate(-90deg); }
+.nav-group-items { padding-left: 10px; margin-left: 12px; border-left: 1px solid var(--sb-border); }
+.nav-group-items.collapsed { display: none; }
+.nav-group-items .nav-section { margin-top: 2px; }
