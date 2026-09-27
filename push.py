@@ -82,7 +82,27 @@ def count() -> int:
 
 def send_push(title: str, body: str, url: str = '/', tag: str = None,
               icon: str = None) -> dict:
-    """Tüm abonelere bildirim yollar. Ölü abonelikler (404/410) otomatik silinir."""
+    """Web Push abonelerine + iOS uygulamasına (APNs) birlikte gönderir."""
+    web = _send_web(title, body, url, tag, icon)
+    try:
+        import apns
+        ios = apns.send(title, body, url=url, tag=tag) if apns.configured() else None
+    except Exception as e:
+        ios = {'ok': False, 'error': str(e)[:120]}
+    if ios is None:
+        return web
+    out = dict(web)
+    out['ios'] = ios
+    if ios.get('ok'):
+        out['ok'] = True
+        for k in ('sent', 'failed', 'pruned'):
+            out[k] = out.get(k, 0) + ios.get(k, 0)
+    return out
+
+
+def _send_web(title: str, body: str, url: str = '/', tag: str = None,
+              icon: str = None) -> dict:
+    """Tüm Web Push abonelerine bildirim yollar. Ölü abonelikler (404/410) otomatik silinir."""
     if not VAPID_PRIVATE_KEY or not VAPID_PUBLIC_KEY:
         return {'ok': False, 'error': 'VAPID anahtarları yok (.env → gen_vapid.py)'}
     try:
