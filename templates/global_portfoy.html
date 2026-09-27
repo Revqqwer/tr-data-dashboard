@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<script>
+(function(){try{var t=localStorage.getItem('theme');
+ if(t!=='dark'&&t!=='light'){t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}
+ document.documentElement.setAttribute('data-theme',t);}catch(e){}
+ function ch(t){var cur=document.documentElement.getAttribute('data-theme')||'light';
+  if((t==='dark'||t==='light')&&t!==cur){try{localStorage.setItem('theme',t)}catch(e){}location.reload();}}
+ window.addEventListener('message',function(e){if(e&&e.data&&e.data.type==='set-theme')ch(e.data.theme);});
+ window.addEventListener('storage',function(e){if(e.key==='theme'&&e.newValue)ch(e.newValue);});
+})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Global Hisse Portföyü</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+  :root{--bg:#f5f6f8;--surface:#fff;--surface2:#f0f2f6;--border:#e0e3e8;--text:#1a1d23;--muted:#6b7280;--accent:#2563eb;--green:#16a34a;--red:#dc2626;--grid:#e8ebf0}
+  :root[data-theme="dark"]{--bg:#0f1420;--surface:#161d2e;--surface2:#101726;--border:#26314a;--text:#e8edf7;--muted:#8b9ab8;--accent:#5aa9ff;--green:#22c55e;--red:#ef4444;--grid:#1e2940}
+  body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+  .wrap{max-width:1100px;margin:0 auto;padding:18px 16px 56px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:16px;min-width:0}
+  .pos{color:var(--green)} .neg{color:var(--red)} .dim{color:var(--muted)}
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+  .tab{background:var(--surface);border:1px solid var(--border);color:var(--muted);border-radius:999px;padding:8px 16px;font-size:13px;cursor:pointer}
+  .tab:hover{color:var(--text)} .tab.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px}
+  .stat{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;min-width:0}
+  .stat .lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+  .stat .val{font-size:22px;font-weight:800;margin-top:5px;font-variant-numeric:tabular-nums}
+  .stat .note{font-size:12px;color:var(--muted);margin-top:4px}
+  .tscroll{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th{text-align:left;color:var(--muted);font-weight:600;padding:8px;border-bottom:1px solid var(--border);font-size:11px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
+  td{padding:9px 8px;border-bottom:1px solid var(--grid);font-variant-numeric:tabular-nums;white-space:nowrap}
+  th.r,td.r{text-align:right}
+  tbody tr:hover{background:var(--surface2)}
+  .tk{font-weight:800} .nm{font-size:11.5px;color:var(--muted);max-width:240px;overflow:hidden;text-overflow:ellipsis}
+  .ret{font-weight:800}
+  .bar{display:inline-block;height:6px;border-radius:3px;vertical-align:middle;margin-left:8px}
+  .hint{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.55}
+  .empty{padding:28px;text-align:center;color:var(--muted)}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="stats" id="stats"></div>
+  <div class="tabs">
+    <button class="tab on" data-t="open">Açık Pozisyonlar</button>
+    <button class="tab" data-t="closed">Kapatılan Pozisyonlar</button>
+  </div>
+  <div class="card">
+    <div class="tscroll" id="tbl-open"></div>
+    <div class="tscroll hidden" id="tbl-closed"></div>
+    <div class="hint" id="hint"></div>
+  </div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const fmtP=v=>v==null?'—':v.toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:v<10?4:2});
+const fmtR=v=>v==null?'—':(v>0?'+':'')+v.toFixed(2).replace('.',',')+'%';
+const cls=v=>v==null?'dim':v>0?'pos':v<0?'neg':'dim';
+const fmtD=s=>s?s.split('-').reverse().join('.'):'—';
+const cur=c=>({USD:'$',EUR:'€',GBP:'£',JPY:'¥'}[c]||c||'');
+const esc=s=>(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function bar(v,max){ if(v==null||!max) return ''; const w=Math.max(2,Math.min(60,Math.abs(v)/max*60));
+  return `<span class="bar" style="width:${w}px;background:var(${v>=0?'--green':'--red'})"></span>`; }
+
+function render(d){
+  const s=d.summary;
+  $('stats').innerHTML=`
+    <div class="stat"><div class="lbl">Açık Pozisyon</div><div class="val">${s.open_count}</div></div>
+    <div class="stat"><div class="lbl">Açık Ort. Getiri</div><div class="val ${cls(s.open_avg)}">${fmtR(s.open_avg)}</div><div class="note">eşit ağırlıklı</div></div>
+    <div class="stat"><div class="lbl">Kapatılan</div><div class="val">${s.closed_count}</div></div>
+    <div class="stat"><div class="lbl">Kapanan Ort. Getiri</div><div class="val ${cls(s.closed_avg)}">${fmtR(s.closed_avg)}</div><div class="note">${s.win_rate==null?'':'başarı oranı %'+s.win_rate.toFixed(0)}</div></div>`;
+
+  const mo=Math.max(0,...d.open.map(x=>Math.abs(x.ret||0)));
+  $('tbl-open').innerHTML=d.open.length?`<table><thead><tr>
+      <th>Hisse</th><th>Giriş Tarihi</th><th class="r">Giriş</th><th class="r">Güncel</th><th class="r">Günlük</th><th class="r">Getiri</th><th class="r">Gün</th></tr></thead><tbody>${
+    d.open.map(x=>`<tr><td><div class="tk">${esc(x.ticker)}</div><div class="nm" title="${esc(x.name)}">${esc(x.name)}</div></td>
+      <td>${fmtD(x.entry_date)}</td><td class="r">${cur(x.currency)}${fmtP(x.entry_price)}</td>
+      <td class="r">${cur(x.currency)}${fmtP(x.price)}</td><td class="r ${cls(x.day_change)}">${fmtR(x.day_change)}</td>
+      <td class="r ret ${cls(x.ret)}">${fmtR(x.ret)}${bar(x.ret,mo)}</td><td class="r dim">${x.days}</td></tr>`).join('')}</tbody></table>`
+    :'<div class="empty">Henüz açık pozisyon yok.</div>';
+
+  const mc=Math.max(0,...d.closed.map(x=>Math.abs(x.ret||0)));
+  $('tbl-closed').innerHTML=d.closed.length?`<table><thead><tr>
+      <th>Hisse</th><th>Giriş</th><th>Çıkış</th><th class="r">Giriş Fiyatı</th><th class="r">Çıkış Fiyatı</th><th class="r">Getiri</th><th class="r">Gün</th></tr></thead><tbody>${
+    d.closed.map(x=>`<tr><td><div class="tk">${esc(x.ticker)}</div><div class="nm" title="${esc(x.name)}">${esc(x.name)}</div></td>
+      <td>${fmtD(x.entry_date)}</td><td>${fmtD(x.exit_date)}</td>
+      <td class="r">${cur(x.currency)}${fmtP(x.entry_price)}</td><td class="r">${cur(x.currency)}${fmtP(x.exit_price)}</td>
+      <td class="r ret ${cls(x.ret)}">${fmtR(x.ret)}${bar(x.ret,mc)}</td><td class="r dim">${x.days}</td></tr>`).join('')}</tbody></table>`
+    :'<div class="empty">Henüz kapatılan pozisyon yok.</div>';
+
+  $('hint').textContent=`Fiyatlar TradingView'den alınır (birkaç dakika gecikmeli olabilir) · Güncelleme: ${d.updated} · Getiri = güncel fiyat / giriş fiyatı − 1, pozisyon büyüklüğü dikkate alınmaz.`;
+}
+
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===b));
+  $('tbl-open').classList.toggle('hidden',b.dataset.t!=='open');
+  $('tbl-closed').classList.toggle('hidden',b.dataset.t!=='closed');
+});
+
+function load(){ fetch('/api/global-portfolio').then(r=>r.json()).then(render)
+  .catch(e=>{$('tbl-open').innerHTML='<div class="empty">Veri yüklenemedi.</div>';}); }
+load(); setInterval(load,5*60*1000);
+</script>
+</body>
+</html>
