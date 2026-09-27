@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Global Portföy Yönetimi</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:#0f1420;color:#e8edf7;padding:24px 16px}
+  .wrap{max-width:1000px;margin:0 auto}
+  a{color:#6ba3ff;text-decoration:none}
+  h1{font-size:20px;margin-bottom:4px} h2{font-size:13px;text-transform:uppercase;letter-spacing:1px;color:#8b9ab8;margin-bottom:12px}
+  .card{background:#161d2e;border:1px solid #26314a;border-radius:12px;padding:16px;margin:16px 0}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+  label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:#8b9ab8}
+  input{background:#101726;border:1px solid #26314a;color:#e8edf7;border-radius:8px;padding:8px 10px;font-size:14px}
+  input.sm{width:110px}
+  button{background:#2563eb;border:0;color:#fff;border-radius:8px;padding:9px 16px;font-size:14px;font-weight:700;cursor:pointer}
+  button.ghost{background:transparent;border:1px solid #26314a;color:#8b9ab8;padding:5px 10px;font-size:12px;font-weight:600}
+  button.red{border-color:#ef4444;color:#ef4444}
+  .msg{padding:10px 14px;border-radius:8px;margin-top:12px;font-size:14px}
+  .ok{background:rgba(34,197,94,.12);color:#22c55e} .err{background:rgba(239,68,68,.12);color:#ef4444}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;color:#8b9ab8;font-size:11px;text-transform:uppercase;padding:7px 6px;border-bottom:1px solid #26314a}
+  td{padding:8px 6px;border-bottom:1px solid #1e2940;vertical-align:middle}
+  .pos{color:#22c55e} .neg{color:#ef4444} .dim{color:#8b9ab8;font-size:12px}
+  form.inl{display:inline-flex;gap:6px;align-items:center}
+  .tscroll{overflow-x:auto}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a href="/admin/{{ secret }}">← Admin paneli</a>
+  <h1 style="margin-top:10px">Global Hisse Portföyü</h1>
+  <div class="dim">Ticker yazın (ör. AAPL, NVDA). ABD dışı hisseler için borsa ile: XETR:SAP, LSE:SHEL. Fiyat TradingView'den otomatik gelir.</div>
+  {% if msg %}<div class="msg ok">{{ msg }}</div>{% endif %}
+  {% if err %}<div class="msg err">{{ err }}</div>{% endif %}
+
+  <div class="card">
+    <h2>Yeni Pozisyon</h2>
+    <form method="post" class="row">
+      <input type="hidden" name="action" value="add">
+      <label>Ticker<input name="ticker" required placeholder="AAPL" style="width:130px;text-transform:uppercase"></label>
+      <label>Giriş fiyatı<input name="entry_price" required inputmode="decimal" class="sm" placeholder="182.50"></label>
+      <label>Giriş tarihi<input type="date" name="entry_date" value="{{ today }}"></label>
+      <label>Not (isteğe bağlı)<input name="note" style="width:200px"></label>
+      <button>Ekle</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Açık Pozisyonlar ({{ data.open|length }})</h2>
+    <div class="tscroll"><table>
+      <tr><th>Hisse</th><th>Giriş</th><th>Güncel</th><th>Getiri</th><th>Kapat (fiyat boşsa güncel fiyat)</th><th></th></tr>
+      {% for p in data.open %}
+      <tr>
+        <td><b>{{ p.ticker }}</b><div class="dim">{{ p.symbol }} · {{ p.entry_date }}</div></td>
+        <td>{{ '%.2f'|format(p.entry_price) }} {{ p.currency }}</td>
+        <td>{{ '%.2f'|format(p.price) if p.price else '—' }}</td>
+        <td class="{{ 'pos' if (p.ret or 0) > 0 else 'neg' }}">{{ '%+.2f%%'|format(p.ret) if p.ret is not none else '—' }}</td>
+        <td><form method="post" class="inl">
+          <input type="hidden" name="action" value="close"><input type="hidden" name="id" value="{{ p.id }}">
+          <input name="exit_price" class="sm" inputmode="decimal" placeholder="çıkış fiyatı">
+          <input type="date" name="exit_date" value="{{ today }}">
+          <button class="ghost">Kapat</button></form></td>
+        <td><form method="post" class="inl" onsubmit="return confirm('{{ p.ticker }} silinsin mi?')">
+          <input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="{{ p.id }}">
+          <button class="ghost red">Sil</button></form></td>
+      </tr>
+      {% else %}<tr><td colspan="6" class="dim">Açık pozisyon yok.</td></tr>{% endfor %}
+    </table></div>
+  </div>
+
+  <div class="card">
+    <h2>Kapatılan Pozisyonlar ({{ data.closed|length }})</h2>
+    <div class="tscroll"><table>
+      <tr><th>Hisse</th><th>Giriş</th><th>Çıkış</th><th>Getiri</th><th></th></tr>
+      {% for p in data.closed %}
+      <tr>
+        <td><b>{{ p.ticker }}</b><div class="dim">{{ p.symbol }}</div></td>
+        <td>{{ '%.2f'|format(p.entry_price) }}<div class="dim">{{ p.entry_date }}</div></td>
+        <td>{{ '%.2f'|format(p.exit_price) }}<div class="dim">{{ p.exit_date }}</div></td>
+        <td class="{{ 'pos' if p.ret > 0 else 'neg' }}">{{ '%+.2f%%'|format(p.ret) }}</td>
+        <td>
+          <form method="post" class="inl"><input type="hidden" name="action" value="reopen"><input type="hidden" name="id" value="{{ p.id }}"><button class="ghost">Geri aç</button></form>
+          <form method="post" class="inl" onsubmit="return confirm('{{ p.ticker }} silinsin mi?')"><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="{{ p.id }}"><button class="ghost red">Sil</button></form>
+        </td>
+      </tr>
+      {% else %}<tr><td colspan="5" class="dim">Kapatılan pozisyon yok.</td></tr>{% endfor %}
+    </table></div>
+  </div>
+</div>
+</body>
+</html>

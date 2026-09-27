@@ -456,6 +456,8 @@ def init_tables():
             deger   REAL
         )''')
 init_tables()
+import global_portfolio as _gp
+_gp.init(DB_PATH)
 
 
 def query(sql):
@@ -1172,6 +1174,47 @@ def api_bofa_trend():
 
 
 # ── Fon İçerikleri (KAP portföy dağılım raporları; giriş gerekli) ──
+@app.route('/global-portfoy')
+def global_portfoy_page():
+    return render_template('global_portfoy.html')
+
+
+@app.route('/api/global-portfolio')
+def api_global_portfolio():
+    return jsonify(_gp.payload(DB_PATH))
+
+
+@app.route('/admin/<secret>/global-portfoy', methods=['GET', 'POST'])
+def admin_global_portfolio(secret):
+    """Global Hisse Portföyü yönetimi: ekle / kapat / geri aç / sil."""
+    if not _admin_ok(secret):
+        return redirect(url_for('login'))
+    msg = err = None
+    if request.method == 'POST':
+        f = request.form
+        try:
+            act = f.get('action')
+            num = lambda k: float(f[k].replace(',', '.')) if (f.get(k) or '').strip() else None
+            if act == 'add':
+                price = num('entry_price')
+                if not price or price <= 0:
+                    raise ValueError('Giriş fiyatı girin.')
+                sym = _gp.add(DB_PATH, f.get('ticker', ''), price,
+                              f.get('entry_date') or datetime.now().strftime('%Y-%m-%d'), f.get('note', '').strip())
+                msg = f'{sym} eklendi.'
+            elif act == 'close':
+                _gp.close(DB_PATH, int(f['id']), num('exit_price'), f.get('exit_date') or None)
+                msg = 'Pozisyon kapatıldı.'
+            elif act == 'reopen':
+                _gp.reopen(DB_PATH, int(f['id'])); msg = 'Pozisyon yeniden açıldı.'
+            elif act == 'delete':
+                _gp.delete(DB_PATH, int(f['id'])); msg = 'Pozisyon silindi.'
+        except (ValueError, KeyError) as e:
+            err = str(e)
+    return render_template('admin_global_portfolio.html', secret=secret, data=_gp.payload(DB_PATH),
+                           msg=msg, err=err, today=datetime.now().strftime('%Y-%m-%d'))
+
+
 @app.route('/fon-icerik')
 def fon_icerik_page():
     return render_template('fon_icerik.html')
