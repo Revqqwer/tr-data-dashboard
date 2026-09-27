@@ -299,13 +299,20 @@
   {% if logged_in %}
   <div class="sidebar-footer">
     <div class="sb-user-row">
+      {% if is_admin %}
+      <div class="sb-user-avatar">A</div>
+      <div class="sb-user-info"><div class="sb-user-name">ADMİN</div></div>
+      {% else %}
       <div class="sb-user-avatar">{{ (user_name or username or 'U')[0]|upper }}</div>
       <div class="sb-user-info">
         <div class="sb-user-name">{{ user_name or username }}</div>
         <div class="sb-user-sub">@{{ username }}</div>
       </div>
+      {% endif %}
     </div>
     <div class="sb-user-actions">
+      {% if is_admin %}<a href="/admin/panel" target="_blank" class="sb-link">Admin Paneli</a>
+      <span class="sb-sep">·</span>{% endif %}
       <a href="/profile" class="sb-link">Profil</a>
       <span class="sb-sep">·</span>
       <a href="/logout" class="sb-link sb-link-red">Çıkış</a>
