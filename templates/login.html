@@ -508,6 +508,12 @@ function draw(ts) {
 }
 requestAnimationFrame(draw);
 </script>
+<script>
+/* iOS uygulamasında Discord girişi gizli (App Store 4.8: üçüncü taraf giriş varsa Sign in with Apple da gerekir) */
+if (window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform()) {
+  document.querySelectorAll('.btn-discord,.divider-or,.discord-error').forEach(function(e){ e.style.display='none'; });
+}
+</script>
 </body>
 </html>
 
