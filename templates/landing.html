@@ -303,7 +303,8 @@ footer a:hover{color:#999}
 
   /* Nav */
   nav{padding:0 16px;height:54px;}
-  .nav-right .nav-link{display:none;}
+  .nav-right{gap:12px;}
+  .nav-right .nav-link{font-size:11px;}
   .nav-social-icon{display:none;}
   .nav-pill{padding:6px 14px;font-size:11px;}
 
@@ -439,23 +440,31 @@ footer a:hover{color:#999}
 <section class="hero">
   <div class="scene-wrap">
     <div class="scene active" id="s1">
-      <video src="https://videos.pexels.com/video-files/2252797/2252797-uhd_2560_1440_30fps.mp4" autoplay muted loop playsinline preload="none"></video>
+      <video muted loop playsinline preload="none"
+        data-hd="https://videos.pexels.com/video-files/2252797/2252797-hd_1280_720_30fps.mp4"
+        data-sd="https://videos.pexels.com/video-files/2252797/2252797-sd_640_360_30fps.mp4"></video>
     </div>
     <div class="scene" id="s2">
-      <video src="https://videos.pexels.com/video-files/10386895/10386895-hd_2560_1440_30fps.mp4" autoplay muted loop playsinline preload="none"></video>
+      <video muted loop playsinline preload="none"
+        data-hd="https://videos.pexels.com/video-files/10386895/10386895-sd_960_540_30fps.mp4"
+        data-sd="https://videos.pexels.com/video-files/10386895/10386895-sd_640_360_30fps.mp4"></video>
     </div>
     <div class="scene" id="s3">
-      <video src="https://videos.pexels.com/video-files/5727833/5727833-uhd_2560_1440_30fps.mp4" autoplay muted loop playsinline preload="none"></video>
+      <video muted loop playsinline preload="none"
+        data-hd="https://videos.pexels.com/video-files/5727833/5727833-hd_1280_720_30fps.mp4"
+        data-sd="https://videos.pexels.com/video-files/5727833/5727833-sd_640_360_30fps.mp4"></video>
     </div>
     <div class="scene" id="s4">
-      <video src="https://videos.pexels.com/video-files/7579577/7579577-uhd_2732_1440_25fps.mp4" autoplay muted loop playsinline preload="none"></video>
+      <video muted loop playsinline preload="none"
+        data-hd="https://videos.pexels.com/video-files/7579577/7579577-hd_1366_720_25fps.mp4"
+        data-sd="https://videos.pexels.com/video-files/7579577/7579577-sd_640_338_25fps.mp4"></video>
     </div>
   </div>
   <canvas id="globe-canvas"></canvas>
   <div class="hero-overlay"></div>
 
   <!-- Sosyal linkler — hero ortası, video üzerinde -->
-  <div class="hero-social" style="position:absolute;bottom:120px;left:50%;transform:translateX(-50%);z-index:10;display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;">
+  <div class="hero-social" style="position:absolute;top:42%;left:50%;transform:translate(-50%,-50%);z-index:10;display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;">
     <span style="font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.45);margin-right:4px;">Bizi takip edin</span>
 
     <!-- YouTube grubu -->
@@ -710,11 +719,25 @@ const TICKERS_DATA=[
    VIDEO SCENE CYCLING
 ════════════════════════════════════════ */
 (function(){
-  const scenes=['s1','s2','s3','s4'];let cur=0;
+  // Yalnızca görünen sahnenin videosu indirilir/oynatılır; dar ekranda 640p, genişte 720p sürüm.
+  const scenes=['s1','s2','s3','s4'].map(id=>document.getElementById(id));
+  const small=window.matchMedia('(max-width:768px)').matches;
+  const saveData=navigator.connection&&navigator.connection.saveData;
+  const vid=sc=>sc.querySelector('video');
+  function start(sc){
+    const v=vid(sc); if(!v||saveData) return;
+    if(!v.src){ v.src=small?v.dataset.sd:v.dataset.hd; }
+    const pr=v.play(); if(pr&&pr.catch) pr.catch(()=>{});
+  }
+  function stop(sc){ const v=vid(sc); if(v&&!v.paused) v.pause(); }
+  let cur=0; start(scenes[0]);
   setInterval(()=>{
-    document.getElementById(scenes[cur]).classList.remove('active');
+    const prev=scenes[cur];
     cur=(cur+1)%scenes.length;
-    document.getElementById(scenes[cur]).classList.add('active');
+    start(scenes[cur]);
+    prev.classList.remove('active');
+    scenes[cur].classList.add('active');
+    setTimeout(()=>stop(prev),2100);            // geçiş (2 sn opaklık) bitince öncekini durdur
   },6000);
 })();
 

@@ -289,7 +289,7 @@
     </div>
     <button type="submit" class="btn-login">Giris Yap</button>
     {% if error %}
-    <div class="error-msg">Kullanici adi veya sifre yanlis.</div>
+    <div class="error-msg">{{ error_msg or 'Kullanıcı adı veya şifre yanlış.' }}</div>
     {% endif %}
   </form>
 

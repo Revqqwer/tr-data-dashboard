@@ -94,6 +94,17 @@ app.config.update(
 
 
 @app.after_request
+def _security_headers(resp):
+    """Temel tarayıcı güvenlik başlıkları (Cloudflare bunları eklemiyor)."""
+    h = resp.headers
+    h.setdefault('X-Content-Type-Options', 'nosniff')
+    h.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')   # admin gizli URL'si dış sitelere sızmasın
+    h.setdefault('X-Frame-Options', 'SAMEORIGIN')                         # site kendi iframe'lerini kullanıyor
+    h.setdefault('Strict-Transport-Security', 'max-age=15552000')
+    return resp
+
+
+@app.after_request
 def _persist_session(resp):
     """Girişli oturumu kalıcı işaretle — login isteğinin kendisi de dahil.
     (after_request, Flask oturumu cookie'ye yazmadan önce çalışır.)"""
@@ -167,7 +178,7 @@ def push_unsubscribe():
 @app.route('/admin/<secret>/push/send', methods=['POST'])
 def admin_push_send(secret):
     """Kendi yazdığın bildirimi tüm abonelere gönder."""
-    if secret != ADMIN_SECRET:
+    if not _admin_ok(secret):
         return jsonify({'error': 'forbidden'}), 403
     import push
     d = request.get_json(silent=True) or request.form
@@ -181,7 +192,7 @@ def admin_push_send(secret):
 
 @app.route('/admin/<secret>/push/count')
 def admin_push_count(secret):
-    if secret != ADMIN_SECRET:
+    if not _admin_ok(secret):
         return jsonify({'error': 'forbidden'}), 403
     import push
     return jsonify({'subscribers': push.count()})
@@ -274,7 +285,7 @@ def wheel_admin_remove():
 
 @app.route('/admin/<secret>/wheel/count')
 def admin_wheel_count(secret):
-    if secret != ADMIN_SECRET:
+    if not _admin_ok(secret):
         return jsonify({'error': 'forbidden'}), 403
     import wheel
     return jsonify(wheel.stats())
@@ -282,7 +293,7 @@ def admin_wheel_count(secret):
 
 @app.route('/admin/<secret>/wheel/reset', methods=['POST'])
 def admin_wheel_reset(secret):
-    if secret != ADMIN_SECRET:
+    if not _admin_ok(secret):
         return jsonify({'error': 'forbidden'}), 403
     import wheel
     return jsonify(wheel.reset_all())
@@ -305,10 +316,41 @@ def tefas_static(path):
     # React Router client-side route → index.html döndür
     return send_from_directory(_TEFAS_BUILD, 'index.html')
 ADMIN_SECRET = os.environ.get('ADMIN_SECRET', '3n-admin-gizli')
+
+
+def _admin_ok(secret) -> bool:
+    import hmac
+    return hmac.compare_digest(str(secret or ''), ADMIN_SECRET)
 WHEEL_ADMIN_ID = os.environ.get('WHEEL_ADMIN_ID', 'Tahtaci')
 WHEEL_ADMIN_PASS = os.environ.get('WHEEL_ADMIN_PASS', 'bist31')
 
 DB_PATH = os.path.join(os.path.dirname(__file__), 'data', 'cache.db')
+
+
+def _client_ip() -> str:
+    return (request.headers.get('CF-Connecting-IP') or request.headers.get('X-Forwarded-For', '').split(',')[0]
+            or request.remote_addr or '?').strip()
+
+
+def _throttled(key: str, limit: int, minutes: int) -> bool:
+    """Son `minutes` dakikadaki başarısız deneme sayısı limite ulaştıysa True."""
+    since = (datetime.now() - timedelta(minutes=minutes)).strftime('%Y-%m-%d %H:%M:%S')
+    with sqlite3.connect(DB_PATH) as conn:
+        n = conn.execute('SELECT COUNT(*) FROM auth_fail WHERE k=? AND ts>=?', (key, since)).fetchone()[0]
+    return n >= limit
+
+
+def _record_fail(*keys: str):
+    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    old = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S')
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.executemany('INSERT INTO auth_fail (k, ts) VALUES (?, ?)', [(k, now) for k in keys])
+        conn.execute('DELETE FROM auth_fail WHERE ts<?', (old,))
+
+
+def _clear_fails(*keys: str):
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.executemany('DELETE FROM auth_fail WHERE k=?', [(k,) for k in keys])
 
 
 def generate_code():
@@ -341,6 +383,9 @@ def init_tables():
                 conn.execute(f'ALTER TABLE users ADD COLUMN {col}')
             except Exception:
                 pass
+        # Başarısız giriş / sıfırlama denemeleri (kaba kuvvet sınırı)
+        conn.execute('CREATE TABLE IF NOT EXISTS auth_fail (k TEXT NOT NULL, ts TEXT NOT NULL)')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_auth_fail ON auth_fail (k, ts)')
         # Şifre sıfırlama tokenları
         conn.execute('''CREATE TABLE IF NOT EXISTS password_reset (
             token      TEXT PRIMARY KEY,
@@ -430,19 +475,26 @@ def login():
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '')
+        k_ip, k_user = 'login-ip:' + _client_ip(), 'login-user:' + username.lower()
+        if _throttled(k_ip, 10, 15) or _throttled(k_user, 8, 15):
+            return render_template('login.html', error=True,
+                                   error_msg='Çok fazla hatalı deneme. Lütfen 15 dakika sonra tekrar deneyin.'), 429
         with sqlite3.connect(DB_PATH) as conn:
             conn.row_factory = sqlite3.Row
             user = conn.execute(
                 'SELECT * FROM users WHERE username = ? AND active = 1', (username,)
             ).fetchone()
-            if user and check_password_hash(user['password_hash'], password):
-                conn.execute('UPDATE users SET last_login = ? WHERE id = ?',
-                             (datetime.now().strftime('%Y-%m-%d %H:%M'), user['id']))
-                session['logged_in'] = True
-                session['username']  = user['username']
-                session['user_name'] = user['name'] or user['username']
-                return redirect(url_for('index'))
-        return render_template('login.html', error=True)
+        if not (user and check_password_hash(user['password_hash'], password)):
+            _record_fail(k_ip, k_user)
+            return render_template('login.html', error=True)
+        _clear_fails(k_user)
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.execute('UPDATE users SET last_login = ? WHERE id = ?',
+                         (datetime.now().strftime('%Y-%m-%d %H:%M'), user['id']))
+        session['logged_in'] = True
+        session['username']  = user['username']
+        session['user_name'] = user['name'] or user['username']
+        return redirect(url_for('index'))
     if session.get('logged_in'):
         return redirect(url_for('index'))
     return render_template('login.html', error=False)
@@ -612,7 +664,7 @@ def email_open_pixel(report_id, token):
 
 @app.route('/admin/<secret>/analytics/email')
 def admin_analytics_email(secret):
-    if secret != ADMIN_SECRET:
+    if not _admin_ok(secret):
         return jsonify({'error': 'forbidden'}), 403
     with sqlite3.connect(DB_PATH) as conn:
         conn.row_factory = sqlite3.Row
@@ -646,7 +698,7 @@ def admin_analytics_email(secret):
 
 @app.route('/admin/<secret>/analytics/subscribers')
 def admin_analytics_subscribers(secret):
-    if secret != ADMIN_SECRET:
+    if not _admin_ok(secret):
         return jsonify({'error': 'forbidden'}), 403
     with sqlite3.connect(DB_PATH) as conn:
         conn.row_factory = sqlite3.Row
@@ -668,7 +720,7 @@ def admin_analytics_subscribers(secret):
 
 @app.route('/admin/<secret>/custom-funds')
 def admin_custom_funds_get(secret):
-    if secret != ADMIN_SECRET:
+    if not _admin_ok(secret):
         return jsonify({'error': 'forbidden'}), 403
     from tefas_api import custom_funds_detail
     return jsonify({'funds': custom_funds_detail()})
@@ -676,7 +728,7 @@ def admin_custom_funds_get(secret):
 
 @app.route('/admin/<secret>/custom-funds', methods=['POST'])
 def admin_custom_funds_add(secret):
-    if secret != ADMIN_SECRET:
+    if not _admin_ok(secret):
         return jsonify({'error': 'forbidden'}), 403
     from tefas_api import load_custom_funds, save_custom_funds
     code = (request.get_json(silent=True) or {}).get('code', '').strip().upper()
@@ -692,7 +744,7 @@ def admin_custom_funds_add(secret):
 
 @app.route('/admin/<secret>/custom-funds/<code>/delete', methods=['POST'])
 def admin_custom_funds_delete(secret, code):
-    if secret != ADMIN_SECRET:
+    if not _admin_ok(secret):
         return jsonify({'error': 'forbidden'}), 403
     from tefas_api import load_custom_funds, save_custom_funds
     code = code.strip().upper()
@@ -704,7 +756,7 @@ def admin_custom_funds_delete(secret, code):
 @app.route('/admin/<secret>/subscribers/confirm-pending', methods=['POST'])
 def admin_confirm_pending_subscribers(secret):
     """Bekleyen (onaysız) tüm aboneleri toplu onayla."""
-    if secret != ADMIN_SECRET:
+    if not _admin_ok(secret):
         return jsonify({'error': 'forbidden'}), 403
     with sqlite3.connect(DB_PATH) as conn:
         cur = conn.execute('UPDATE report_subscribers SET confirmed=1 WHERE confirmed=0')
@@ -714,7 +766,7 @@ def admin_confirm_pending_subscribers(secret):
 
 @app.route('/admin/<secret>/analytics/pageviews')
 def admin_analytics_pageviews(secret):
-    if secret != ADMIN_SECRET:
+    if not _admin_ok(secret):
         return jsonify({'error': 'forbidden'}), 403
     days = max(1, min(int(request.args.get('days', 30)), 365))
     since = (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%d 00:00:00')
@@ -754,7 +806,7 @@ def forgot_password():
         with sqlite3.connect(DB_PATH) as conn:
             user = conn.execute('SELECT * FROM users WHERE email=?', (email,)).fetchone()
         if user:
-            code = str(random.randint(100000, 999999))
+            code = f'{secrets.randbelow(1_000_000):06d}'
             expires = (datetime.now() + timedelta(minutes=30)).strftime('%Y-%m-%d %H:%M')
             with sqlite3.connect(DB_PATH) as conn:
                 conn.execute('DELETE FROM password_reset WHERE email=?', (email,))
@@ -782,7 +834,10 @@ def reset_password():
         code      = request.form.get('code', '').strip()
         password  = request.form.get('password', '')
         password2 = request.form.get('password2', '')
-        if len(password) < 6:
+        k_reset = 'reset:' + email
+        if _throttled(k_reset, 5, 30) or _throttled('reset-ip:' + _client_ip(), 20, 30):
+            error = 'Çok fazla hatalı deneme. Yeni bir kod isteyip 30 dakika sonra tekrar deneyin.'
+        elif len(password) < 6:
             error = 'Şifre en az 6 karakter olmalı.'
         elif password != password2:
             error = 'Şifreler uyuşmuyor.'
@@ -795,7 +850,9 @@ def reset_password():
                 ).fetchone()
                 if not row:
                     error = 'Kod geçersiz veya süresi dolmuş.'
+                    _record_fail(k_reset, 'reset-ip:' + _client_ip())
                 else:
+                    _clear_fails(k_reset)
                     conn.execute('UPDATE users SET password_hash=? WHERE email=?',
                                  (generate_password_hash(password), email))
                     conn.execute('UPDATE password_reset SET used=1 WHERE token=?', (code,))
@@ -1034,7 +1091,7 @@ def _data_status():
 
 @app.route('/admin/<secret>')
 def admin(secret):
-    if secret != ADMIN_SECRET:
+    if not _admin_ok(secret):
         return redirect(url_for('login'))
     with sqlite3.connect(DB_PATH) as conn:
         conn.row_factory = sqlite3.Row
@@ -1058,14 +1115,14 @@ def admin(secret):
 @app.route('/admin/<secret>/portfoy')
 def admin_portfolio_page(secret):
     """Portföy Manuel Düzenleme — ana admin panelinden ayrılmış özel sayfa."""
-    if secret != ADMIN_SECRET:
+    if not _admin_ok(secret):
         return redirect(url_for('login'))
     return render_template('admin_portfolio.html', secret=secret)
 
 
 @app.route('/admin/<secret>/bofa')
 def admin_bofa_page(secret):
-    if secret != ADMIN_SECRET:
+    if not _admin_ok(secret):
         return 'Yetkisiz', 403
     return render_template('admin_bofa.html', secret=secret)
 
@@ -1093,7 +1150,7 @@ def _bofa_data_payload():
 
 @app.route('/admin/<secret>/bofa/data')
 def admin_bofa_data(secret):
-    if secret != ADMIN_SECRET:
+    if not _admin_ok(secret):
         return jsonify({'error': 'Yetkisiz'}), 403
     return jsonify(_bofa_data_payload())
 
@@ -1174,7 +1231,7 @@ def api_fi_fund():
 @app.route('/admin/<secret>/bofa/import', methods=['POST'])
 def admin_bofa_import(secret):
     """Fintables AKD JSON dosyasını (tek gün ya da {tarih: yanıt} paketi) DB'ye aktarır."""
-    if secret != ADMIN_SECRET:
+    if not _admin_ok(secret):
         return jsonify({'error': 'Yetkisiz'}), 403
     import tempfile, os as _os
     import bofa_db
@@ -1203,14 +1260,14 @@ def admin_bofa_import(secret):
 @app.route('/admin/<secret>/bofa/site')
 def admin_bofa_site_preview(secret):
     """Üyelere açılacak BofA sayfasının önizlemesi (yayınlanmadan, admin anahtarıyla)."""
-    if secret != ADMIN_SECRET:
+    if not _admin_ok(secret):
         return 'Yetkisiz', 403
     return render_template('bofa_site.html', api_base=f'/admin/{secret}/bofa')
 
 
 @app.route('/admin/<secret>/bofa/analiz')
 def admin_bofa_analiz_page(secret):
-    if secret != ADMIN_SECRET:
+    if not _admin_ok(secret):
         return 'Yetkisiz', 403
     return render_template('admin_bofa_analiz.html', secret=secret)
 
@@ -1218,7 +1275,7 @@ def admin_bofa_analiz_page(secret):
 @app.route('/admin/<secret>/bofa/analiz/data')
 def admin_bofa_analiz_data(secret):
     """BofA net akışı ↔ BİST 100 getirisi korelasyon analizi (bofa_analysis.py)."""
-    if secret != ADMIN_SECRET:
+    if not _admin_ok(secret):
         return jsonify({'error': 'Yetkisiz'}), 403
     import bofa_analysis
     return jsonify(bofa_analysis.compute(request.args.get('funds', '0') == '1'))
@@ -1227,7 +1284,7 @@ def admin_bofa_analiz_data(secret):
 @app.route('/admin/<secret>/bofa/analiz/trend')
 def admin_bofa_trend_data(secret):
     """BofA rejim (1 hafta / 2 hafta / 1 ay net alım-satım trendi) analizi."""
-    if secret != ADMIN_SECRET:
+    if not _admin_ok(secret):
         return jsonify({'error': 'Yetkisiz'}), 403
     import bofa_analysis
     return jsonify(bofa_analysis.trend(request.args.get('funds', '0') == '1'))
@@ -1235,7 +1292,7 @@ def admin_bofa_trend_data(secret):
 
 @app.route('/admin/<secret>/market-brief/<report_id>/delete', methods=['POST'])
 def admin_delete_market_brief(secret, report_id):
-    if secret != ADMIN_SECRET:
+    if not _admin_ok(secret):
         return jsonify({'error': 'unauthorized'}), 403
     try:
         from tefas_backend.market_agent.reports import delete_by_id
@@ -1247,7 +1304,7 @@ def admin_delete_market_brief(secret, report_id):
 
 @app.route('/admin/<secret>/add', methods=['POST'])
 def admin_add(secret):
-    if secret != ADMIN_SECRET:
+    if not _admin_ok(secret):
         return redirect(url_for('login'))
     name = request.form.get('name', '').strip()
     if name:
@@ -1262,7 +1319,7 @@ def admin_add(secret):
 
 @app.route('/admin/<secret>/toggle/<code>')
 def admin_toggle(secret, code):
-    if secret != ADMIN_SECRET:
+    if not _admin_ok(secret):
         return redirect(url_for('login'))
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute('UPDATE invite_codes SET active = 1 - active WHERE code = ?', (code,))
@@ -1271,7 +1328,7 @@ def admin_toggle(secret, code):
 
 @app.route('/admin/<secret>/delete/<code>')
 def admin_delete(secret, code):
-    if secret != ADMIN_SECRET:
+    if not _admin_ok(secret):
         return redirect(url_for('login'))
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute('DELETE FROM invite_codes WHERE code = ?', (code,))
@@ -1280,7 +1337,7 @@ def admin_delete(secret, code):
 
 @app.route('/admin/<secret>/toggle-user/<int:uid>')
 def admin_toggle_user(secret, uid):
-    if secret != ADMIN_SECRET:
+    if not _admin_ok(secret):
         return redirect(url_for('login'))
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute('UPDATE users SET active = 1 - active WHERE id = ?', (uid,))
@@ -1587,7 +1644,7 @@ def api_live_prices():
 
 @app.route('/admin/<secret>/portfolio-clear-price-cache', methods=['POST'])
 def admin_clear_price_cache(secret):
-    if secret != ADMIN_SECRET:
+    if not _admin_ok(secret):
         return jsonify({'error': 'forbidden'}), 403
     _LIVE_PRICE_CACHE.clear()
     return jsonify({'ok': True})
@@ -1596,7 +1653,7 @@ def admin_clear_price_cache(secret):
 
 @app.route('/admin/<secret>/portfolio-overrides')
 def admin_portfolio_overrides_get(secret):
-    if secret != ADMIN_SECRET:
+    if not _admin_ok(secret):
         return jsonify({'error': 'forbidden'}), 403
     # Base (raw PDF) portfolio
     try:
@@ -1634,7 +1691,7 @@ def admin_portfolio_overrides_get(secret):
 
 @app.route('/admin/<secret>/portfolio-override', methods=['POST'])
 def admin_portfolio_override_set(secret):
-    if secret != ADMIN_SECRET:
+    if not _admin_ok(secret):
         return jsonify({'error': 'forbidden'}), 403
     data   = request.get_json(silent=True) or {}
     ticker = data.get('ticker', '').strip().upper()
@@ -1689,7 +1746,7 @@ def admin_portfolio_override_set(secret):
 
 @app.route('/admin/<secret>/portfolio-override/<ticker>/delete', methods=['POST'])
 def admin_portfolio_override_delete(secret, ticker):
-    if secret != ADMIN_SECRET:
+    if not _admin_ok(secret):
         return jsonify({'error': 'forbidden'}), 403
     ov = _load_overrides()
     ov['open_positions'].pop(ticker.upper(), None)
@@ -1705,7 +1762,7 @@ def admin_portfolio_override_delete(secret, ticker):
 
 @app.route('/admin/<secret>/portfolio-reset-funding', methods=['POST'])
 def admin_portfolio_reset_funding(secret):
-    if secret != ADMIN_SECRET:
+    if not _admin_ok(secret):
         return jsonify({'error': 'forbidden'}), 403
     ov = _load_overrides()
     ov.pop('nsp_units_override', None)
@@ -1718,7 +1775,7 @@ def admin_portfolio_reset_funding(secret):
 @app.route('/admin/<secret>/portfolio-set-cash', methods=['POST'])
 def admin_portfolio_set_cash(secret):
     """Nakit (cash_value_override) değerini doğrudan kaydet."""
-    if secret != ADMIN_SECRET:
+    if not _admin_ok(secret):
         return jsonify({'error': 'forbidden'}), 403
     data = request.get_json(silent=True) or {}
     val  = data.get('cash_value')
@@ -1740,7 +1797,7 @@ def admin_portfolio_set_cash(secret):
 @app.route('/admin/<secret>/portfolio-set-nsp', methods=['POST'])
 def admin_portfolio_set_nsp(secret):
     """NSP birim override'ını doğrudan kaydet."""
-    if secret != ADMIN_SECRET:
+    if not _admin_ok(secret):
         return jsonify({'error': 'forbidden'}), 403
     data = request.get_json(silent=True) or {}
     val  = data.get('nsp_units')
@@ -1762,7 +1819,7 @@ def admin_portfolio_set_nsp(secret):
 @app.route('/admin/<secret>/portfolio-set-gop', methods=['POST'])
 def admin_portfolio_set_gop(secret):
     """GOP birim override'ını doğrudan kaydet."""
-    if secret != ADMIN_SECRET:
+    if not _admin_ok(secret):
         return jsonify({'error': 'forbidden'}), 403
     data = request.get_json(silent=True) or {}
     val  = data.get('gop_units')
@@ -1784,7 +1841,7 @@ def admin_portfolio_set_gop(secret):
 @app.route('/admin/<secret>/portfolio-close-position', methods=['POST'])
 def admin_portfolio_close_position(secret):
     """Bir hisse pozisyonunu güncel fiyattan kapat, nakite ekle, geçmişe yaz."""
-    if secret != ADMIN_SECRET:
+    if not _admin_ok(secret):
         return jsonify({'error': 'forbidden'}), 403
     import datetime as _dt
     data = request.get_json(silent=True) or {}
@@ -2058,7 +2115,7 @@ def api_makro_forecast():
 
 @app.route('/admin/<secret>/makro-forecast', methods=['GET', 'POST'])
 def admin_makro_forecast(secret):
-    if secret != ADMIN_SECRET:
+    if not _admin_ok(secret):
         return jsonify({'error': 'Forbidden'}), 403
     if request.method == 'GET':
         return jsonify({'rows': _load_makro_forecast()})
@@ -2082,7 +2139,7 @@ def admin_makro_forecast(secret):
 @app.route('/admin/<secret>/scrape-categories', methods=['POST'])
 def admin_scrape_categories(secret):
     """Şemsiye fon kategorilerini TEFAS'tan çek ve fund_meta tablosuna yaz."""
-    if secret != ADMIN_SECRET:
+    if not _admin_ok(secret):
         return jsonify({'error': 'Unauthorized'}), 403
     try:
         from tefas_backend.category_scraper import scrape_categories, category_stats
@@ -2097,7 +2154,7 @@ def admin_scrape_categories(secret):
 @app.route('/admin/<secret>/scrape-categories/stats', methods=['GET'])
 def admin_category_stats(secret):
     """Mevcut kategori istatistiklerini döner."""
-    if secret != ADMIN_SECRET:
+    if not _admin_ok(secret):
         return jsonify({'error': 'Unauthorized'}), 403
     try:
         from tefas_backend.category_scraper import category_stats
