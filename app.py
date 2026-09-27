@@ -171,6 +171,15 @@ def push_subscribe():
     return (jsonify({'ok': True}), 200) if ok else (jsonify({'ok': False, 'error': 'geçersiz abonelik'}), 400)
 
 
+@app.route('/api/push/native-register', methods=['POST'])
+def push_native_register():
+    """iOS/Android uygulamasının cihaz token'ı (APNs/FCM)."""
+    import apns
+    d = request.get_json(silent=True) or {}
+    ok = apns.save_token(d.get('token'), d.get('platform'), username=session.get('username'))
+    return (jsonify({'ok': True}), 200) if ok else (jsonify({'ok': False}), 400)
+
+
 @app.route('/api/push/unsubscribe', methods=['POST'])
 def push_unsubscribe():
     import push
@@ -2372,6 +2381,7 @@ def profile_delete():
         email = (row[0] or '').lower() if row else ''
         for sql in ('DELETE FROM user_layouts WHERE username=?',
                     'DELETE FROM push_subscriptions WHERE username=?',
+                    'DELETE FROM native_push_tokens WHERE username=?',
                     'DELETE FROM wheel_suggestions WHERE username=?',
                     'UPDATE page_views SET username=NULL WHERE username=?',
                     'DELETE FROM users WHERE username=?'):

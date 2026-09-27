@@ -1707,6 +1707,29 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+/* ── Mağaza uygulaması (Capacitor, iOS/Android) ──────────────────────────
+   Uygulama siteyi kendi içinde açar; bildirimler Web Push yerine APNs/FCM ile gelir.
+   Bu durumda "Uygulama Olarak Ekle" ve web bildirim butonları gizlenir. */
+window.__NATIVE_APP = !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform());
+(function () {
+  if (!window.__NATIVE_APP) return;
+  var P = Capacitor.Plugins && Capacitor.Plugins.PushNotifications;
+  if (!P) return;
+  P.addListener('registration', function (t) {
+    fetch('/api/push/native-register', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: t.value, platform: Capacitor.getPlatform() }) }).catch(function () {});
+  });
+  P.addListener('pushNotificationActionPerformed', function (a) {
+    var u = a && a.notification && a.notification.data && a.notification.data.url;
+    if (u && u.charAt(0) === '/') location.href = u;           // yalnızca site içi yollar
+  });
+  P.checkPermissions().then(function (st) {
+    if (st.receive === 'granted') return P.register();
+    if (st.receive === 'prompt' || st.receive === 'prompt-with-rationale')
+      return P.requestPermissions().then(function (r) { if (r.receive === 'granted') P.register(); });
+  }).catch(function () {});
+})();
+
 /* "Uygulama Olarak Ekle" (kenar çubuğu)
    - Android / masaüstü Chrome-Edge: beforeinstallprompt ile gerçek tek tık kurulum
    - iOS Safari: Apple programatik kuruluma izin vermiyor → talimat penceresi
@@ -1714,7 +1737,7 @@ if ('serviceWorker' in navigator) {
 (function () {
   var btn = document.getElementById('pwaInstallBtn');
   var modal = document.getElementById('pwaModal');
-  if (!btn) return;
+  if (!btn || window.__NATIVE_APP) return;
 
   var standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
                    || window.navigator.standalone === true;
@@ -1801,7 +1824,7 @@ if ('serviceWorker' in navigator) {
    İzin penceresi tarayıcı kuralı gereği kullanıcı tıklamasıyla açılmalı. */
 (function () {
   var btn = document.getElementById('pushBtn');
-  if (!btn) return;
+  if (!btn || window.__NATIVE_APP) return;
   if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return;
 
   var lbl = document.getElementById('pushLabel');
