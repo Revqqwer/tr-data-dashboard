@@ -79,6 +79,16 @@
       <button type="submit" class="btn-primary">Şifreyi Güncelle</button>
     </form>
 
+    <div class="divider"></div>
+    <h2 style="font-size:16px; margin-bottom:4px; color:#ef4444;">Hesabı Sil</h2>
+    <p style="font-size:13px; opacity:.75; margin-bottom:8px;">Hesabınız, tercihleriniz, bildirim abonelikleriniz ve bülten kaydınız kalıcı olarak silinir. Bu işlem geri alınamaz.</p>
+    <form method="POST" action="/profile/delete" onsubmit="return confirm('Hesabınız kalıcı olarak silinecek. Emin misiniz?')">
+      <label>Onay için kullanıcı adınızı yazın: <b>{{ user.username }}</b></label>
+      <input type="text" name="confirm" required autocomplete="off" autocapitalize="off"/>
+      {% if del_err %}<div class="msg-err">{{ del_err }}</div>{% endif %}
+      <button type="submit" class="btn-primary" style="background:#ef4444;">Hesabımı Kalıcı Olarak Sil</button>
+    </form>
+
     <a href="/" class="back-link">← Panoya Dön</a>
     <a href="/logout" class="back-link" style="color:#ef4444;">Çıkış Yap</a>
   </div>
