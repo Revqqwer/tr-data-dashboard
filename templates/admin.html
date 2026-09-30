@@ -706,7 +706,7 @@ async function loadWheelStats(){
   }
 }
 async function resetWheel(){
-  if(!confirm('Tüm hisse önerileri silinsin mi?\nHerkese yeniden 5 öneri hakkı açılacak.')) return;
+  if(!confirm('Tüm hisse önerileri silinsin mi?\nHerkese yeniden 1 öneri hakkı açılacak.')) return;
   const btn = document.getElementById('wheelResetBtn');
   const old = btn.textContent; btn.disabled = true; btn.textContent = 'Sıfırlanıyor…';
   try{
