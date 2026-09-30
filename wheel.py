@@ -17,7 +17,7 @@ from pathlib import Path
 _ROOT = Path(__file__).resolve().parent
 DB_PATH = str(_ROOT / 'data' / 'cache.db')
 
-MAX_PER_USER = 5
+MAX_PER_USER = 1
 _TICKER_RE = re.compile(r'^[A-Z0-9]{2,6}$')
 
 
