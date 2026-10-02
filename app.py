@@ -1475,12 +1475,25 @@ _PUBLIC_PREFIXES = (
 )
 
 
+# iOS/Android uygulaması kendini User-Agent'a eklenen etiketle tanıtır (capacitor.config appendUserAgent).
+# App Store 5.1.1(v): hesap gerektirmeyen içerik üyeliksiz açılmalı → uygulamada giriş istenmez.
+_NATIVE_UA_TAG = '3NFinansApp'
+# Uygulamada misafirken de kapalı kalan, hesaba bağlı yollar
+_ACCOUNT_ONLY_PREFIXES = ('/carkifelek', '/api/wheel/', '/profile')
+
+
+def _is_native_app() -> bool:
+    return _NATIVE_UA_TAG in (request.headers.get('User-Agent') or '')
+
+
 @app.before_request
 def _require_login():
     """Giriş yapmamış kullanıcıyı public olmayan tüm yollarda login'e yönlendir."""
     if session.get('logged_in'):
         return  # girişli → serbest
     p = request.path
+    if _is_native_app() and not p.startswith(_ACCOUNT_ONLY_PREFIXES):
+        return  # mağaza uygulaması → misafir erişimi
     if p in _PUBLIC_EXACT or p.startswith(_PUBLIC_PREFIXES):
         return  # public yol → serbest
     if p == '/carkifelek/admin':
@@ -1495,8 +1508,10 @@ def _require_login():
 
 @app.route('/')
 def index():
-    # Giriş yapmamış kullanıcılara landing page göster
+    # Giriş yapmamış kullanıcılara landing page göster (uygulama doğrudan panele gider)
     if not session.get('logged_in'):
+        if _is_native_app():
+            return redirect(url_for('dashboard'))
         return render_template('landing.html')
     return render_template('index.html',
                            username=session.get('username', ''),
@@ -1552,7 +1567,7 @@ def robots():
 
 @app.route('/dashboard')
 def dashboard():
-    if not session.get('logged_in'):
+    if not session.get('logged_in') and not _is_native_app():
         return redirect(url_for('login'))
     return render_template('index.html',
                            username=session.get('username', ''),
