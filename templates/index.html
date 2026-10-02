@@ -69,6 +69,12 @@
   <script>(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y)})(window,document,"clarity","script","{{ config['CLARITY_ID'] }}");</script>
   {% endif %}</head>
 <body>
+{% if is_native_app %}
+<!-- Mağaza uygulamasının yerel ekranlarına dönüş (detay sayfaları buradan açılır) -->
+<a href="capacitor://localhost/index.html#more" id="app-back"
+   style="position:fixed;left:12px;bottom:calc(env(safe-area-inset-bottom) + 14px);z-index:9999;background:#2563eb;color:#fff;
+          font:700 15px -apple-system,system-ui,sans-serif;padding:11px 16px;border-radius:24px;text-decoration:none;box-shadow:0 4px 14px rgba(0,0,0,.35)">‹ Uygulamaya Dön</a>
+{% endif %}
 
 <!-- Sidebar aç/kapat butonu — sidebar kenarında sabit durur -->
 <button class="sb-toggle-btn" id="sbToggleBtn" onclick="toggleSidebar()" title="Sidebar gizle / göster">

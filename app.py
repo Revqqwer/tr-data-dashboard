@@ -95,7 +95,7 @@ app.config.update(
 
 @app.context_processor
 def _inject_admin():
-    return {'is_admin': _admin_ok()}
+    return {'is_admin': _admin_ok(), 'is_native_app': _is_native_app()}
 
 
 @app.after_request
@@ -473,6 +473,9 @@ def init_tables():
         )''')
 init_tables()
 import global_portfolio as _gp
+from mobile_api import mobile_bp, init_db as _mobile_init
+app.register_blueprint(mobile_bp)
+_mobile_init()
 _gp.init(DB_PATH)
 
 
@@ -1472,6 +1475,7 @@ _PUBLIC_EXACT = {
 }
 _PUBLIC_PREFIXES = (
     '/static/', '/admin/', '/confirm-subscription/', '/unsubscribe/', '/e/o/', '/favicon',
+    '/api/m/',   # mağaza uygulamasının API'si (herkese açık veri)
 )
 
 
