@@ -127,7 +127,7 @@ def fund_summary(codes: list) -> list:
         for code in codes:
             meta = db.get(FundMeta, code)
             prices = db.exec(select(FundDaily.trade_date, FundDaily.price, FundDaily.aum, FundDaily.investors)
-                             .where(FundDaily.code == code)
+                             .where(FundDaily.code == code).where(FundDaily.price > 0)
                              .order_by(FundDaily.trade_date.desc()).limit(260)).all()
             flows = db.exec(select(FundFlow.trade_date, FundFlow.net_flow, FundFlow.flow_pct)
                             .where(FundFlow.code == code)
