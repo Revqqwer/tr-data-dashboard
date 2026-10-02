@@ -94,7 +94,7 @@ def _provider_token() -> str:
     return tok
 
 
-def send(title: str, body: str, url: str = '/', tag: str = None) -> dict:
+def send(title: str, body: str, url: str = '/', tag: str = None, tokens: list = None) -> dict:
     """Tüm iOS cihazlarına bildirim. Geçersiz token'lar (400 BadDeviceToken / 410) silinir."""
     if not configured():
         return {'ok': False, 'error': 'APNs ayarlı değil (.env: APNS_KEY_ID/TEAM_ID/KEY_PATH)'}
@@ -102,9 +102,10 @@ def send(title: str, body: str, url: str = '/', tag: str = None) -> dict:
         import httpx
     except ImportError:
         return {'ok': False, 'error': 'httpx kurulu değil: pip3 install --user "httpx[http2]"'}
-    init_db()
-    with sqlite3.connect(DB_PATH) as c:
-        tokens = [r[0] for r in c.execute("SELECT token FROM native_push_tokens WHERE platform='ios'")]
+    if tokens is None:                                # None → tüm iOS cihazları
+        init_db()
+        with sqlite3.connect(DB_PATH) as c:
+            tokens = [r[0] for r in c.execute("SELECT token FROM native_push_tokens WHERE platform='ios'")]
     host = 'https://api.sandbox.push.apple.com' if SANDBOX else 'https://api.push.apple.com'
     payload = json.dumps({'aps': {'alert': {'title': title, 'body': body}, 'sound': 'default',
                                   'thread-id': tag or 'genel'},
