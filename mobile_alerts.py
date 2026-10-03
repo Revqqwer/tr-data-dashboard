@@ -20,6 +20,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import apns
+import fcm
 import mobile_api
 
 DRY = '--dry' in sys.argv
@@ -51,7 +52,7 @@ def _latest_brief():
 def run():
     mobile_api.init_db()
     with sqlite3.connect(mobile_api.DB_PATH) as c:
-        devices = c.execute('SELECT token, stocks, funds, prefs, last_sent FROM mobile_watch').fetchall()
+        devices = c.execute('SELECT token, stocks, funds, prefs, last_sent, platform FROM mobile_watch').fetchall()
     if not devices:
         print('takip eden cihaz yok')
         return
@@ -64,7 +65,8 @@ def run():
     brief = _latest_brief()
 
     sent_total = 0
-    for token, stocks, fcodes, prefs, last_sent in devices:
+    for token, stocks, fcodes, prefs, last_sent, platform in devices:
+        sender = fcm if platform == 'android' else apns
         stocks = json.loads(stocks or '[]')
         fcodes = json.loads(fcodes or '[]')
         prefs = json.loads(prefs or '{}')
@@ -112,7 +114,7 @@ def run():
             if DRY:
                 print(f'[dry] {token[:10]}… {title} | {body}')
             else:
-                res = apns.send(title, body, url='/', tag='kisisel', tokens=[token])
+                res = sender.send(title, body, url='/', tag='kisisel', tokens=[token])
                 print(token[:10], title, res)
             last[key] = today
             sent_total += 1

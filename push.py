@@ -89,14 +89,20 @@ def send_push(title: str, body: str, url: str = '/', tag: str = None,
         ios = apns.send(title, body, url=url, tag=tag) if apns.configured() else None
     except Exception as e:
         ios = {'ok': False, 'error': str(e)[:120]}
-    if ios is None:
-        return web
+    try:
+        import fcm
+        android = fcm.send(title, body, url=url, tag=tag) if fcm.configured() else None
+    except Exception as e:
+        android = {'ok': False, 'error': str(e)[:120]}
     out = dict(web)
-    out['ios'] = ios
-    if ios.get('ok'):
-        out['ok'] = True
-        for k in ('sent', 'failed', 'pruned'):
-            out[k] = out.get(k, 0) + ios.get(k, 0)
+    for name, res in (('ios', ios), ('android', android)):
+        if res is None:
+            continue
+        out[name] = res
+        if res.get('ok'):
+            out['ok'] = True
+            for k in ('sent', 'failed', 'pruned'):
+                out[k] = out.get(k, 0) + res.get(k, 0)
     return out
 
 
