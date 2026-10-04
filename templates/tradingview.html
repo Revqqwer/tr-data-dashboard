@@ -63,7 +63,7 @@
     <div class="stack">
       <div class="card">
         <div class="row" style="margin-bottom:12px">
-          <input type="text" id="sym" placeholder="Sembol, örn. BIST:THYAO veya NASDAQ:AAPL" value="BIST:XU100">
+          <input type="text" id="sym" placeholder="Sembol, örn. NASDAQ:AAPL veya FX:USDTRY" value="FX:USDTRY">
           <button class="btn" id="go">Göster</button>
           <a class="btn ghost" id="openTv" href="https://www.tradingview.com/chart/" target="_blank" rel="noopener">TradingView'da aç ↗</a>
         </div>
@@ -124,12 +124,22 @@
 <script>
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let current = new URLSearchParams(location.search).get('s') || 'BIST:XU100';
+let current = new URLSearchParams(location.search).get('s') || 'FX:USDTRY';
 
 function show(sym){
   sym = (sym || '').trim().toUpperCase(); if(!sym) return;
   current = sym; $('sym').value = sym;
-  $('openTv').href = 'https://www.tradingview.com/chart/?symbol=' + encodeURIComponent(sym);
+  const tvUrl = 'https://www.tradingview.com/chart/?symbol=' + encodeURIComponent(sym);
+  $('openTv').href = tvUrl;
+  document.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c.dataset.s === sym));
+  // Borsa İstanbul verisi TradingView'ın gömülü grafiğinde lisans gereği gösterilmiyor
+  if(sym.startsWith('BIST:')){
+    $('chart').innerHTML = `<div style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center">
+      <div style="font-size:18px;font-weight:700">${esc(sym)}</div>
+      <div class="muted" style="max-width:420px">Borsa İstanbul grafikleri lisans gereği yalnızca TradingView'ın kendi sitesinde görüntülenebiliyor.</div>
+      <a class="btn" href="${tvUrl}" target="_blank" rel="noopener">TradingView'da aç ↗</a></div>`;
+    return;
+  }
   $('chart').innerHTML = '<div id="tvc" style="height:100%"></div>';
   new TradingView.widget({container_id:'tvc', symbol:sym, interval:'D', timezone:'Europe/Istanbul',
     theme:'dark', style:'1', locale:'tr', autosize:true, allow_symbol_change:true,
