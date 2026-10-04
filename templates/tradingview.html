@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>TradingView — 3N Finans</title>
+<link rel="icon" href="/static/icons/icon-192.png">
+<style>
+  :root{
+    --bg:#0a1120; --panel:#101c31; --panel2:#0d1728; --border:#22324b;
+    --text:#eaf1fd; --muted:#8ea3c4; --accent:#f0b429; --good:#22c55e; --bad:#ef4444;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;min-height:100vh;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    background:radial-gradient(1200px 700px at 50% -8%,#182a49 0%,var(--bg) 58%);color:var(--text);-webkit-font-smoothing:antialiased}
+  a{color:inherit}
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px;border-bottom:1px solid var(--border);
+    position:sticky;top:0;background:rgba(10,17,32,.82);backdrop-filter:blur(8px);z-index:10}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:-.3px}
+  .brand img{width:30px;height:30px;border-radius:9px}
+  .back{font-size:13px;color:var(--muted);text-decoration:none;padding:8px 14px;border:1px solid var(--border);border-radius:10px;white-space:nowrap}
+  .back:hover{color:var(--text)}
+  .wrap{max-width:1480px;margin:0 auto;padding:22px 22px 60px}
+  .grid{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:22px;align-items:start}
+  @media (max-width:1000px){.grid{grid-template-columns:minmax(0,1fr)}}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px}
+  .card h2{font-size:16px;margin:0 0 6px}
+  .card p{color:var(--muted);font-size:13px;line-height:1.55;margin:0 0 12px}
+  .stack{display:flex;flex-direction:column;gap:22px}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  input[type=text]{flex:1;min-width:0;background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:10px 12px;font-size:14px}
+  .btn{background:var(--accent);color:#211603;border:0;border-radius:10px;padding:10px 14px;font-weight:700;font-size:13px;cursor:pointer;text-decoration:none;white-space:nowrap}
+  .btn.ghost{background:transparent;color:var(--text);border:1px solid var(--border)}
+  .btn:disabled{opacity:.5;cursor:default}
+  #chart{height:620px;border-radius:12px;overflow:hidden;border:1px solid var(--border);background:#131722}
+  @media (max-width:700px){ #chart{height:460px} }
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .chip{display:inline-flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--border);border-radius:999px;padding:5px 6px 5px 11px;font-size:12px;cursor:pointer}
+  .chip.on{border-color:var(--accent);color:var(--accent)}
+  .chip b{font-weight:600}
+  .chip .x{border:0;background:none;color:var(--muted);cursor:pointer;font-size:14px;line-height:1;padding:0 4px}
+  .hook{font-family:ui-monospace,Consolas,monospace;font-size:12px}
+  ol{margin:0 0 12px;padding-left:18px;color:var(--muted);font-size:13px;line-height:1.6}
+  .alerts{max-height:300px;overflow:auto;display:flex;flex-direction:column;gap:8px}
+  .alert{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:9px 11px;font-size:13px;line-height:1.45}
+  .alert time{display:block;color:var(--muted);font-size:11px;margin-bottom:2px}
+  .muted{color:var(--muted);font-size:13px}
+  .msg{font-size:13px;margin-top:8px;min-height:18px}
+  .msg.ok{color:var(--good)} .msg.err{color:var(--bad)}
+  .login{text-align:center;padding:28px 18px}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="brand"><img src="/static/icons/icon-192.png" alt="">TradingView</div>
+  <a class="back" href="/dashboard">‹ Panele dön</a>
+</div>
+
+<div class="wrap">
+  <div class="grid">
+    <div class="stack">
+      <div class="card">
+        <div class="row" style="margin-bottom:12px">
+          <input type="text" id="sym" placeholder="Sembol, örn. BIST:THYAO veya NASDAQ:AAPL" value="BIST:XU100">
+          <button class="btn" id="go">Göster</button>
+          <a class="btn ghost" id="openTv" href="https://www.tradingview.com/chart/" target="_blank" rel="noopener">TradingView'da aç ↗</a>
+        </div>
+        <div id="chart"></div>
+        <p class="muted" style="margin:10px 0 0">Grafik TradingView tarafından sağlanır. Kendi çizimleriniz ve kayıtlı düzenleriniz için
+          "TradingView'da aç" ile kendi TradingView hesabınıza girin. Bazı borsa verileri yalnızca TradingView'da görüntülenebilir.</p>
+      </div>
+    </div>
+
+    <div class="stack">
+      {% if logged_in %}
+      <div class="card">
+        <h2>Takip listem</h2>
+        <p>TradingView'da listenizin menüsünden <b>"Listeyi dışa aktar"</b> deyin, inen <b>.txt</b> dosyasını buraya yükleyin.</p>
+        <div class="row">
+          <input type="file" id="file" accept=".txt,text/plain" style="flex:1;min-width:0;font-size:12px;color:var(--muted)">
+          <button class="btn" id="imp">Aktar</button>
+        </div>
+        <div class="msg" id="impMsg"></div>
+        <div class="chips" id="watch"></div>
+      </div>
+
+      <div class="card">
+        <h2>Alarm köprüsü</h2>
+        <p>TradingView alarmlarınız 3N Finans'a düşsün, telefonunuza ve bilgisayarınıza bildirim gelsin.</p>
+        <ol>
+          <li>TradingView'da bir alarm oluşturun.</li>
+          <li><b>Bildirimler</b> sekmesinde <b>Webhook URL</b>'yi işaretleyin.</li>
+          <li>Aşağıdaki adresi yapıştırın, alarm mesajını dilediğiniz gibi yazın.</li>
+        </ol>
+        <div class="row">
+          <input type="text" class="hook" id="hook" readonly value="yükleniyor…">
+          <button class="btn" id="copy">Kopyala</button>
+        </div>
+        <div class="row" style="margin-top:8px;justify-content:space-between">
+          <span class="muted">Bu adres size özeldir, kimseyle paylaşmayın.</span>
+          <button class="btn ghost" id="rotate" style="padding:6px 10px">Yenile</button>
+        </div>
+        <p class="muted" style="margin:10px 0 0">Webhook özelliği TradingView'ın ücretli paketlerinde bulunur.</p>
+      </div>
+
+      <div class="card">
+        <h2>Son alarmlar</h2>
+        <div class="alerts" id="alerts"><span class="muted">Henüz alarm gelmedi.</span></div>
+      </div>
+      {% else %}
+      <div class="card login">
+        <h2>TradingView'ı hesabınıza bağlayın</h2>
+        <p>Alarm köprüsü ve takip listesi aktarımı için giriş yapın.</p>
+        <a class="btn" href="/login">Giriş yap</a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script src="https://s3.tradingview.com/tv.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let current = new URLSearchParams(location.search).get('s') || 'BIST:XU100';
+
+function show(sym){
+  sym = (sym || '').trim().toUpperCase(); if(!sym) return;
+  current = sym; $('sym').value = sym;
+  $('openTv').href = 'https://www.tradingview.com/chart/?symbol=' + encodeURIComponent(sym);
+  $('chart').innerHTML = '<div id="tvc" style="height:100%"></div>';
+  new TradingView.widget({container_id:'tvc', symbol:sym, interval:'D', timezone:'Europe/Istanbul',
+    theme:'dark', style:'1', locale:'tr', autosize:true, allow_symbol_change:true,
+    hide_side_toolbar:false, withdateranges:true, details:true});
+  document.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c.dataset.s === sym));
+}
+$('go').onclick = () => show($('sym').value);
+$('sym').addEventListener('keydown', e => { if(e.key === 'Enter') show($('sym').value); });
+show(current);
+
+{% if logged_in %}
+async function load(){
+  const r = await fetch('/api/tv/me'); if(!r.ok) return;
+  const d = await r.json();
+  $('hook').value = d.hook_url;
+  $('watch').innerHTML = d.watch.length ? d.watch.map(s =>
+    `<span class="chip${s===current?' on':''}" data-s="${esc(s)}"><b>${esc(s)}</b><button class="x" title="Listeden çıkar">×</button></span>`).join('')
+    : '<span class="muted">Listeniz boş.</span>';
+  $('alerts').innerHTML = d.alerts.length ? d.alerts.map(a =>
+    `<div class="alert"><time>${esc(a.at)}</time>${esc(a.message)}</div>`).join('')
+    : '<span class="muted">Henüz alarm gelmedi.</span>';
+}
+$('watch').addEventListener('click', async e => {
+  const chip = e.target.closest('.chip'); if(!chip) return;
+  if(e.target.classList.contains('x')){
+    await fetch('/api/tv/watch/remove', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({symbol:chip.dataset.s})});
+    return load();
+  }
+  show(chip.dataset.s);
+});
+$('imp').onclick = async () => {
+  const f = $('file').files[0]; const m = $('impMsg');
+  if(!f){ m.className='msg err'; m.textContent='Önce .txt dosyasını seçin.'; return; }
+  const fd = new FormData(); fd.append('file', f);
+  const r = await fetch('/api/tv/import', {method:'POST', body:fd}); const d = await r.json();
+  m.className = 'msg ' + (d.ok ? 'ok' : 'err');
+  m.textContent = d.ok ? `${d.found} sembol bulundu, ${d.added} yeni eklendi.` : (d.error || 'Aktarılamadı');
+  load();
+};
+$('copy').onclick = async () => { try{ await navigator.clipboard.writeText($('hook').value); $('copy').textContent='Kopyalandı'; setTimeout(()=>$('copy').textContent='Kopyala',1500);}catch(e){ $('hook').select(); } };
+$('rotate').onclick = async () => {
+  if(!confirm('Adres yenilensin mi? Eski adresi kullanan TradingView alarmları çalışmayı bırakır.')) return;
+  const r = await fetch('/api/tv/rotate', {method:'POST'}); const d = await r.json(); $('hook').value = d.hook_url;
+};
+load(); setInterval(load, 30000);
+{% endif %}
+</script>
+</body>
+</html>

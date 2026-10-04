@@ -474,7 +474,10 @@ def init_tables():
 init_tables()
 import global_portfolio as _gp
 from mobile_api import mobile_bp, init_db as _mobile_init
+from tv_link import tv_bp, init_db as _tv_init, delete_user as _tv_delete_user
 app.register_blueprint(mobile_bp)
+app.register_blueprint(tv_bp)
+_tv_init()
 _mobile_init()
 _gp.init(DB_PATH)
 
@@ -1476,6 +1479,7 @@ _PUBLIC_EXACT = {
 _PUBLIC_PREFIXES = (
     '/static/', '/admin/', '/confirm-subscription/', '/unsubscribe/', '/e/o/', '/favicon',
     '/api/m/',   # mağaza uygulamasının API'si (herkese açık veri)
+    '/api/tv/hook/',   # TradingView webhook'u (kimlik = URL'deki gizli token)
 )
 
 
@@ -1483,7 +1487,7 @@ _PUBLIC_PREFIXES = (
 # App Store 5.1.1(v): hesap gerektirmeyen içerik üyeliksiz açılmalı → uygulamada giriş istenmez.
 _NATIVE_UA_TAG = '3NFinansApp'
 # Uygulamada misafirken de kapalı kalan, hesaba bağlı yollar
-_ACCOUNT_ONLY_PREFIXES = ('/carkifelek', '/api/wheel/', '/profile')
+_ACCOUNT_ONLY_PREFIXES = ('/carkifelek', '/api/wheel/', '/profile', '/api/tv/')
 
 
 def _is_native_app() -> bool:
@@ -2408,6 +2412,7 @@ def profile_delete():
         return redirect(url_for('profile', del_err=1))
     if me.lower() in ADMIN_USERS:
         return redirect(url_for('profile', del_err=2))
+    _tv_delete_user(me)                            # TradingView alarm/liste verileri
     with sqlite3.connect(DB_PATH) as conn:
         row = conn.execute('SELECT email FROM users WHERE username=?', (me,)).fetchone()
         email = (row[0] or '').lower() if row else ''
