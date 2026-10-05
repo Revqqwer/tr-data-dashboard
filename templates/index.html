@@ -271,9 +271,9 @@
   </script>
   <div class="sb-theme-row">
     <button class="sb-theme-toggle" id="pwaInstallBtn" style="display:none;margin-bottom:8px;border-color:#6ba3ff;color:#6ba3ff;"
-            title="Uygulama olarak ekle" aria-label="Uygulama olarak ekle">
+            title="Uygulamayı indir" aria-label="Uygulamayı indir">
       <span class="sb-theme-ic">📲</span>
-      <span class="sb-theme-label">Uygulama Olarak Ekle</span>
+      <span class="sb-theme-label">Uygulamayı İndir</span>
     </button>
     <button class="sb-theme-toggle" id="pushBtn" style="display:none;margin-bottom:8px;"
             title="Bildirimleri aç" aria-label="Bildirimleri aç">
@@ -1748,6 +1748,18 @@ window.__NATIVE_APP = !!(window.Capacitor && Capacitor.isNativePlatform && Capac
   var btn = document.getElementById('pwaInstallBtn');
   var modal = document.getElementById('pwaModal');
   if (!btn || window.__NATIVE_APP) return;
+
+  /* Windows → Microsoft Store'daki masaüstü uygulaması (masaüstü uygulamasının içinde buton gizli) */
+  var __ua = navigator.userAgent;
+  if (/3NFinansDesktop/.test(__ua)) return;
+  if (/Windows/.test(__ua)) {
+    btn.style.display = '';
+    btn.addEventListener('click', function (e) {
+      e.preventDefault(); e.stopImmediatePropagation();
+      window.open('https://apps.microsoft.com/detail/9P9T5QGN0M5N?mode=direct', '_blank', 'noopener');
+    }, true);
+    return;
+  }
 
   var standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
                    || window.navigator.standalone === true;
