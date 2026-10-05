@@ -2465,6 +2465,73 @@
   ],
   "gop_current_units": 0.0,
   "gop_current_value": 0.0,
+  "mmf_extra": {
+    "MPK": {
+      "name": "MPK Para Piyasası Fonu",
+      "trades": [
+        {
+          "date": "2026-09-11",
+          "units": 1980.0,
+          "price": 10.100629,
+          "type": "alis"
+        },
+        {
+          "date": "2026-09-24",
+          "units": 850.0,
+          "price": 10.217415,
+          "type": "satis"
+        },
+        {
+          "date": "2026-10-05",
+          "units": 193.0,
+          "price": 10.322988,
+          "type": "alis"
+        }
+      ],
+      "position_history": [
+        {
+          "date": "2026-09-11",
+          "units": 1980.0,
+          "price": 10.100629,
+          "value": 19999.25
+        },
+        {
+          "date": "2026-09-24",
+          "units": 1130.0,
+          "price": 10.217415,
+          "value": 11545.68
+        },
+        {
+          "date": "2026-10-05",
+          "units": 1323.0,
+          "price": 10.322988,
+          "value": 13657.31
+        }
+      ],
+      "daily_value": [
+        {
+          "date": "2026-09-11",
+          "units": 1980.0,
+          "price": 10.100629,
+          "value": 19999.25
+        },
+        {
+          "date": "2026-09-24",
+          "units": 1130.0,
+          "price": 10.217415,
+          "value": 11545.68
+        },
+        {
+          "date": "2026-10-05",
+          "units": 1323.0,
+          "price": 10.322988,
+          "value": 13657.31
+        }
+      ],
+      "current_units": 1323.0,
+      "current_value": 13657.31
+    }
+  },
   "portfolio_daily_value": [
     {
       "date": "2025-11-14",
@@ -3960,124 +4027,124 @@
     {
       "date": "2026-09-11",
       "stock_value": 60579.64,
-      "nsp_value": 69108.77,
-      "cash_value": 27474.88,
+      "nsp_value": 89108.02,
+      "cash_value": 7475.63,
       "total_value": 157163.29
     },
     {
       "date": "2026-09-14",
       "stock_value": 65747.23,
-      "nsp_value": 69108.77,
-      "cash_value": 21463.59,
+      "nsp_value": 89108.02,
+      "cash_value": 1464.34,
       "total_value": 156319.59
     },
     {
       "date": "2026-09-15",
       "stock_value": 64527.56,
-      "nsp_value": 69108.77,
-      "cash_value": 21463.59,
+      "nsp_value": 89108.02,
+      "cash_value": 1464.34,
       "total_value": 155099.92
     },
     {
       "date": "2026-09-16",
       "stock_value": 49504.07,
-      "nsp_value": 69108.77,
-      "cash_value": 33515.72,
+      "nsp_value": 89108.02,
+      "cash_value": 13516.47,
       "total_value": 152128.56
     },
     {
       "date": "2026-09-17",
       "stock_value": 61087.34,
-      "nsp_value": 69108.77,
-      "cash_value": 23470.08,
+      "nsp_value": 89108.02,
+      "cash_value": 3470.83,
       "total_value": 153666.19
     },
     {
       "date": "2026-09-18",
       "stock_value": 60066.14,
-      "nsp_value": 69108.77,
-      "cash_value": 23470.08,
+      "nsp_value": 89108.02,
+      "cash_value": 3470.83,
       "total_value": 152644.99
     },
     {
       "date": "2026-09-21",
       "stock_value": 59904.5,
-      "nsp_value": 69108.77,
-      "cash_value": 23470.08,
+      "nsp_value": 89108.02,
+      "cash_value": 3470.83,
       "total_value": 152483.35
     },
     {
       "date": "2026-09-22",
       "stock_value": 59156.74,
-      "nsp_value": 69108.77,
-      "cash_value": 23470.08,
+      "nsp_value": 89108.02,
+      "cash_value": 3470.83,
       "total_value": 151735.59
     },
     {
       "date": "2026-09-23",
       "stock_value": 64119.21,
-      "nsp_value": 69108.77,
-      "cash_value": 18355.08,
+      "nsp_value": 89108.02,
+      "cash_value": -1644.17,
       "total_value": 151583.06
     },
     {
       "date": "2026-09-24",
       "stock_value": 61101.41,
-      "nsp_value": 69108.77,
-      "cash_value": 19834.68,
-      "total_value": 150044.86
+      "nsp_value": 80654.45,
+      "cash_value": 8520.23,
+      "total_value": 150276.09
     },
     {
       "date": "2026-09-25",
       "stock_value": 66277.78,
-      "nsp_value": 69108.77,
-      "cash_value": 14696.28,
-      "total_value": 150082.83
+      "nsp_value": 80654.45,
+      "cash_value": 3381.83,
+      "total_value": 150314.06
     },
     {
       "date": "2026-09-28",
       "stock_value": 64764.04,
-      "nsp_value": 69108.77,
-      "cash_value": 14696.28,
-      "total_value": 148569.09
+      "nsp_value": 80654.45,
+      "cash_value": 3381.83,
+      "total_value": 148800.32
     },
     {
       "date": "2026-09-29",
       "stock_value": 63769.05,
-      "nsp_value": 69108.77,
-      "cash_value": 14696.28,
-      "total_value": 147574.1
+      "nsp_value": 80654.45,
+      "cash_value": 3381.83,
+      "total_value": 147805.33
     },
     {
       "date": "2026-09-30",
       "stock_value": 63191.24,
-      "nsp_value": 69108.77,
-      "cash_value": 14696.28,
-      "total_value": 146996.29
+      "nsp_value": 80654.45,
+      "cash_value": 3381.83,
+      "total_value": 147227.52
     },
     {
       "date": "2026-10-01",
       "stock_value": 65156.99,
-      "nsp_value": 69108.77,
-      "cash_value": 14696.28,
-      "total_value": 148962.04
+      "nsp_value": 80654.45,
+      "cash_value": 3381.83,
+      "total_value": 149193.27
     },
     {
       "date": "2026-10-02",
       "stock_value": 64776.44,
-      "nsp_value": 69108.77,
-      "cash_value": 14696.28,
-      "total_value": 148581.49
+      "nsp_value": 80654.45,
+      "cash_value": 3381.83,
+      "total_value": 148812.72
     },
     {
       "date": "2026-10-05",
       "stock_value": 65693.14,
-      "nsp_value": 69108.77,
-      "cash_value": 14696.28,
-      "total_value": 149498.19
+      "nsp_value": 82766.08,
+      "cash_value": 1389.5,
+      "total_value": 149848.72
     }
   ],
-  "portfolio_current_value": 149498.19,
+  "portfolio_current_value": 149848.72,
   "pnl_timeline": [
     {
       "date": "2025-11-13",
@@ -6241,7 +6308,7 @@
       "2026-09-29": 6547.99,
       "2026-09-30": 6588.94,
       "2026-10-01": 6542.73,
-      "2026-10-04": 6526.75
+      "2026-10-04": 6525.73
     }
   }
 }

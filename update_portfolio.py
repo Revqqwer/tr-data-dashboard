@@ -189,7 +189,10 @@ def run():
     _running_qty: dict[str, float] = {}
     trade_cash_steps: list = []      # [(date, kumulatif_gercek_hisse+fon_nakit_akisi)]
     _running_trade_cash = 0.0
+    mmf_extra = pf.get('mmf_extra', {}) or {}     # NSP/GOP dışındaki fonlar (ör. MPK)
     mmf_all_trades = list(pf.get('nsp_trades', [])) + list(pf.get('gop_trades', []))
+    for _x in mmf_extra.values():
+        mmf_all_trades += list(_x.get('trades', []))
     for t in sorted(real_trades + mmf_all_trades, key=lambda x: x['date']):
         if 'ticker' in t:   # hisse işlemi
             tk = t['ticker']
@@ -298,6 +301,29 @@ def run():
         (e['date'], float(e['units'])) for e in pf.get('gop_position_history', [])
     )
 
+    # Ek fonlar (MPK vb.) — GOP ile aynı mantık: gerçek işlem geçmişinden kademe
+    # fonksiyonu + kendi son bilinen fiyatı. Fiyat TEFAS'tan gelmezse son fiyat taşınır.
+    extra_state = {}
+    for _code, _x in mmf_extra.items():
+        _steps = sorted((e['date'], float(e['units'])) for e in _x.get('position_history', []))
+        _dv = _x.get('daily_value', [])
+        _lp = _dv[-1]['price'] if _dv else None
+        extra_state[_code] = {
+            'steps': _steps,
+            'prices': _fetch_mmf(_code, recompute_from_str) if _x.get('current_units') else {},
+            'last_price': _lp,
+            'last_val': float(_x.get('current_units', 0)) * _lp if _lp else 0.0,
+        }
+
+    def _extra_units_at(code: str, d_str: str) -> float:
+        u = 0.0
+        for sd, su in extra_state[code]['steps']:
+            if sd <= d_str:
+                u = su
+            else:
+                break
+        return u
+
     def _gop_units_at(d_str: str) -> float:
         if gop_units_override is not None:
             return float(gop_units_override)
@@ -388,6 +414,20 @@ def run():
         last_gop_val = gop_val
         last_nsp_val = nsp_val
 
+        # Ek fonlar (MPK vb.) — toplam ve 'nsp_value' havuzuna dahil
+        for _code, _st in extra_state.items():
+            _u = _extra_units_at(_code, d_str)
+            _p = _st['prices'].get(d_str)
+            if _p:
+                _st['last_price'] = _p
+                _v = _u * _p
+            elif _st['last_price']:
+                _v = _u * _st['last_price']
+            else:
+                _v = _st['last_val']
+            _st['last_val'] = _v
+            gop_val += _v
+
         # 'nsp_value' alanı NSP+GOP toplamını tutar (parse_portfolio.py ile aynı kural;
         # GOP'u ayrıca eklemeyi unutmak, GOP'un tüm değerini toplamdan düşürüyordu).
         total = round(sv + nsp_val + gop_val + cash_d, 2)
@@ -449,6 +489,18 @@ def run():
                 'value': round(u * gop_p, 2),
             })
     pf['gop_daily_value'] = sorted(gop_dv, key=lambda x: x['date'])
+
+    for _code, _st in extra_state.items():
+        _x = mmf_extra[_code]
+        _dv = _x.get('daily_value', [])
+        _have = {e['date'] for e in _dv}
+        for d_str, _p in sorted(_st['prices'].items()):
+            if d_str > last_date_str and d_str not in _have:
+                _u = _extra_units_at(_code, d_str)
+                _dv.append({'date': d_str, 'units': _u, 'price': _p, 'value': round(_u * _p, 2)})
+        _x['daily_value'] = sorted(_dv, key=lambda x: x['date'])
+        if _x['daily_value']:
+            _x['current_value'] = _x['daily_value'][-1]['value']
 
     # 10. Kaydet
     PORTFOLIO_FILE.write_text(json.dumps(pf, ensure_ascii=False, indent=2, default=str), encoding='utf-8')

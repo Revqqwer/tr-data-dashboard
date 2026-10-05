@@ -27,6 +27,7 @@ OUT_PATH      = os.path.join(os.path.dirname(__file__), 'data', 'portfolio.json'
 MMF_FUNDS = {
     'NSP': 'Nurol Portföy Para Piyasası Katılım Fonu',
     'GOP': 'Golden Global Portföy Para Piyasası Katılım Fonu',
+    'MPK': 'MPK Para Piyasası Fonu',
 }
 
 # GENKMH is a rights-derived lot, treat as same stock GENKM
@@ -858,6 +859,19 @@ def main():
         'gop_current_units':        mmf_position_history.get('GOP', [{'units': 0}])[-1]['units']
                                      if mmf_position_history.get('GOP') else 0,
         'gop_current_value':        round(_mmf_current('GOP'), 2),
+        # NSP/GOP dışındaki fonlar (ör. MPK) genel yapıda — update_portfolio.py ve
+        # BistPortfolio.tsx bunları kod adına bakmadan işler; yeni fon için MMF_FUNDS yeter.
+        'mmf_extra': {
+            code: {
+                'name':             MMF_FUNDS.get(code, code),
+                'trades':           mmf_trades[code],
+                'position_history': mmf_position_history.get(code, []),
+                'daily_value':      mmf_daily_value.get(code, []),
+                'current_units':    mmf_position_history[code][-1]['units'] if mmf_position_history.get(code) else 0,
+                'current_value':    round(_mmf_current(code), 2),
+            }
+            for code in mmf_trades if code not in ('NSP', 'GOP')
+        },
         'portfolio_daily_value':    portfolio_daily_value,
         'portfolio_current_value':  round(portfolio_current_value, 2),
         'pnl_timeline':             pnl_timeline,
