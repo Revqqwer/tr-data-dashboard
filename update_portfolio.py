@@ -70,30 +70,17 @@ def _fetch_tv(tv_symbol: str, n_bars: int = 60) -> dict[str, float]:
 # uçtan hiç dönmüyor) çağıran taraf son bilinen fiyatı taşımalı — burada
 # sessizce boş dict dönülür, hata sayılmaz.
 def _fetch_mmf(fund_code: str, from_str: str) -> dict[str, float]:
-    """TEFAS'tan bir para piyasası fonunun fiyatlarını çek. {date_str: price}"""
-    import requests
-    from datetime import datetime as dt
-    prices = {}
+    """TEFAS'tan bir para piyasası fonunun fiyatları {date_str: price}.
+    Eski BindHistoryInfo uç noktası TEFAS'ta kapatıldı (404) — fiyatlar Ağustos'tan beri
+    gelmiyordu. parse_portfolio.py'deki (hız sınırına dayanıklı) çekici kullanılır."""
+    from parse_portfolio import fetch_mmf_prices
     try:
-        start = dt.strptime(from_str, '%Y-%m-%d').strftime('%d.%m.%Y')
-        end   = date.today().strftime('%d.%m.%Y')
-        r = requests.post(
-            'https://www.tefas.gov.tr/api/DB/BindHistoryInfo',
-            json={'fontip': 'YAT', 'bastarih': start, 'bittarih': end},
-            headers={'Content-Type': 'application/json'},
-            timeout=30,
-        )
-        for row in r.json().get('data', []):
-            if row.get('KOD') == fund_code:
-                try:
-                    d = dt.strptime(row['TARIH'], '%d.%m.%Y').strftime('%Y-%m-%d')
-                    prices[d] = float(row['FIYAT'])
-                except Exception:
-                    pass
+        prices = fetch_mmf_prices(fund_code, date.fromisoformat(from_str), date.today())
         log.info('%s: %d fiyat alındı', fund_code, len(prices))
+        return prices
     except Exception as e:
         log.warning('%s fetch hatası: %s', fund_code, e)
-    return prices
+        return {}
 
 
 def _fetch_nsp(from_str: str) -> dict[str, float]:

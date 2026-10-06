@@ -34,7 +34,7 @@ MMF_FUNDS = {
 # fiyatlar. Bilinen noktalar arası iş günleri DOĞRUSAL doldurulur — para piyasası fonu
 # her gün az az değerlenir; son fiyat tek günde eklenince grafikte sahte sıçrama olurdu.
 MANUAL_MMF_PRICES = {
-    'NSP': {'2026-10-05': 1.931160},
+    # örn. 'NSP': {'2026-10-05': 1.931160},
 }
 
 # Ekstre sonundaki gerçek nakit (kullanıcı beyanı). Teorik nakit (işlem tutarları) komisyon,
@@ -312,11 +312,18 @@ def compute_pnl(trades):
     return summary, open_positions, timeline
 
 
+_TEFAS_CHUNK_CACHE: dict = {}   # (bas, bit) -> {fon_kodu: {tarih: fiyat}} — bir istek TÜM fonları döndürür
+
+
 def fetch_mmf_prices(fund_code: str, start_date: date, end_date: date) -> dict:
-    """Fetch a money-market fund's daily prices from TEFAS API. Returns {date_str: price}.
-    Uses 14-day chunks (API silently returns null for larger ranges).
+    """Bir fonun TEFAS günlük fiyatları {date_str: price}.
+
+    TEFAS 14 günden uzun aralıkta boş döner → 14 günlük parçalar. Her parça TÜM YAT
+    fonlarını getirdiği için sonuçlar önbelleğe alınır (NSP/GOP/MPK aynı parçayı tekrar
+    çekmez). TEFAS art arda isteklerde 429 (çok fazla istek) döner — eskiden bu yanıt
+    'veri yok' sanılıp sessizce geçiliyordu ve fiyatlar haftalarca eksik kalıyordu;
+    artık durum kodu kontrol edilip beklenerek yeniden denenir.
     """
-    from datetime import timedelta
     TEFAS_URL = 'https://www.tefas.gov.tr/api/funds/fonGnlBlgSiraliGetirDosya'
     HEADERS = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
@@ -325,51 +332,55 @@ def fetch_mmf_prices(fund_code: str, start_date: date, end_date: date) -> dict:
         'Referer': 'https://www.tefas.gov.tr/',
     }
     prices = {}
-    chunk_start = start_date
-    s = None
+    s = requests.Session()
+    s.headers.update(HEADERS)
     try:
-        s = requests.Session()
-        s.headers.update(HEADERS)
         s.get('https://www.tefas.gov.tr/', timeout=15)
-        time.sleep(1)
-
-        while chunk_start <= end_date:
-            chunk_end = min(chunk_start + timedelta(days=13), end_date)  # 14-day window
+    except Exception:
+        pass
+    chunk_start = start_date
+    while chunk_start <= end_date:
+        chunk_end = min(chunk_start + timedelta(days=13), end_date)
+        key = (chunk_start.strftime('%Y%m%d'), chunk_end.strftime('%Y%m%d'))
+        if key not in _TEFAS_CHUNK_CACHE:
             payload = {
                 'dil': 'TR', 'fonTipi': 'YAT', 'islem': 1,
-                'basTarih': chunk_start.strftime('%Y%m%d'),
-                'bitTarih': chunk_end.strftime('%Y%m%d'),
+                'basTarih': key[0], 'bitTarih': key[1],
                 'kurucuKodu': None, 'sfonTurKod': None,
                 'fonTurAciklama': None, 'fonTurKod': None, 'fonGrubu': None,
                 'donemGetiri1a': '1', 'donemGetiri3a': '1', 'donemGetiri6a': '1',
                 'donemGetiri1y': '1', 'donemGetiriyb': '1',
                 'donemGetiri3y': '1', 'donemGetiri5y': '1',
             }
-            for attempt in range(3):
+            got = None
+            for attempt in range(6):
                 try:
                     resp = s.post(TEFAS_URL, json=payload, timeout=30)
-                    if not resp.text.strip():
-                        raise ValueError('Empty response')
-                    result_list = resp.json().get('resultList') or []
-                    for row in result_list:
-                        if row.get('fonKodu') == fund_code and row.get('fiyat'):
-                            prices[row['tarih']] = float(row['fiyat'])
+                    if resp.status_code == 429 or resp.status_code >= 500:
+                        wait = float(resp.headers.get('Retry-After') or 0) or min(5 * 2 ** attempt, 60)
+                        print(f'  TEFAS {resp.status_code} ({key[0]}-{key[1]}), {wait:.0f} sn bekleniyor...')
+                        time.sleep(wait)
+                        continue
+                    resp.raise_for_status()
+                    got = {}
+                    for row in resp.json().get('resultList') or []:
+                        if row.get('fonKodu') and row.get('fiyat'):
+                            got.setdefault(row['fonKodu'], {})[row['tarih']] = float(row['fiyat'])
                     break
                 except Exception as e:
-                    if attempt == 2:
-                        print(f'  [{fund_code}] Chunk {chunk_start} failed after 3 tries: {e}')
-                    else:
-                        # Refresh session on failure
-                        s = requests.Session()
-                        s.headers.update(HEADERS)
-                        s.get('https://www.tefas.gov.tr/', timeout=15)
-                        time.sleep(2 + attempt * 2)
-
-            chunk_start = chunk_end + timedelta(days=1)
-            time.sleep(0.4)
-
-    except Exception as e:
-        print(f'TEFAS [{fund_code}] fetch error: {e}')
+                    time.sleep(3 + attempt * 3)
+                    if attempt == 5:
+                        print(f'  TEFAS parça {key[0]}-{key[1]} alınamadı: {e}')
+            if got is None:
+                print(f'  UYARI: TEFAS parça {key[0]}-{key[1]} alınamadı — bu aralıkta fon fiyatı eksik kalacak')
+                got = {}
+            else:
+                _TEFAS_CHUNK_CACHE[key] = got
+            time.sleep(1.5)                 # hız sınırına takılmamak için
+        else:
+            got = _TEFAS_CHUNK_CACHE[key]
+        prices.update(got.get(fund_code, {}))
+        chunk_start = chunk_end + timedelta(days=1)
     return prices
 
 
