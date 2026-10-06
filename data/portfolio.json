@@ -2071,6 +2071,12 @@
       "value": 72359.93
     },
     {
+      "date": "2026-01-01",
+      "units": 50043.0,
+      "price": 1.447438,
+      "value": 72434.14
+    },
+    {
       "date": "2026-01-02",
       "units": 50043.0,
       "price": 1.448921,
@@ -2221,16 +2227,118 @@
       "value": 83298.6
     },
     {
+      "date": "2026-02-06",
+      "units": 55571.0,
+      "price": 1.500437,
+      "value": 83380.79
+    },
+    {
+      "date": "2026-02-09",
+      "units": 55571.0,
+      "price": 1.504875,
+      "value": 83627.39
+    },
+    {
+      "date": "2026-02-10",
+      "units": 55571.0,
+      "price": 1.506354,
+      "value": 83709.59
+    },
+    {
+      "date": "2026-02-11",
+      "units": 55571.0,
+      "price": 1.507833,
+      "value": 83791.79
+    },
+    {
+      "date": "2026-02-12",
+      "units": 55571.0,
+      "price": 1.509312,
+      "value": 83873.99
+    },
+    {
+      "date": "2026-02-13",
+      "units": 55571.0,
+      "price": 1.510791,
+      "value": 83956.19
+    },
+    {
+      "date": "2026-02-16",
+      "units": 55571.0,
+      "price": 1.515229,
+      "value": 84202.78
+    },
+    {
       "date": "2026-02-17",
       "units": 59197.0,
       "price": 1.516708,
       "value": 89784.56
     },
     {
+      "date": "2026-02-18",
+      "units": 59197.0,
+      "price": 1.518196,
+      "value": 89872.64
+    },
+    {
+      "date": "2026-02-19",
+      "units": 59197.0,
+      "price": 1.519684,
+      "value": 89960.71
+    },
+    {
+      "date": "2026-02-20",
+      "units": 59197.0,
+      "price": 1.521171,
+      "value": 90048.78
+    },
+    {
+      "date": "2026-02-23",
+      "units": 59197.0,
+      "price": 1.525635,
+      "value": 90313.0
+    },
+    {
+      "date": "2026-02-24",
+      "units": 59197.0,
+      "price": 1.527122,
+      "value": 90401.07
+    },
+    {
+      "date": "2026-02-25",
+      "units": 59197.0,
+      "price": 1.52861,
+      "value": 90489.14
+    },
+    {
       "date": "2026-02-26",
       "units": 57694.0,
       "price": 1.530098,
       "value": 88277.47
+    },
+    {
+      "date": "2026-02-27",
+      "units": 57694.0,
+      "price": 1.531614,
+      "value": 88364.95
+    },
+    {
+      "date": "2026-03-02",
+      "units": 57694.0,
+      "price": 1.536163,
+      "value": 88627.4
+    },
+    {
+      "date": "2026-03-03",
+      "units": 57694.0,
+      "price": 1.537679,
+      "value": 88714.88
+    },
+    {
+      "date": "2026-03-04",
+      "units": 57694.0,
+      "price": 1.539196,
+      "value": 88802.36
     },
     {
       "date": "2026-03-05",
@@ -2245,10 +2353,88 @@
       "value": 78104.85
     },
     {
+      "date": "2026-03-06",
+      "units": 50694.0,
+      "price": 1.542306,
+      "value": 78185.66
+    },
+    {
+      "date": "2026-03-09",
+      "units": 50694.0,
+      "price": 1.547088,
+      "value": 78428.08
+    },
+    {
+      "date": "2026-03-10",
+      "units": 50694.0,
+      "price": 1.548682,
+      "value": 78508.89
+    },
+    {
+      "date": "2026-03-11",
+      "units": 50694.0,
+      "price": 1.550276,
+      "value": 78589.69
+    },
+    {
+      "date": "2026-03-12",
+      "units": 50694.0,
+      "price": 1.55187,
+      "value": 78670.5
+    },
+    {
+      "date": "2026-03-13",
+      "units": 50694.0,
+      "price": 1.553464,
+      "value": 78751.3
+    },
+    {
+      "date": "2026-03-16",
+      "units": 50694.0,
+      "price": 1.558246,
+      "value": 78993.72
+    },
+    {
       "date": "2026-03-17",
       "units": 55694.0,
       "price": 1.55984,
       "value": 86873.73
+    },
+    {
+      "date": "2026-03-18",
+      "units": 55694.0,
+      "price": 1.561508,
+      "value": 86966.61
+    },
+    {
+      "date": "2026-03-19",
+      "units": 55694.0,
+      "price": 1.563176,
+      "value": 87059.5
+    },
+    {
+      "date": "2026-03-20",
+      "units": 55694.0,
+      "price": 1.564843,
+      "value": 87152.38
+    },
+    {
+      "date": "2026-03-23",
+      "units": 55694.0,
+      "price": 1.569847,
+      "value": 87431.04
+    },
+    {
+      "date": "2026-03-24",
+      "units": 55694.0,
+      "price": 1.571514,
+      "value": 87523.93
+    },
+    {
+      "date": "2026-03-25",
+      "units": 55694.0,
+      "price": 1.573182,
+      "value": 87616.81
     },
     {
       "date": "2026-03-26",
@@ -2257,10 +2443,40 @@
       "value": 82670.18
     },
     {
+      "date": "2026-03-27",
+      "units": 52494.0,
+      "price": 1.576528,
+      "value": 82758.27
+    },
+    {
+      "date": "2026-03-30",
+      "units": 52494.0,
+      "price": 1.581563,
+      "value": 83022.55
+    },
+    {
+      "date": "2026-03-31",
+      "units": 52494.0,
+      "price": 1.583241,
+      "value": 83110.64
+    },
+    {
       "date": "2026-04-01",
       "units": 45994.0,
       "price": 1.584919,
       "value": 72896.76
+    },
+    {
+      "date": "2026-04-02",
+      "units": 45994.0,
+      "price": 1.586629,
+      "value": 72975.43
+    },
+    {
+      "date": "2026-04-03",
+      "units": 45994.0,
+      "price": 1.58834,
+      "value": 73054.1
     },
     {
       "date": "2026-04-06",
@@ -2269,10 +2485,130 @@
       "value": 80189.83
     },
     {
+      "date": "2026-04-07",
+      "units": 50324.0,
+      "price": 1.595207,
+      "value": 80277.2
+    },
+    {
+      "date": "2026-04-08",
+      "units": 50324.0,
+      "price": 1.596943,
+      "value": 80364.57
+    },
+    {
+      "date": "2026-04-09",
+      "units": 50324.0,
+      "price": 1.598679,
+      "value": 80451.94
+    },
+    {
+      "date": "2026-04-10",
+      "units": 50324.0,
+      "price": 1.600415,
+      "value": 80539.3
+    },
+    {
+      "date": "2026-04-13",
+      "units": 50324.0,
+      "price": 1.605624,
+      "value": 80801.4
+    },
+    {
+      "date": "2026-04-14",
+      "units": 50324.0,
+      "price": 1.60736,
+      "value": 80888.77
+    },
+    {
+      "date": "2026-04-15",
+      "units": 50324.0,
+      "price": 1.609096,
+      "value": 80976.14
+    },
+    {
+      "date": "2026-04-16",
+      "units": 50324.0,
+      "price": 1.610832,
+      "value": 81063.5
+    },
+    {
       "date": "2026-04-17",
       "units": 53858.0,
       "price": 1.612568,
       "value": 86849.69
+    },
+    {
+      "date": "2026-04-20",
+      "units": 53858.0,
+      "price": 1.617788,
+      "value": 87130.82
+    },
+    {
+      "date": "2026-04-21",
+      "units": 53858.0,
+      "price": 1.619528,
+      "value": 87224.53
+    },
+    {
+      "date": "2026-04-22",
+      "units": 53858.0,
+      "price": 1.621268,
+      "value": 87318.24
+    },
+    {
+      "date": "2026-04-23",
+      "units": 53858.0,
+      "price": 1.623008,
+      "value": 87411.95
+    },
+    {
+      "date": "2026-04-24",
+      "units": 53858.0,
+      "price": 1.624748,
+      "value": 87505.66
+    },
+    {
+      "date": "2026-04-27",
+      "units": 53858.0,
+      "price": 1.629967,
+      "value": 87786.79
+    },
+    {
+      "date": "2026-04-28",
+      "units": 53858.0,
+      "price": 1.631707,
+      "value": 87880.5
+    },
+    {
+      "date": "2026-04-29",
+      "units": 53858.0,
+      "price": 1.633447,
+      "value": 87974.21
+    },
+    {
+      "date": "2026-04-30",
+      "units": 53858.0,
+      "price": 1.635187,
+      "value": 88067.92
+    },
+    {
+      "date": "2026-05-01",
+      "units": 53858.0,
+      "price": 1.636927,
+      "value": 88161.63
+    },
+    {
+      "date": "2026-05-04",
+      "units": 53858.0,
+      "price": 1.642147,
+      "value": 88442.76
+    },
+    {
+      "date": "2026-05-05",
+      "units": 53858.0,
+      "price": 1.643887,
+      "value": 88536.47
     },
     {
       "date": "2026-05-06",
@@ -2281,10 +2617,40 @@
       "value": 103929.57
     },
     {
+      "date": "2026-05-07",
+      "units": 63155.0,
+      "price": 1.647404,
+      "value": 104041.82
+    },
+    {
+      "date": "2026-05-08",
+      "units": 63155.0,
+      "price": 1.649182,
+      "value": 104154.06
+    },
+    {
+      "date": "2026-05-11",
+      "units": 63155.0,
+      "price": 1.654513,
+      "value": 104490.8
+    },
+    {
+      "date": "2026-05-12",
+      "units": 63155.0,
+      "price": 1.656291,
+      "value": 104603.04
+    },
+    {
       "date": "2026-05-13",
       "units": 61805.0,
       "price": 1.658068,
       "value": 102476.89
+    },
+    {
+      "date": "2026-05-14",
+      "units": 61805.0,
+      "price": 1.659852,
+      "value": 102587.18
     },
     {
       "date": "2026-05-15",
@@ -2293,10 +2659,82 @@
       "value": 97712.56
     },
     {
+      "date": "2026-05-18",
+      "units": 58805.0,
+      "price": 1.666983,
+      "value": 98026.91
+    },
+    {
+      "date": "2026-05-19",
+      "units": 58805.0,
+      "price": 1.668764,
+      "value": 98131.69
+    },
+    {
+      "date": "2026-05-20",
+      "units": 58805.0,
+      "price": 1.670546,
+      "value": 98236.47
+    },
+    {
+      "date": "2026-05-21",
+      "units": 58805.0,
+      "price": 1.672328,
+      "value": 98341.26
+    },
+    {
       "date": "2026-05-22",
       "units": 51805.0,
       "price": 1.67411,
       "value": 86727.27
+    },
+    {
+      "date": "2026-05-25",
+      "units": 51805.0,
+      "price": 1.679523,
+      "value": 87007.7
+    },
+    {
+      "date": "2026-05-26",
+      "units": 51805.0,
+      "price": 1.681328,
+      "value": 87101.17
+    },
+    {
+      "date": "2026-05-27",
+      "units": 51805.0,
+      "price": 1.683132,
+      "value": 87194.65
+    },
+    {
+      "date": "2026-05-28",
+      "units": 51805.0,
+      "price": 1.684936,
+      "value": 87288.13
+    },
+    {
+      "date": "2026-05-29",
+      "units": 51805.0,
+      "price": 1.686741,
+      "value": 87381.6
+    },
+    {
+      "date": "2026-06-01",
+      "units": 51805.0,
+      "price": 1.692154,
+      "value": 87662.03
+    },
+    {
+      "date": "2026-06-02",
+      "units": 51805.0,
+      "price": 1.693958,
+      "value": 87755.51
+    },
+    {
+      "date": "2026-06-03",
+      "units": 51805.0,
+      "price": 1.695763,
+      "value": 87848.98
     },
     {
       "date": "2026-06-04",
@@ -2305,10 +2743,40 @@
       "value": 82849.76
     },
     {
+      "date": "2026-06-05",
+      "units": 48805.0,
+      "price": 1.699396,
+      "value": 82939.0
+    },
+    {
+      "date": "2026-06-08",
+      "units": 48805.0,
+      "price": 1.704881,
+      "value": 83206.74
+    },
+    {
       "date": "2026-06-09",
       "units": 44118.0,
       "price": 1.70671,
       "value": 75296.63
+    },
+    {
+      "date": "2026-06-10",
+      "units": 44118.0,
+      "price": 1.708557,
+      "value": 75378.13
+    },
+    {
+      "date": "2026-06-11",
+      "units": 44118.0,
+      "price": 1.710404,
+      "value": 75459.62
+    },
+    {
+      "date": "2026-06-12",
+      "units": 44118.0,
+      "price": 1.712251,
+      "value": 75541.11
     },
     {
       "date": "2026-06-15",
@@ -2317,10 +2785,58 @@
       "value": 65478.83
     },
     {
+      "date": "2026-06-16",
+      "units": 38118.0,
+      "price": 1.719645,
+      "value": 65549.45
+    },
+    {
+      "date": "2026-06-17",
+      "units": 38118.0,
+      "price": 1.721498,
+      "value": 65620.06
+    },
+    {
+      "date": "2026-06-18",
+      "units": 38118.0,
+      "price": 1.723351,
+      "value": 65690.67
+    },
+    {
+      "date": "2026-06-19",
+      "units": 38118.0,
+      "price": 1.725203,
+      "value": 65761.29
+    },
+    {
+      "date": "2026-06-22",
+      "units": 38118.0,
+      "price": 1.73076,
+      "value": 65973.13
+    },
+    {
       "date": "2026-06-23",
       "units": 37118.0,
       "price": 1.732613,
       "value": 64311.13
+    },
+    {
+      "date": "2026-06-24",
+      "units": 37118.0,
+      "price": 1.734482,
+      "value": 64380.49
+    },
+    {
+      "date": "2026-06-25",
+      "units": 37118.0,
+      "price": 1.73635,
+      "value": 64449.85
+    },
+    {
+      "date": "2026-06-26",
+      "units": 37118.0,
+      "price": 1.738219,
+      "value": 64519.21
     },
     {
       "date": "2026-06-29",
@@ -2329,10 +2845,40 @@
       "value": 62111.56
     },
     {
+      "date": "2026-06-30",
+      "units": 35618.0,
+      "price": 1.745706,
+      "value": 62178.56
+    },
+    {
+      "date": "2026-07-01",
+      "units": 35618.0,
+      "price": 1.747587,
+      "value": 62245.55
+    },
+    {
+      "date": "2026-07-02",
+      "units": 35618.0,
+      "price": 1.749468,
+      "value": 62312.55
+    },
+    {
+      "date": "2026-07-03",
+      "units": 35618.0,
+      "price": 1.751349,
+      "value": 62379.55
+    },
+    {
       "date": "2026-07-06",
       "units": 33318.0,
       "price": 1.756992,
       "value": 58539.46
+    },
+    {
+      "date": "2026-07-07",
+      "units": 33318.0,
+      "price": 1.758884,
+      "value": 58602.5
     },
     {
       "date": "2026-07-08",
@@ -2341,10 +2887,52 @@
       "value": 53647.32
     },
     {
+      "date": "2026-07-09",
+      "units": 30468.0,
+      "price": 1.762671,
+      "value": 53705.07
+    },
+    {
+      "date": "2026-07-10",
+      "units": 30468.0,
+      "price": 1.764566,
+      "value": 53762.81
+    },
+    {
+      "date": "2026-07-13",
+      "units": 30468.0,
+      "price": 1.770252,
+      "value": 53936.05
+    },
+    {
+      "date": "2026-07-14",
+      "units": 30468.0,
+      "price": 1.772147,
+      "value": 53993.79
+    },
+    {
+      "date": "2026-07-15",
+      "units": 30468.0,
+      "price": 1.774043,
+      "value": 54051.53
+    },
+    {
       "date": "2026-07-16",
       "units": 38968.0,
       "price": 1.775938,
       "value": 69204.75
+    },
+    {
+      "date": "2026-07-17",
+      "units": 38968.0,
+      "price": 1.777838,
+      "value": 69278.78
+    },
+    {
+      "date": "2026-07-20",
+      "units": 38968.0,
+      "price": 1.783536,
+      "value": 69500.85
     },
     {
       "date": "2026-07-21",
@@ -2359,14 +2947,326 @@
       "value": 69594.59
     },
     {
+      "date": "2026-07-23",
+      "units": 38938.0,
+      "price": 1.789236,
+      "value": 69669.29
+    },
+    {
+      "date": "2026-07-24",
+      "units": 38938.0,
+      "price": 1.791155,
+      "value": 69743.99
+    },
+    {
+      "date": "2026-07-27",
+      "units": 38938.0,
+      "price": 1.79691,
+      "value": 69968.09
+    },
+    {
+      "date": "2026-07-28",
+      "units": 38938.0,
+      "price": 1.798829,
+      "value": 70042.8
+    },
+    {
+      "date": "2026-07-29",
+      "units": 38938.0,
+      "price": 1.800747,
+      "value": 70117.5
+    },
+    {
+      "date": "2026-07-30",
+      "units": 38938.0,
+      "price": 1.802666,
+      "value": 70192.2
+    },
+    {
+      "date": "2026-07-31",
+      "units": 38938.0,
+      "price": 1.804584,
+      "value": 70266.9
+    },
+    {
+      "date": "2026-08-03",
+      "units": 38938.0,
+      "price": 1.81034,
+      "value": 70491.0
+    },
+    {
+      "date": "2026-08-04",
+      "units": 38938.0,
+      "price": 1.812258,
+      "value": 70565.7
+    },
+    {
+      "date": "2026-08-05",
+      "units": 38938.0,
+      "price": 1.814176,
+      "value": 70640.4
+    },
+    {
+      "date": "2026-08-06",
+      "units": 38938.0,
+      "price": 1.816095,
+      "value": 70715.11
+    },
+    {
+      "date": "2026-08-07",
+      "units": 38938.0,
+      "price": 1.818013,
+      "value": 70789.81
+    },
+    {
+      "date": "2026-08-10",
+      "units": 38938.0,
+      "price": 1.823769,
+      "value": 71013.91
+    },
+    {
+      "date": "2026-08-11",
+      "units": 38938.0,
+      "price": 1.825687,
+      "value": 71088.61
+    },
+    {
+      "date": "2026-08-12",
+      "units": 38938.0,
+      "price": 1.827606,
+      "value": 71163.31
+    },
+    {
+      "date": "2026-08-13",
+      "units": 38938.0,
+      "price": 1.829524,
+      "value": 71238.01
+    },
+    {
+      "date": "2026-08-14",
+      "units": 38938.0,
+      "price": 1.831443,
+      "value": 71312.72
+    },
+    {
+      "date": "2026-08-17",
+      "units": 38938.0,
+      "price": 1.837198,
+      "value": 71536.82
+    },
+    {
+      "date": "2026-08-18",
+      "units": 38938.0,
+      "price": 1.839117,
+      "value": 71611.52
+    },
+    {
       "date": "2026-08-19",
       "units": 37538.0,
       "price": 1.841035,
       "value": 69108.77
+    },
+    {
+      "date": "2026-08-20",
+      "units": 37538.0,
+      "price": 1.842953,
+      "value": 69180.75
+    },
+    {
+      "date": "2026-08-21",
+      "units": 37538.0,
+      "price": 1.84487,
+      "value": 69252.73
+    },
+    {
+      "date": "2026-08-24",
+      "units": 37538.0,
+      "price": 1.850623,
+      "value": 69468.68
+    },
+    {
+      "date": "2026-08-25",
+      "units": 37538.0,
+      "price": 1.85254,
+      "value": 69540.66
+    },
+    {
+      "date": "2026-08-26",
+      "units": 37538.0,
+      "price": 1.854458,
+      "value": 69612.64
+    },
+    {
+      "date": "2026-08-27",
+      "units": 37538.0,
+      "price": 1.856375,
+      "value": 69684.62
+    },
+    {
+      "date": "2026-08-28",
+      "units": 37538.0,
+      "price": 1.858293,
+      "value": 69756.6
+    },
+    {
+      "date": "2026-08-31",
+      "units": 37538.0,
+      "price": 1.864046,
+      "value": 69972.55
+    },
+    {
+      "date": "2026-09-01",
+      "units": 37538.0,
+      "price": 1.865963,
+      "value": 70044.53
+    },
+    {
+      "date": "2026-09-02",
+      "units": 37538.0,
+      "price": 1.867881,
+      "value": 70116.51
+    },
+    {
+      "date": "2026-09-03",
+      "units": 37538.0,
+      "price": 1.869798,
+      "value": 70188.49
+    },
+    {
+      "date": "2026-09-04",
+      "units": 37538.0,
+      "price": 1.871716,
+      "value": 70260.47
+    },
+    {
+      "date": "2026-09-07",
+      "units": 37538.0,
+      "price": 1.877469,
+      "value": 70476.41
+    },
+    {
+      "date": "2026-09-08",
+      "units": 37538.0,
+      "price": 1.879386,
+      "value": 70548.39
+    },
+    {
+      "date": "2026-09-09",
+      "units": 37538.0,
+      "price": 1.881304,
+      "value": 70620.38
+    },
+    {
+      "date": "2026-09-10",
+      "units": 37538.0,
+      "price": 1.883221,
+      "value": 70692.36
+    },
+    {
+      "date": "2026-09-11",
+      "units": 37538.0,
+      "price": 1.885139,
+      "value": 70764.34
+    },
+    {
+      "date": "2026-09-14",
+      "units": 37538.0,
+      "price": 1.890891,
+      "value": 70980.28
+    },
+    {
+      "date": "2026-09-15",
+      "units": 37538.0,
+      "price": 1.892809,
+      "value": 71052.26
+    },
+    {
+      "date": "2026-09-16",
+      "units": 37538.0,
+      "price": 1.894726,
+      "value": 71124.24
+    },
+    {
+      "date": "2026-09-17",
+      "units": 37538.0,
+      "price": 1.896644,
+      "value": 71196.22
+    },
+    {
+      "date": "2026-09-18",
+      "units": 37538.0,
+      "price": 1.898562,
+      "value": 71268.21
+    },
+    {
+      "date": "2026-09-21",
+      "units": 37538.0,
+      "price": 1.904314,
+      "value": 71484.15
+    },
+    {
+      "date": "2026-09-22",
+      "units": 37538.0,
+      "price": 1.906232,
+      "value": 71556.13
+    },
+    {
+      "date": "2026-09-23",
+      "units": 37538.0,
+      "price": 1.908149,
+      "value": 71628.11
+    },
+    {
+      "date": "2026-09-24",
+      "units": 37538.0,
+      "price": 1.910067,
+      "value": 71700.09
+    },
+    {
+      "date": "2026-09-25",
+      "units": 37538.0,
+      "price": 1.911984,
+      "value": 71772.07
+    },
+    {
+      "date": "2026-09-28",
+      "units": 37538.0,
+      "price": 1.917737,
+      "value": 71988.02
+    },
+    {
+      "date": "2026-09-29",
+      "units": 37538.0,
+      "price": 1.919655,
+      "value": 72060.0
+    },
+    {
+      "date": "2026-09-30",
+      "units": 37538.0,
+      "price": 1.921572,
+      "value": 72131.98
+    },
+    {
+      "date": "2026-10-01",
+      "units": 37538.0,
+      "price": 1.92349,
+      "value": 72203.96
+    },
+    {
+      "date": "2026-10-02",
+      "units": 37538.0,
+      "price": 1.925407,
+      "value": 72275.94
+    },
+    {
+      "date": "2026-10-05",
+      "units": 37538.0,
+      "price": 1.93116,
+      "value": 72491.88
     }
   ],
   "nsp_current_units": 37538.0,
-  "nsp_current_value": 69108.77,
+  "nsp_current_value": 72491.88,
   "gop_trades": [
     {
       "date": "2026-07-30",
@@ -2537,1614 +3437,1635 @@
       "date": "2025-11-14",
       "stock_value": 19158.08,
       "nsp_value": 79999.71,
-      "cash_value": 0.0,
-      "total_value": 99157.79
+      "cash_value": -1389.5,
+      "total_value": 97768.29
     },
     {
       "date": "2025-11-17",
       "stock_value": 19927.29,
       "nsp_value": 80271.61,
-      "cash_value": 0.0,
-      "total_value": 100198.9
+      "cash_value": -1389.5,
+      "total_value": 98809.4
     },
     {
       "date": "2025-11-18",
       "stock_value": 19874.46,
       "nsp_value": 80351.87,
-      "cash_value": 0.0,
-      "total_value": 100226.33
+      "cash_value": -1389.5,
+      "total_value": 98836.83
     },
     {
       "date": "2025-11-19",
       "stock_value": 19902.54,
       "nsp_value": 80435.85,
-      "cash_value": 0.0,
-      "total_value": 100338.39
+      "cash_value": -1389.5,
+      "total_value": 98948.89
     },
     {
       "date": "2025-11-20",
       "stock_value": 19855.69,
       "nsp_value": 60485.32,
-      "cash_value": 20034.68,
-      "total_value": 100375.69
+      "cash_value": 18645.18,
+      "total_value": 98986.2
     },
     {
       "date": "2025-11-21",
       "stock_value": 29654.15,
       "nsp_value": 60548.14,
-      "cash_value": 10036.26,
-      "total_value": 100238.55
+      "cash_value": 8646.76,
+      "total_value": 98849.05
     },
     {
       "date": "2025-11-24",
       "stock_value": 29968.26,
       "nsp_value": 60738.48,
-      "cash_value": 10036.26,
-      "total_value": 100743.0
+      "cash_value": 8646.76,
+      "total_value": 99353.51
     },
     {
       "date": "2025-11-25",
       "stock_value": 31081.4,
       "nsp_value": 60798.42,
-      "cash_value": 10036.26,
-      "total_value": 101916.08
+      "cash_value": 8646.76,
+      "total_value": 100526.58
     },
     {
       "date": "2025-11-26",
       "stock_value": 41107.99,
       "nsp_value": 60861.89,
-      "cash_value": -155.54,
-      "total_value": 101814.34
+      "cash_value": -1545.04,
+      "total_value": 100424.84
     },
     {
       "date": "2025-11-27",
       "stock_value": 41760.19,
       "nsp_value": 60925.54,
-      "cash_value": -155.54,
-      "total_value": 102530.19
+      "cash_value": -1545.04,
+      "total_value": 101140.69
     },
     {
       "date": "2025-11-28",
       "stock_value": 42252.92,
       "nsp_value": 60985.44,
-      "cash_value": -155.54,
-      "total_value": 103082.82
+      "cash_value": -1545.04,
+      "total_value": 101693.32
     },
     {
       "date": "2025-12-01",
       "stock_value": 44508.77,
       "nsp_value": 61166.05,
-      "cash_value": -155.54,
-      "total_value": 105519.28
+      "cash_value": -1545.04,
+      "total_value": 104129.78
     },
     {
       "date": "2025-12-02",
       "stock_value": 30097.43,
       "nsp_value": 61231.44,
-      "cash_value": 14932.46,
-      "total_value": 106261.33
+      "cash_value": 13542.96,
+      "total_value": 104871.83
     },
     {
       "date": "2025-12-03",
       "stock_value": 30349.91,
       "nsp_value": 61296.44,
-      "cash_value": 14790.46,
-      "total_value": 106436.81
+      "cash_value": 13400.96,
+      "total_value": 105047.31
     },
     {
       "date": "2025-12-04",
       "stock_value": 28128.15,
       "nsp_value": 61360.61,
-      "cash_value": 17047.44,
-      "total_value": 106536.2
+      "cash_value": 15657.94,
+      "total_value": 105146.7
     },
     {
       "date": "2025-12-05",
       "stock_value": 28291.49,
       "nsp_value": 72424.48,
-      "cash_value": 6047.96,
-      "total_value": 106763.93
+      "cash_value": 4658.47,
+      "total_value": 105374.44
     },
     {
       "date": "2025-12-08",
       "stock_value": 28491.48,
       "nsp_value": 72651.57,
-      "cash_value": 6047.96,
-      "total_value": 107191.01
+      "cash_value": 4658.47,
+      "total_value": 105801.52
     },
     {
       "date": "2025-12-09",
       "stock_value": 33907.99,
       "nsp_value": 72728.11,
-      "cash_value": 142.36,
-      "total_value": 106778.46
+      "cash_value": -1247.13,
+      "total_value": 105388.97
     },
     {
       "date": "2025-12-10",
       "stock_value": 33417.25,
       "nsp_value": 72803.42,
-      "cash_value": 142.36,
-      "total_value": 106363.04
+      "cash_value": -1247.13,
+      "total_value": 104973.54
     },
     {
       "date": "2025-12-11",
       "stock_value": 33390.35,
       "nsp_value": 72879.9,
-      "cash_value": 142.36,
-      "total_value": 106412.62
+      "cash_value": -1247.13,
+      "total_value": 105023.12
     },
     {
       "date": "2025-12-12",
       "stock_value": 34355.02,
       "nsp_value": 72956.08,
-      "cash_value": 142.36,
-      "total_value": 107453.47
+      "cash_value": -1247.13,
+      "total_value": 106063.97
     },
     {
       "date": "2025-12-15",
       "stock_value": 23393.89,
       "nsp_value": 73180.4,
-      "cash_value": 11788.26,
-      "total_value": 108362.55
+      "cash_value": 10398.77,
+      "total_value": 106973.06
     },
     {
       "date": "2025-12-16",
       "stock_value": 34994.96,
       "nsp_value": 73254.78,
-      "cash_value": -243.44,
-      "total_value": 108006.3
+      "cash_value": -1632.93,
+      "total_value": 106616.8
     },
     {
       "date": "2025-12-17",
       "stock_value": 35273.11,
       "nsp_value": 73329.15,
-      "cash_value": -243.44,
-      "total_value": 108358.82
+      "cash_value": -1632.93,
+      "total_value": 106969.32
     },
     {
       "date": "2025-12-18",
       "stock_value": 35171.53,
       "nsp_value": 73404.3,
-      "cash_value": -243.44,
-      "total_value": 108332.39
+      "cash_value": -1632.93,
+      "total_value": 106942.9
     },
     {
       "date": "2025-12-19",
       "stock_value": 34961.49,
       "nsp_value": 73479.09,
-      "cash_value": -243.44,
-      "total_value": 108197.14
+      "cash_value": -1632.93,
+      "total_value": 106807.64
     },
     {
       "date": "2025-12-22",
       "stock_value": 34688.33,
       "nsp_value": 73703.82,
-      "cash_value": -243.44,
-      "total_value": 108148.71
+      "cash_value": -1632.93,
+      "total_value": 106759.22
     },
     {
       "date": "2025-12-23",
       "stock_value": 34133.35,
       "nsp_value": 71779.63,
-      "cash_value": 1756.06,
-      "total_value": 107669.04
+      "cash_value": 366.56,
+      "total_value": 106279.55
     },
     {
       "date": "2025-12-24",
       "stock_value": 36049.68,
       "nsp_value": 71851.64,
-      "cash_value": -211.17,
-      "total_value": 107690.15
+      "cash_value": -1600.67,
+      "total_value": 106300.66
     },
     {
       "date": "2025-12-25",
       "stock_value": 36159.11,
       "nsp_value": 71924.1,
-      "cash_value": -211.17,
-      "total_value": 107872.04
+      "cash_value": -1600.67,
+      "total_value": 106482.54
     },
     {
       "date": "2025-12-26",
       "stock_value": 36176.67,
       "nsp_value": 71996.36,
-      "cash_value": -211.17,
-      "total_value": 107961.86
+      "cash_value": -1600.67,
+      "total_value": 106572.36
     },
     {
       "date": "2025-12-29",
       "stock_value": 35512.13,
       "nsp_value": 72213.65,
-      "cash_value": -211.17,
-      "total_value": 107514.61
+      "cash_value": -1600.67,
+      "total_value": 106125.12
     },
     {
       "date": "2025-12-30",
       "stock_value": 35803.52,
       "nsp_value": 72286.56,
-      "cash_value": -211.17,
-      "total_value": 107878.91
+      "cash_value": -1600.67,
+      "total_value": 106489.41
     },
     {
       "date": "2025-12-31",
       "stock_value": 35733.69,
       "nsp_value": 72359.93,
-      "cash_value": -211.17,
-      "total_value": 107882.45
+      "cash_value": -1600.67,
+      "total_value": 106492.95
+    },
+    {
+      "date": "2026-01-01",
+      "stock_value": 35733.69,
+      "nsp_value": 72434.14,
+      "cash_value": -1600.67,
+      "total_value": 106567.16
     },
     {
       "date": "2026-01-02",
       "stock_value": 36929.96,
       "nsp_value": 72508.35,
-      "cash_value": -211.17,
-      "total_value": 109227.14
+      "cash_value": -1600.67,
+      "total_value": 107837.65
     },
     {
       "date": "2026-01-05",
       "stock_value": 32140.43,
       "nsp_value": 72731.15,
-      "cash_value": 5390.58,
-      "total_value": 110262.16
+      "cash_value": 4001.08,
+      "total_value": 108872.66
     },
     {
       "date": "2026-01-06",
       "stock_value": 38502.4,
       "nsp_value": 72804.36,
-      "cash_value": -214.62,
-      "total_value": 111092.14
+      "cash_value": -1604.12,
+      "total_value": 109702.64
     },
     {
       "date": "2026-01-07",
       "stock_value": 38230.23,
       "nsp_value": 72877.77,
-      "cash_value": -214.62,
-      "total_value": 110893.38
+      "cash_value": -1604.12,
+      "total_value": 109503.88
     },
     {
       "date": "2026-01-08",
       "stock_value": 38290.49,
       "nsp_value": 72951.08,
-      "cash_value": -214.62,
-      "total_value": 111026.95
+      "cash_value": -1604.12,
+      "total_value": 109637.45
     },
     {
       "date": "2026-01-09",
       "stock_value": 38263.26,
       "nsp_value": 73024.95,
-      "cash_value": -214.62,
-      "total_value": 111073.59
+      "cash_value": -1604.12,
+      "total_value": 109684.09
     },
     {
       "date": "2026-01-12",
       "stock_value": 38253.09,
       "nsp_value": 73246.39,
-      "cash_value": -214.62,
-      "total_value": 111284.86
+      "cash_value": -1604.12,
+      "total_value": 109895.36
     },
     {
       "date": "2026-01-13",
       "stock_value": 38259.54,
       "nsp_value": 73319.85,
-      "cash_value": -214.62,
-      "total_value": 111364.77
+      "cash_value": -1604.12,
+      "total_value": 109975.28
     },
     {
       "date": "2026-01-14",
       "stock_value": 38519.01,
       "nsp_value": 73393.66,
-      "cash_value": -214.62,
-      "total_value": 111698.05
+      "cash_value": -1604.12,
+      "total_value": 110308.55
     },
     {
       "date": "2026-01-15",
       "stock_value": 38612.2,
       "nsp_value": 63411.17,
-      "cash_value": 9841.79,
-      "total_value": 111865.16
+      "cash_value": 8452.29,
+      "total_value": 110475.66
     },
     {
       "date": "2026-01-16",
       "stock_value": 44178.55,
       "nsp_value": 63470.08,
-      "cash_value": 4843.79,
-      "total_value": 112492.42
+      "cash_value": 3454.29,
+      "total_value": 111102.92
     },
     {
       "date": "2026-01-19",
       "stock_value": 38978.37,
       "nsp_value": 63661.08,
-      "cash_value": 10614.07,
-      "total_value": 113253.52
+      "cash_value": 9224.57,
+      "total_value": 111864.02
     },
     {
       "date": "2026-01-20",
       "stock_value": 38613.08,
       "nsp_value": 63726.65,
-      "cash_value": 10614.07,
-      "total_value": 112953.8
+      "cash_value": 9224.57,
+      "total_value": 111564.31
     },
     {
       "date": "2026-01-21",
       "stock_value": 39008.39,
       "nsp_value": 74490.27,
-      "cash_value": -85.84,
-      "total_value": 113412.83
+      "cash_value": -1475.34,
+      "total_value": 112023.33
     },
     {
       "date": "2026-01-22",
       "stock_value": 39147.57,
       "nsp_value": 74564.97,
-      "cash_value": -163.67,
-      "total_value": 113548.88
+      "cash_value": -1553.17,
+      "total_value": 112159.38
     },
     {
       "date": "2026-01-23",
       "stock_value": 39498.83,
       "nsp_value": 74639.11,
-      "cash_value": -163.67,
-      "total_value": 113974.27
+      "cash_value": -1553.17,
+      "total_value": 112584.78
     },
     {
       "date": "2026-01-26",
       "stock_value": 40328.35,
       "nsp_value": 74861.19,
-      "cash_value": -163.67,
-      "total_value": 115025.87
+      "cash_value": -1553.17,
+      "total_value": 113636.38
     },
     {
       "date": "2026-01-27",
       "stock_value": 40446.7,
       "nsp_value": 74934.83,
-      "cash_value": -736.63,
-      "total_value": 114644.9
+      "cash_value": -2126.13,
+      "total_value": 113255.41
     },
     {
       "date": "2026-01-28",
       "stock_value": 40844.69,
       "nsp_value": 72630.85,
-      "cash_value": 1642.86,
-      "total_value": 115118.4
+      "cash_value": 253.36,
+      "total_value": 113728.9
     },
     {
       "date": "2026-01-29",
       "stock_value": 41784.71,
       "nsp_value": 72702.69,
-      "cash_value": 1642.86,
-      "total_value": 116130.26
+      "cash_value": 253.36,
+      "total_value": 114740.76
     },
     {
       "date": "2026-01-30",
       "stock_value": 42649.94,
       "nsp_value": 72775.26,
-      "cash_value": 1642.86,
-      "total_value": 117068.06
+      "cash_value": 253.36,
+      "total_value": 115678.56
     },
     {
       "date": "2026-02-02",
-      "stock_value": 33172.62,
+      "stock_value": 33104.22,
       "nsp_value": 72989.12,
-      "cash_value": 9956.26,
-      "total_value": 116117.99
+      "cash_value": 8566.76,
+      "total_value": 114660.1
     },
     {
       "date": "2026-02-03",
-      "stock_value": 33449.84,
+      "stock_value": 33381.67,
       "nsp_value": 73060.67,
-      "cash_value": 9956.26,
-      "total_value": 116466.77
+      "cash_value": 8566.76,
+      "total_value": 115009.1
     },
     {
       "date": "2026-02-04",
-      "stock_value": 33473.41,
+      "stock_value": 33406.57,
       "nsp_value": 83216.13,
-      "cash_value": -126.23,
-      "total_value": 116563.3
+      "cash_value": -1515.73,
+      "total_value": 115106.96
     },
     {
       "date": "2026-02-05",
       "stock_value": 28270.46,
       "nsp_value": 83298.6,
-      "cash_value": 5668.77,
-      "total_value": 117237.82
+      "cash_value": 4279.27,
+      "total_value": 115848.33
     },
     {
       "date": "2026-02-06",
       "stock_value": 34008.69,
-      "nsp_value": 83298.6,
-      "cash_value": -89.33,
-      "total_value": 117217.96
+      "nsp_value": 83380.79,
+      "cash_value": -1478.83,
+      "total_value": 115910.65
     },
     {
       "date": "2026-02-09",
       "stock_value": 35253.39,
-      "nsp_value": 83298.6,
-      "cash_value": -89.33,
-      "total_value": 118462.66
+      "nsp_value": 83627.39,
+      "cash_value": -1478.83,
+      "total_value": 117401.95
     },
     {
       "date": "2026-02-10",
       "stock_value": 35618.22,
-      "nsp_value": 83298.6,
-      "cash_value": -89.33,
-      "total_value": 118827.48
+      "nsp_value": 83709.59,
+      "cash_value": -1478.83,
+      "total_value": 117848.97
     },
     {
       "date": "2026-02-11",
       "stock_value": 36252.12,
-      "nsp_value": 83298.6,
-      "cash_value": -89.33,
-      "total_value": 119461.39
+      "nsp_value": 83791.79,
+      "cash_value": -1478.83,
+      "total_value": 118565.08
     },
     {
       "date": "2026-02-12",
       "stock_value": 35476.94,
-      "nsp_value": 83298.6,
-      "cash_value": 1945.67,
-      "total_value": 120721.21
+      "nsp_value": 83873.99,
+      "cash_value": 556.17,
+      "total_value": 119907.1
     },
     {
       "date": "2026-02-13",
       "stock_value": 22920.88,
-      "nsp_value": 83298.6,
-      "cash_value": 15425.71,
-      "total_value": 121645.19
+      "nsp_value": 83956.19,
+      "cash_value": 14036.21,
+      "total_value": 120913.28
     },
     {
       "date": "2026-02-16",
       "stock_value": 27861.9,
-      "nsp_value": 83298.6,
-      "cash_value": 10460.35,
-      "total_value": 121620.84
+      "nsp_value": 84202.78,
+      "cash_value": 9070.85,
+      "total_value": 121135.53
     },
     {
       "date": "2026-02-17",
       "stock_value": 30342.24,
       "nsp_value": 89784.56,
-      "cash_value": -32.44,
-      "total_value": 120094.36
+      "cash_value": -1421.94,
+      "total_value": 118704.87
     },
     {
       "date": "2026-02-18",
       "stock_value": 26826.05,
-      "nsp_value": 89784.56,
-      "cash_value": -263.08,
-      "total_value": 116347.54
+      "nsp_value": 89872.64,
+      "cash_value": -1652.58,
+      "total_value": 115046.12
     },
     {
       "date": "2026-02-19",
       "stock_value": 25648.77,
-      "nsp_value": 89784.56,
-      "cash_value": -263.08,
-      "total_value": 115170.25
+      "nsp_value": 89960.71,
+      "cash_value": -1652.58,
+      "total_value": 113956.91
     },
     {
       "date": "2026-02-20",
       "stock_value": 26023.76,
-      "nsp_value": 89784.56,
-      "cash_value": -263.08,
-      "total_value": 115545.24
+      "nsp_value": 90048.78,
+      "cash_value": -1652.58,
+      "total_value": 114419.96
     },
     {
       "date": "2026-02-23",
       "stock_value": 26538.87,
-      "nsp_value": 89784.56,
-      "cash_value": -263.08,
-      "total_value": 116060.35
+      "nsp_value": 90313.0,
+      "cash_value": -1652.58,
+      "total_value": 115199.29
     },
     {
       "date": "2026-02-24",
       "stock_value": 26301.47,
-      "nsp_value": 89784.56,
-      "cash_value": -263.08,
-      "total_value": 115822.95
+      "nsp_value": 90401.07,
+      "cash_value": -1652.58,
+      "total_value": 115049.96
     },
     {
       "date": "2026-02-25",
       "stock_value": 26016.34,
-      "nsp_value": 89784.56,
-      "cash_value": -263.08,
-      "total_value": 115537.82
+      "nsp_value": 90489.14,
+      "cash_value": -1652.58,
+      "total_value": 114852.91
     },
     {
       "date": "2026-02-26",
       "stock_value": 21143.14,
       "nsp_value": 88277.47,
-      "cash_value": 7486.26,
-      "total_value": 116906.86
+      "cash_value": 6096.76,
+      "total_value": 115517.37
     },
     {
       "date": "2026-02-27",
       "stock_value": 20851.19,
-      "nsp_value": 88277.47,
-      "cash_value": 7486.26,
-      "total_value": 116614.92
+      "nsp_value": 88364.95,
+      "cash_value": 6096.76,
+      "total_value": 115312.9
     },
     {
       "date": "2026-03-02",
       "stock_value": 20168.44,
-      "nsp_value": 88277.47,
-      "cash_value": 7486.26,
-      "total_value": 115932.17
+      "nsp_value": 88627.4,
+      "cash_value": 6096.76,
+      "total_value": 114892.61
     },
     {
       "date": "2026-03-03",
       "stock_value": 20141.55,
-      "nsp_value": 88277.47,
-      "cash_value": 4891.26,
-      "total_value": 113310.27
+      "nsp_value": 88714.88,
+      "cash_value": 3501.76,
+      "total_value": 112358.19
     },
     {
       "date": "2026-03-04",
       "stock_value": 20538.6,
-      "nsp_value": 88277.47,
-      "cash_value": 4891.26,
-      "total_value": 113707.33
+      "nsp_value": 88802.36,
+      "cash_value": 3501.76,
+      "total_value": 112842.72
     },
     {
       "date": "2026-03-05",
       "stock_value": 20548.08,
       "nsp_value": 78104.85,
-      "cash_value": 15676.24,
-      "total_value": 114329.17
+      "cash_value": 14286.75,
+      "total_value": 112939.67
     },
     {
       "date": "2026-03-06",
       "stock_value": 31898.1,
-      "nsp_value": 78104.85,
-      "cash_value": 2230.76,
-      "total_value": 112233.72
+      "nsp_value": 78185.66,
+      "cash_value": 841.27,
+      "total_value": 110925.03
     },
     {
       "date": "2026-03-09",
       "stock_value": 33829.74,
-      "nsp_value": 78104.85,
-      "cash_value": 2230.76,
-      "total_value": 114165.35
+      "nsp_value": 78428.08,
+      "cash_value": 841.27,
+      "total_value": 113099.08
     },
     {
       "date": "2026-03-10",
       "stock_value": 38369.89,
-      "nsp_value": 78104.85,
-      "cash_value": 84.44,
-      "total_value": 116559.18
+      "nsp_value": 78508.89,
+      "cash_value": -1305.05,
+      "total_value": 115573.72
     },
     {
       "date": "2026-03-11",
       "stock_value": 38841.57,
-      "nsp_value": 78104.85,
-      "cash_value": 1015.44,
-      "total_value": 117961.86
+      "nsp_value": 78589.69,
+      "cash_value": -374.05,
+      "total_value": 117057.2
     },
     {
       "date": "2026-03-12",
       "stock_value": 40801.23,
-      "nsp_value": 78104.85,
-      "cash_value": 61.4,
-      "total_value": 118967.48
+      "nsp_value": 78670.5,
+      "cash_value": -1328.09,
+      "total_value": 118143.63
     },
     {
       "date": "2026-03-13",
       "stock_value": 32447.74,
-      "nsp_value": 78104.85,
-      "cash_value": 15014.3,
-      "total_value": 125566.89
+      "nsp_value": 78751.3,
+      "cash_value": 13624.81,
+      "total_value": 124823.84
     },
     {
       "date": "2026-03-16",
       "stock_value": 35290.14,
-      "nsp_value": 78104.85,
-      "cash_value": 11928.1,
-      "total_value": 125323.09
+      "nsp_value": 78993.72,
+      "cash_value": 10538.61,
+      "total_value": 124822.46
     },
     {
       "date": "2026-03-17",
       "stock_value": 40446.12,
       "nsp_value": 86873.73,
-      "cash_value": 85.0,
-      "total_value": 127404.85
+      "cash_value": -1304.49,
+      "total_value": 126015.36
     },
     {
       "date": "2026-03-18",
       "stock_value": 39307.5,
-      "nsp_value": 86873.73,
-      "cash_value": 85.0,
-      "total_value": 126266.23
+      "nsp_value": 86966.61,
+      "cash_value": -1304.49,
+      "total_value": 124969.62
     },
     {
       "date": "2026-03-19",
       "stock_value": 39422.21,
-      "nsp_value": 86873.73,
-      "cash_value": 85.0,
-      "total_value": 126380.94
+      "nsp_value": 87059.5,
+      "cash_value": -1304.49,
+      "total_value": 125177.21
+    },
+    {
+      "date": "2026-03-20",
+      "stock_value": 39422.21,
+      "nsp_value": 87152.38,
+      "cash_value": -1304.49,
+      "total_value": 125270.09
     },
     {
       "date": "2026-03-23",
       "stock_value": 40074.4,
-      "nsp_value": 86873.73,
-      "cash_value": 85.0,
-      "total_value": 127033.13
+      "nsp_value": 87431.04,
+      "cash_value": -1304.49,
+      "total_value": 126200.94
     },
     {
       "date": "2026-03-24",
       "stock_value": 39221.81,
-      "nsp_value": 86873.73,
-      "cash_value": 85.0,
-      "total_value": 126180.54
+      "nsp_value": 87523.93,
+      "cash_value": -1304.49,
+      "total_value": 125441.24
     },
     {
       "date": "2026-03-25",
       "stock_value": 39579.85,
-      "nsp_value": 86873.73,
-      "cash_value": 85.0,
-      "total_value": 126538.59
+      "nsp_value": 87616.81,
+      "cash_value": -1304.49,
+      "total_value": 125892.17
     },
     {
       "date": "2026-03-26",
       "stock_value": 39215.69,
       "nsp_value": 82670.18,
-      "cash_value": 5124.52,
-      "total_value": 127010.39
+      "cash_value": 3735.03,
+      "total_value": 125620.9
     },
     {
       "date": "2026-03-27",
       "stock_value": 43923.2,
-      "nsp_value": 82670.18,
-      "cash_value": 160.52,
-      "total_value": 126753.9
+      "nsp_value": 82758.27,
+      "cash_value": -1228.97,
+      "total_value": 125452.49
     },
     {
       "date": "2026-03-30",
       "stock_value": 43398.1,
-      "nsp_value": 82670.18,
-      "cash_value": 160.52,
-      "total_value": 126228.8
+      "nsp_value": 83022.55,
+      "cash_value": -1228.97,
+      "total_value": 125191.68
     },
     {
       "date": "2026-03-31",
       "stock_value": 44551.56,
-      "nsp_value": 82670.18,
-      "cash_value": 160.52,
-      "total_value": 127382.27
+      "nsp_value": 83110.64,
+      "cash_value": -1228.97,
+      "total_value": 126433.23
     },
     {
       "date": "2026-04-01",
       "stock_value": 50071.36,
       "nsp_value": 72896.76,
-      "cash_value": 5764.7,
-      "total_value": 128732.81
+      "cash_value": 4375.2,
+      "total_value": 127343.31
     },
     {
       "date": "2026-04-02",
       "stock_value": 45419.66,
-      "nsp_value": 72896.76,
-      "cash_value": 10285.34,
-      "total_value": 128601.76
+      "nsp_value": 72975.43,
+      "cash_value": 8895.84,
+      "total_value": 127290.93
     },
     {
       "date": "2026-04-03",
       "stock_value": 45678.86,
-      "nsp_value": 72896.76,
-      "cash_value": 10285.34,
-      "total_value": 128860.95
+      "nsp_value": 73054.1,
+      "cash_value": 8895.84,
+      "total_value": 127628.8
     },
     {
       "date": "2026-04-06",
       "stock_value": 46725.23,
       "nsp_value": 80189.83,
-      "cash_value": 326.11,
-      "total_value": 127241.17
+      "cash_value": -1063.39,
+      "total_value": 125851.67
     },
     {
       "date": "2026-04-07",
       "stock_value": 45779.06,
-      "nsp_value": 80189.83,
-      "cash_value": 326.11,
-      "total_value": 126295.0
+      "nsp_value": 80277.2,
+      "cash_value": -1063.39,
+      "total_value": 124992.87
     },
     {
       "date": "2026-04-08",
       "stock_value": 48639.13,
-      "nsp_value": 80189.83,
-      "cash_value": 326.11,
-      "total_value": 129155.06
+      "nsp_value": 80364.57,
+      "cash_value": -1063.39,
+      "total_value": 127940.31
     },
     {
       "date": "2026-04-09",
       "stock_value": 53420.44,
-      "nsp_value": 80189.83,
-      "cash_value": 326.11,
-      "total_value": 133936.38
+      "nsp_value": 80451.94,
+      "cash_value": -1063.39,
+      "total_value": 132808.99
     },
     {
       "date": "2026-04-10",
       "stock_value": 45644.31,
-      "nsp_value": 80189.83,
-      "cash_value": 9382.97,
-      "total_value": 135217.11
+      "nsp_value": 80539.3,
+      "cash_value": 7993.47,
+      "total_value": 134177.08
     },
     {
       "date": "2026-04-13",
       "stock_value": 47079.16,
-      "nsp_value": 80189.83,
-      "cash_value": 7392.29,
-      "total_value": 134661.28
+      "nsp_value": 80801.4,
+      "cash_value": 6002.79,
+      "total_value": 133883.35
     },
     {
       "date": "2026-04-14",
       "stock_value": 48837.35,
-      "nsp_value": 80189.83,
-      "cash_value": 5897.89,
-      "total_value": 134925.07
+      "nsp_value": 80888.77,
+      "cash_value": 4508.39,
+      "total_value": 134234.51
     },
     {
       "date": "2026-04-15",
       "stock_value": 49009.39,
-      "nsp_value": 80189.83,
-      "cash_value": 5897.89,
-      "total_value": 135097.1
+      "nsp_value": 80976.14,
+      "cash_value": 4508.39,
+      "total_value": 134493.92
     },
     {
       "date": "2026-04-16",
       "stock_value": 48539.01,
-      "nsp_value": 80189.83,
-      "cash_value": 5897.89,
-      "total_value": 134626.72
+      "nsp_value": 81063.5,
+      "cash_value": 4508.39,
+      "total_value": 134110.9
     },
     {
       "date": "2026-04-17",
       "stock_value": 47869.78,
       "nsp_value": 86849.69,
-      "cash_value": 2553.07,
-      "total_value": 137272.54
+      "cash_value": 1163.57,
+      "total_value": 135883.04
     },
     {
       "date": "2026-04-20",
       "stock_value": 46696.54,
-      "nsp_value": 86849.69,
-      "cash_value": 2553.07,
-      "total_value": 136099.3
+      "nsp_value": 87130.82,
+      "cash_value": 1163.57,
+      "total_value": 134990.93
     },
     {
       "date": "2026-04-21",
       "stock_value": 46309.21,
-      "nsp_value": 86849.69,
-      "cash_value": 2553.07,
-      "total_value": 135711.97
+      "nsp_value": 87224.53,
+      "cash_value": 1163.57,
+      "total_value": 134697.32
     },
     {
       "date": "2026-04-22",
       "stock_value": 48173.51,
-      "nsp_value": 86849.69,
-      "cash_value": 125.59,
-      "total_value": 135148.79
+      "nsp_value": 87318.24,
+      "cash_value": -1263.91,
+      "total_value": 134227.85
     },
     {
       "date": "2026-04-23",
       "stock_value": 48173.51,
-      "nsp_value": 86849.69,
-      "cash_value": 125.59,
-      "total_value": 135148.79
+      "nsp_value": 87411.95,
+      "cash_value": -1263.91,
+      "total_value": 134321.56
     },
     {
       "date": "2026-04-24",
       "stock_value": 48309.69,
-      "nsp_value": 86849.69,
-      "cash_value": 125.59,
-      "total_value": 135284.97
+      "nsp_value": 87505.66,
+      "cash_value": -1263.91,
+      "total_value": 134551.44
     },
     {
       "date": "2026-04-27",
       "stock_value": 49242.67,
-      "nsp_value": 86849.69,
-      "cash_value": 125.59,
-      "total_value": 136217.95
+      "nsp_value": 87786.79,
+      "cash_value": -1263.91,
+      "total_value": 135765.56
     },
     {
       "date": "2026-04-28",
       "stock_value": 48523.18,
-      "nsp_value": 86849.69,
-      "cash_value": 125.59,
-      "total_value": 135498.46
+      "nsp_value": 87880.5,
+      "cash_value": -1263.91,
+      "total_value": 135139.78
     },
     {
       "date": "2026-04-29",
       "stock_value": 48089.96,
-      "nsp_value": 86849.69,
-      "cash_value": 125.59,
-      "total_value": 135065.24
+      "nsp_value": 87974.21,
+      "cash_value": -1263.91,
+      "total_value": 134800.26
     },
     {
       "date": "2026-04-30",
       "stock_value": 25302.26,
-      "nsp_value": 86849.69,
-      "cash_value": 22905.44,
-      "total_value": 135057.39
+      "nsp_value": 88067.92,
+      "cash_value": 21515.94,
+      "total_value": 134886.13
     },
     {
       "date": "2026-05-01",
       "stock_value": 25302.26,
-      "nsp_value": 86849.69,
-      "cash_value": 22905.44,
-      "total_value": 135057.39
+      "nsp_value": 88161.63,
+      "cash_value": 21515.94,
+      "total_value": 134979.84
     },
     {
       "date": "2026-05-04",
       "stock_value": 24675.21,
-      "nsp_value": 86849.69,
-      "cash_value": 22905.44,
-      "total_value": 134430.34
+      "nsp_value": 88442.76,
+      "cash_value": 21515.94,
+      "total_value": 134633.92
     },
     {
       "date": "2026-05-05",
       "stock_value": 24891.24,
-      "nsp_value": 86849.69,
-      "cash_value": 22905.44,
-      "total_value": 134646.37
+      "nsp_value": 88536.47,
+      "cash_value": 21515.94,
+      "total_value": 134943.65
     },
     {
       "date": "2026-05-06",
       "stock_value": 33406.53,
       "nsp_value": 103929.57,
-      "cash_value": 141.77,
-      "total_value": 137477.87
+      "cash_value": -1247.73,
+      "total_value": 136088.37
     },
     {
       "date": "2026-05-07",
       "stock_value": 34079.12,
-      "nsp_value": 103929.57,
-      "cash_value": 141.77,
-      "total_value": 138150.46
+      "nsp_value": 104041.82,
+      "cash_value": -1247.73,
+      "total_value": 136873.21
     },
     {
       "date": "2026-05-08",
       "stock_value": 34010.02,
-      "nsp_value": 103929.57,
-      "cash_value": 141.77,
-      "total_value": 138081.36
+      "nsp_value": 104154.06,
+      "cash_value": -1247.73,
+      "total_value": 136916.35
     },
     {
       "date": "2026-05-11",
       "stock_value": 34444.1,
-      "nsp_value": 103929.57,
-      "cash_value": 141.77,
-      "total_value": 138515.44
+      "nsp_value": 104490.8,
+      "cash_value": -1247.73,
+      "total_value": 137687.17
     },
     {
       "date": "2026-05-12",
       "stock_value": 33280.28,
-      "nsp_value": 103929.57,
-      "cash_value": 141.77,
-      "total_value": 137351.62
+      "nsp_value": 104603.04,
+      "cash_value": -1247.73,
+      "total_value": 136635.59
     },
     {
       "date": "2026-05-13",
       "stock_value": 32589.79,
       "nsp_value": 102476.89,
-      "cash_value": 2380.16,
-      "total_value": 137446.84
+      "cash_value": 990.66,
+      "total_value": 136057.34
     },
     {
       "date": "2026-05-14",
       "stock_value": 32925.49,
-      "nsp_value": 102476.89,
-      "cash_value": 2380.16,
-      "total_value": 137782.54
+      "nsp_value": 102587.18,
+      "cash_value": 990.66,
+      "total_value": 136503.33
     },
     {
       "date": "2026-05-15",
       "stock_value": 37008.79,
       "nsp_value": 97712.56,
-      "cash_value": 2671.57,
-      "total_value": 137392.92
+      "cash_value": 1282.07,
+      "total_value": 136003.42
     },
     {
       "date": "2026-05-18",
       "stock_value": 36348.66,
-      "nsp_value": 97712.56,
-      "cash_value": 1456.57,
-      "total_value": 135517.79
+      "nsp_value": 98026.91,
+      "cash_value": 67.07,
+      "total_value": 134442.64
     },
     {
       "date": "2026-05-19",
       "stock_value": 36348.66,
-      "nsp_value": 97712.56,
-      "cash_value": 1456.57,
-      "total_value": 135517.79
+      "nsp_value": 98131.69,
+      "cash_value": 67.07,
+      "total_value": 134547.42
     },
     {
       "date": "2026-05-20",
       "stock_value": 35659.82,
-      "nsp_value": 97712.56,
-      "cash_value": 1456.57,
-      "total_value": 134828.95
+      "nsp_value": 98236.47,
+      "cash_value": 67.07,
+      "total_value": 133963.36
     },
     {
       "date": "2026-05-21",
       "stock_value": 32858.81,
-      "nsp_value": 97712.56,
-      "cash_value": 1456.57,
-      "total_value": 132027.94
+      "nsp_value": 98341.26,
+      "cash_value": 67.07,
+      "total_value": 131267.14
     },
     {
       "date": "2026-05-22",
       "stock_value": 47498.54,
       "nsp_value": 86727.27,
-      "cash_value": 677.9,
-      "total_value": 134903.71
+      "cash_value": -711.6,
+      "total_value": 133514.21
     },
     {
       "date": "2026-05-25",
       "stock_value": 48384.38,
-      "nsp_value": 86727.27,
-      "cash_value": 677.9,
-      "total_value": 135789.55
+      "nsp_value": 87007.7,
+      "cash_value": -711.6,
+      "total_value": 134680.48
     },
     {
       "date": "2026-05-26",
       "stock_value": 48255.56,
-      "nsp_value": 86727.27,
-      "cash_value": 677.9,
-      "total_value": 135660.73
+      "nsp_value": 87101.17,
+      "cash_value": -711.6,
+      "total_value": 134645.13
     },
     {
       "date": "2026-05-27",
       "stock_value": 48255.56,
-      "nsp_value": 86727.27,
-      "cash_value": 677.9,
-      "total_value": 135660.73
+      "nsp_value": 87194.65,
+      "cash_value": -711.6,
+      "total_value": 134738.61
     },
     {
       "date": "2026-05-28",
       "stock_value": 48255.56,
-      "nsp_value": 86727.27,
-      "cash_value": 677.9,
-      "total_value": 135660.73
+      "nsp_value": 87288.13,
+      "cash_value": -711.6,
+      "total_value": 134832.09
     },
     {
       "date": "2026-05-29",
       "stock_value": 48255.56,
-      "nsp_value": 86727.27,
-      "cash_value": 677.9,
-      "total_value": 135660.73
+      "nsp_value": 87381.6,
+      "cash_value": -711.6,
+      "total_value": 134925.56
     },
     {
       "date": "2026-06-01",
       "stock_value": 49397.91,
-      "nsp_value": 86727.27,
-      "cash_value": 677.9,
-      "total_value": 136803.08
+      "nsp_value": 87662.03,
+      "cash_value": -711.6,
+      "total_value": 136348.34
     },
     {
       "date": "2026-06-02",
       "stock_value": 48909.49,
-      "nsp_value": 86727.27,
-      "cash_value": 2374.85,
-      "total_value": 138011.61
+      "nsp_value": 87755.51,
+      "cash_value": 985.35,
+      "total_value": 137650.36
     },
     {
       "date": "2026-06-03",
       "stock_value": 50281.72,
-      "nsp_value": 86727.27,
-      "cash_value": 528.77,
-      "total_value": 137537.76
+      "nsp_value": 87848.98,
+      "cash_value": -860.73,
+      "total_value": 137269.98
     },
     {
       "date": "2026-06-04",
       "stock_value": 53629.82,
       "nsp_value": 82849.76,
-      "cash_value": 2622.67,
-      "total_value": 139102.25
+      "cash_value": 1233.17,
+      "total_value": 137712.75
     },
     {
       "date": "2026-06-05",
       "stock_value": 54724.88,
-      "nsp_value": 82849.76,
-      "cash_value": 798.67,
-      "total_value": 138373.31
+      "nsp_value": 82939.0,
+      "cash_value": -590.83,
+      "total_value": 137073.05
     },
     {
       "date": "2026-06-08",
       "stock_value": 55429.73,
-      "nsp_value": 82849.76,
-      "cash_value": 798.67,
-      "total_value": 139078.16
+      "nsp_value": 83206.74,
+      "cash_value": -590.83,
+      "total_value": 138045.64
     },
     {
       "date": "2026-06-09",
       "stock_value": 62811.47,
       "nsp_value": 75296.63,
-      "cash_value": 1040.46,
-      "total_value": 139148.56
+      "cash_value": -349.04,
+      "total_value": 137759.06
     },
     {
       "date": "2026-06-10",
       "stock_value": 62344.53,
-      "nsp_value": 75296.63,
-      "cash_value": 1040.46,
-      "total_value": 138681.62
+      "nsp_value": 75378.13,
+      "cash_value": -349.04,
+      "total_value": 137373.62
     },
     {
       "date": "2026-06-11",
       "stock_value": 62232.22,
-      "nsp_value": 75296.63,
-      "cash_value": 1040.46,
-      "total_value": 138569.31
+      "nsp_value": 75459.62,
+      "cash_value": -349.04,
+      "total_value": 137342.81
     },
     {
       "date": "2026-06-12",
       "stock_value": 63886.16,
-      "nsp_value": 75296.63,
-      "cash_value": 1040.46,
-      "total_value": 140223.26
+      "nsp_value": 75541.11,
+      "cash_value": -349.04,
+      "total_value": 139078.24
     },
     {
       "date": "2026-06-15",
       "stock_value": 76114.39,
       "nsp_value": 65478.83,
-      "cash_value": 1411.22,
-      "total_value": 143004.44
+      "cash_value": 21.72,
+      "total_value": 141614.95
     },
     {
       "date": "2026-06-16",
       "stock_value": 75949.83,
-      "nsp_value": 65478.83,
-      "cash_value": 1411.22,
-      "total_value": 142839.88
+      "nsp_value": 65549.45,
+      "cash_value": 21.72,
+      "total_value": 141521.0
     },
     {
       "date": "2026-06-17",
       "stock_value": 75756.79,
-      "nsp_value": 65478.83,
-      "cash_value": 1411.22,
-      "total_value": 142646.84
+      "nsp_value": 65620.06,
+      "cash_value": 21.72,
+      "total_value": 141398.57
     },
     {
       "date": "2026-06-18",
       "stock_value": 77475.15,
-      "nsp_value": 65478.83,
-      "cash_value": 1411.22,
-      "total_value": 144365.2
+      "nsp_value": 65690.67,
+      "cash_value": 21.72,
+      "total_value": 143187.54
     },
     {
       "date": "2026-06-19",
       "stock_value": 76768.59,
-      "nsp_value": 65478.83,
-      "cash_value": 1411.22,
-      "total_value": 143658.64
+      "nsp_value": 65761.29,
+      "cash_value": 21.72,
+      "total_value": 142551.61
     },
     {
       "date": "2026-06-22",
       "stock_value": 77044.67,
-      "nsp_value": 65478.83,
-      "cash_value": 1325.62,
-      "total_value": 143849.12
+      "nsp_value": 65973.13,
+      "cash_value": -63.88,
+      "total_value": 142953.92
     },
     {
       "date": "2026-06-23",
       "stock_value": 75692.83,
       "nsp_value": 64311.13,
-      "cash_value": 3058.23,
-      "total_value": 143062.19
+      "cash_value": 1668.74,
+      "total_value": 141672.7
     },
     {
       "date": "2026-06-24",
       "stock_value": 75085.63,
-      "nsp_value": 64311.13,
-      "cash_value": 3058.23,
-      "total_value": 142454.99
+      "nsp_value": 64380.49,
+      "cash_value": 1668.74,
+      "total_value": 141134.86
     },
     {
       "date": "2026-06-25",
       "stock_value": 73661.42,
-      "nsp_value": 64311.13,
-      "cash_value": 3058.23,
-      "total_value": 141030.78
+      "nsp_value": 64449.85,
+      "cash_value": 1668.74,
+      "total_value": 139780.01
     },
     {
       "date": "2026-06-26",
       "stock_value": 73995.58,
-      "nsp_value": 64311.13,
-      "cash_value": 1938.23,
-      "total_value": 140244.94
+      "nsp_value": 64519.21,
+      "cash_value": 548.74,
+      "total_value": 139063.53
     },
     {
       "date": "2026-06-29",
       "stock_value": 69676.58,
       "nsp_value": 62111.56,
-      "cash_value": 8880.45,
-      "total_value": 140668.59
+      "cash_value": 7490.95,
+      "total_value": 139279.09
     },
     {
       "date": "2026-06-30",
       "stock_value": 69093.34,
-      "nsp_value": 62111.56,
-      "cash_value": 6455.91,
-      "total_value": 137660.81
+      "nsp_value": 62178.56,
+      "cash_value": 5066.41,
+      "total_value": 136338.31
     },
     {
       "date": "2026-07-01",
       "stock_value": 70940.67,
-      "nsp_value": 62111.56,
-      "cash_value": 628.73,
-      "total_value": 133680.96
+      "nsp_value": 62245.55,
+      "cash_value": -760.77,
+      "total_value": 132425.45
     },
     {
       "date": "2026-07-02",
       "stock_value": 71158.01,
-      "nsp_value": 62111.56,
-      "cash_value": -383.27,
-      "total_value": 132886.3
+      "nsp_value": 62312.55,
+      "cash_value": -1772.77,
+      "total_value": 131697.79
     },
     {
       "date": "2026-07-03",
       "stock_value": 70209.65,
-      "nsp_value": 62111.56,
-      "cash_value": -383.27,
-      "total_value": 131937.94
+      "nsp_value": 62379.55,
+      "cash_value": -1772.77,
+      "total_value": 130816.43
     },
     {
       "date": "2026-07-06",
       "stock_value": 71313.97,
       "nsp_value": 58539.46,
-      "cash_value": 2675.51,
-      "total_value": 132528.94
+      "cash_value": 1286.01,
+      "total_value": 131139.44
     },
     {
       "date": "2026-07-07",
       "stock_value": 73954.82,
-      "nsp_value": 58539.46,
-      "cash_value": 1321.31,
-      "total_value": 133815.59
+      "nsp_value": 58602.5,
+      "cash_value": -68.19,
+      "total_value": 132489.13
     },
     {
       "date": "2026-07-08",
       "stock_value": 71785.22,
       "nsp_value": 53647.32,
-      "cash_value": 8320.52,
-      "total_value": 133753.06
+      "cash_value": 6931.03,
+      "total_value": 132363.57
     },
     {
       "date": "2026-07-09",
       "stock_value": 65581.93,
-      "nsp_value": 53647.32,
-      "cash_value": 13557.22,
-      "total_value": 132786.47
+      "nsp_value": 53705.07,
+      "cash_value": 12167.73,
+      "total_value": 131454.73
     },
     {
       "date": "2026-07-10",
       "stock_value": 67602.24,
-      "nsp_value": 53647.32,
-      "cash_value": 12669.22,
-      "total_value": 133918.78
+      "nsp_value": 53762.81,
+      "cash_value": 11279.73,
+      "total_value": 132644.78
     },
     {
       "date": "2026-07-13",
       "stock_value": 63619.4,
-      "nsp_value": 53647.32,
-      "cash_value": 16444.42,
-      "total_value": 133711.14
+      "nsp_value": 53936.05,
+      "cash_value": 15054.93,
+      "total_value": 132610.38
     },
     {
       "date": "2026-07-14",
       "stock_value": 63936.68,
-      "nsp_value": 53647.32,
-      "cash_value": 16444.42,
-      "total_value": 134028.42
+      "nsp_value": 53993.79,
+      "cash_value": 15054.93,
+      "total_value": 132985.4
     },
     {
       "date": "2026-07-15",
       "stock_value": 63936.68,
-      "nsp_value": 53647.32,
-      "cash_value": 16444.42,
-      "total_value": 134028.42
+      "nsp_value": 54051.53,
+      "cash_value": 15054.93,
+      "total_value": 133043.14
     },
     {
       "date": "2026-07-16",
       "stock_value": 63906.78,
       "nsp_value": 69204.75,
-      "cash_value": 3139.75,
-      "total_value": 136251.28
+      "cash_value": 1750.25,
+      "total_value": 134861.78
     },
     {
       "date": "2026-07-17",
       "stock_value": 66347.41,
-      "nsp_value": 69204.75,
-      "cash_value": 5434.75,
-      "total_value": 140986.91
+      "nsp_value": 69278.78,
+      "cash_value": 4045.25,
+      "total_value": 139671.44
     },
     {
       "date": "2026-07-20",
       "stock_value": 67149.48,
-      "nsp_value": 69204.75,
-      "cash_value": 5434.75,
-      "total_value": 141788.98
+      "nsp_value": 69500.85,
+      "cash_value": 4045.25,
+      "total_value": 140695.58
     },
     {
       "date": "2026-07-21",
       "stock_value": 67870.57,
       "nsp_value": 71574.56,
-      "cash_value": 3435.06,
-      "total_value": 142880.19
+      "cash_value": 2045.56,
+      "total_value": 141490.69
     },
     {
       "date": "2026-07-22",
       "stock_value": 61553.9,
       "nsp_value": 69594.59,
-      "cash_value": 12702.38,
-      "total_value": 143850.87
+      "cash_value": 11312.88,
+      "total_value": 142461.37
     },
     {
       "date": "2026-07-23",
       "stock_value": 61236.85,
-      "nsp_value": 69594.59,
-      "cash_value": 8701.1,
-      "total_value": 139532.54
+      "nsp_value": 69669.29,
+      "cash_value": 7311.6,
+      "total_value": 138217.74
     },
     {
       "date": "2026-07-24",
       "stock_value": 61487.19,
-      "nsp_value": 69594.59,
-      "cash_value": 8701.1,
-      "total_value": 139782.88
+      "nsp_value": 69743.99,
+      "cash_value": 7311.6,
+      "total_value": 138542.78
     },
     {
       "date": "2026-07-27",
       "stock_value": 56736.63,
-      "nsp_value": 69594.59,
-      "cash_value": 13212.1,
-      "total_value": 139543.32
+      "nsp_value": 69968.09,
+      "cash_value": 11822.6,
+      "total_value": 138527.32
     },
     {
       "date": "2026-07-28",
       "stock_value": 57010.27,
-      "nsp_value": 69594.59,
-      "cash_value": 13212.1,
-      "total_value": 139816.96
+      "nsp_value": 70042.8,
+      "cash_value": 11822.6,
+      "total_value": 138875.67
     },
     {
       "date": "2026-07-29",
       "stock_value": 58442.44,
-      "nsp_value": 69594.59,
-      "cash_value": 10531.1,
-      "total_value": 138568.13
+      "nsp_value": 70117.5,
+      "cash_value": 9141.6,
+      "total_value": 137701.54
     },
     {
       "date": "2026-07-30",
       "stock_value": 55814.91,
-      "nsp_value": 76592.95,
-      "cash_value": 7824.6,
-      "total_value": 140232.46
+      "nsp_value": 77190.56,
+      "cash_value": 6435.1,
+      "total_value": 139440.57
     },
     {
       "date": "2026-07-31",
       "stock_value": 56545.6,
-      "nsp_value": 76592.95,
-      "cash_value": 7824.6,
-      "total_value": 140963.15
+      "nsp_value": 77265.26,
+      "cash_value": 6435.1,
+      "total_value": 140245.96
     },
     {
       "date": "2026-08-03",
       "stock_value": 52115.55,
-      "nsp_value": 76592.95,
-      "cash_value": 12976.6,
-      "total_value": 141685.1
+      "nsp_value": 77489.36,
+      "cash_value": 11587.1,
+      "total_value": 141192.01
     },
     {
       "date": "2026-08-04",
       "stock_value": 57878.71,
-      "nsp_value": 83142.83,
-      "cash_value": 1455.32,
-      "total_value": 142476.86
+      "nsp_value": 84113.94,
+      "cash_value": 65.83,
+      "total_value": 142058.48
     },
     {
       "date": "2026-08-05",
       "stock_value": 58092.02,
-      "nsp_value": 83142.83,
-      "cash_value": 1455.32,
-      "total_value": 142690.17
+      "nsp_value": 84188.64,
+      "cash_value": 65.83,
+      "total_value": 142346.49
     },
     {
       "date": "2026-08-06",
       "stock_value": 60888.43,
-      "nsp_value": 83142.83,
-      "cash_value": 1455.32,
-      "total_value": 145486.58
+      "nsp_value": 84263.35,
+      "cash_value": 65.83,
+      "total_value": 145217.61
     },
     {
       "date": "2026-08-07",
       "stock_value": 58186.17,
-      "nsp_value": 83142.83,
-      "cash_value": 4213.32,
-      "total_value": 145542.32
+      "nsp_value": 84338.05,
+      "cash_value": 2823.83,
+      "total_value": 145348.05
     },
     {
       "date": "2026-08-10",
       "stock_value": 52716.08,
-      "nsp_value": 83142.83,
-      "cash_value": 9806.82,
-      "total_value": 145665.73
+      "nsp_value": 84562.15,
+      "cash_value": 8417.33,
+      "total_value": 145695.56
     },
     {
       "date": "2026-08-11",
       "stock_value": 52595.49,
-      "nsp_value": 83142.83,
-      "cash_value": 9806.82,
-      "total_value": 145545.14
+      "nsp_value": 84636.85,
+      "cash_value": 8417.33,
+      "total_value": 145649.67
     },
     {
       "date": "2026-08-12",
       "stock_value": 53031.24,
-      "nsp_value": 83142.83,
-      "cash_value": 9806.82,
-      "total_value": 145980.89
+      "nsp_value": 84711.55,
+      "cash_value": 8417.33,
+      "total_value": 146160.12
     },
     {
       "date": "2026-08-13",
       "stock_value": 53345.13,
-      "nsp_value": 83142.83,
-      "cash_value": 9806.82,
-      "total_value": 146294.78
+      "nsp_value": 84786.25,
+      "cash_value": 8417.33,
+      "total_value": 146548.71
     },
     {
       "date": "2026-08-14",
       "stock_value": 56632.26,
-      "nsp_value": 89594.82,
-      "cash_value": 959.36,
-      "total_value": 147186.44
+      "nsp_value": 91312.95,
+      "cash_value": -430.14,
+      "total_value": 147515.07
     },
     {
       "date": "2026-08-17",
       "stock_value": 57005.74,
-      "nsp_value": 89594.82,
-      "cash_value": 959.36,
-      "total_value": 147559.92
+      "nsp_value": 91537.05,
+      "cash_value": -430.14,
+      "total_value": 148112.65
     },
     {
       "date": "2026-08-18",
       "stock_value": 57651.24,
-      "nsp_value": 89594.82,
-      "cash_value": 959.36,
-      "total_value": 148205.42
+      "nsp_value": 91611.75,
+      "cash_value": -430.14,
+      "total_value": 148832.85
     },
     {
       "date": "2026-08-19",
       "stock_value": 57311.94,
       "nsp_value": 89109.0,
-      "cash_value": 3536.81,
-      "total_value": 149957.75
+      "cash_value": 2147.31,
+      "total_value": 148568.25
     },
     {
       "date": "2026-08-20",
       "stock_value": 59056.49,
-      "nsp_value": 89109.0,
-      "cash_value": 1401.81,
-      "total_value": 149567.3
+      "nsp_value": 89180.98,
+      "cash_value": 12.31,
+      "total_value": 148249.78
     },
     {
       "date": "2026-08-21",
       "stock_value": 59898.59,
-      "nsp_value": 89109.0,
-      "cash_value": 1401.81,
-      "total_value": 150409.4
+      "nsp_value": 89252.96,
+      "cash_value": 12.31,
+      "total_value": 149163.86
     },
     {
       "date": "2026-08-24",
       "stock_value": 60932.26,
-      "nsp_value": 89109.0,
-      "cash_value": 1401.81,
-      "total_value": 151443.07
+      "nsp_value": 89468.91,
+      "cash_value": 12.31,
+      "total_value": 150413.48
     },
     {
       "date": "2026-08-25",
       "stock_value": 60695.57,
-      "nsp_value": 89109.0,
-      "cash_value": 1401.81,
-      "total_value": 151206.38
+      "nsp_value": 89540.89,
+      "cash_value": 12.31,
+      "total_value": 150248.77
     },
     {
       "date": "2026-08-26",
       "stock_value": 62178.7,
-      "nsp_value": 84372.91,
-      "cash_value": 6400.9,
-      "total_value": 152952.51
+      "nsp_value": 84876.78,
+      "cash_value": 5011.41,
+      "total_value": 152066.89
     },
     {
       "date": "2026-08-27",
       "stock_value": 59332.91,
-      "nsp_value": 84372.91,
-      "cash_value": 6260.6,
-      "total_value": 149966.42
+      "nsp_value": 84948.76,
+      "cash_value": 4871.11,
+      "total_value": 149152.78
     },
     {
       "date": "2026-08-28",
       "stock_value": 60620.8,
-      "nsp_value": 84372.91,
-      "cash_value": 6260.6,
-      "total_value": 151254.31
+      "nsp_value": 85020.74,
+      "cash_value": 4871.11,
+      "total_value": 150512.65
     },
     {
       "date": "2026-08-31",
       "stock_value": 58640.83,
-      "nsp_value": 84372.91,
-      "cash_value": 6260.6,
-      "total_value": 149274.34
+      "nsp_value": 85236.69,
+      "cash_value": 4871.11,
+      "total_value": 148748.63
     },
     {
       "date": "2026-09-01",
       "stock_value": 62799.17,
-      "nsp_value": 84372.91,
-      "cash_value": 6260.6,
-      "total_value": 153432.68
+      "nsp_value": 85308.67,
+      "cash_value": 4871.11,
+      "total_value": 152978.95
     },
     {
       "date": "2026-09-02",
       "stock_value": 63923.01,
-      "nsp_value": 84372.91,
-      "cash_value": 6260.6,
-      "total_value": 154556.52
+      "nsp_value": 85380.65,
+      "cash_value": 4871.11,
+      "total_value": 154174.77
     },
     {
       "date": "2026-09-03",
       "stock_value": 65023.89,
-      "nsp_value": 84372.91,
-      "cash_value": 6260.6,
-      "total_value": 155657.4
+      "nsp_value": 85452.63,
+      "cash_value": 4871.11,
+      "total_value": 155347.63
     },
     {
       "date": "2026-09-04",
       "stock_value": 60012.55,
-      "nsp_value": 84372.91,
-      "cash_value": 11980.15,
-      "total_value": 156365.61
+      "nsp_value": 85524.61,
+      "cash_value": 10590.66,
+      "total_value": 156127.82
     },
     {
       "date": "2026-09-07",
       "stock_value": 60006.08,
-      "nsp_value": 84372.91,
-      "cash_value": 11980.15,
-      "total_value": 156359.14
+      "nsp_value": 85740.55,
+      "cash_value": 10590.66,
+      "total_value": 156337.29
     },
     {
       "date": "2026-09-08",
       "stock_value": 60638.02,
-      "nsp_value": 84372.91,
-      "cash_value": 11980.15,
-      "total_value": 156991.08
+      "nsp_value": 85812.53,
+      "cash_value": 10590.66,
+      "total_value": 157041.21
     },
     {
       "date": "2026-09-09",
       "stock_value": 60756.4,
-      "nsp_value": 69108.77,
-      "cash_value": 27474.88,
-      "total_value": 157340.05
+      "nsp_value": 70620.38,
+      "cash_value": 26085.38,
+      "total_value": 157462.16
     },
     {
       "date": "2026-09-10",
       "stock_value": 60115.12,
-      "nsp_value": 69108.77,
-      "cash_value": 27474.88,
-      "total_value": 156698.77
+      "nsp_value": 70692.36,
+      "cash_value": 26085.38,
+      "total_value": 156892.86
     },
     {
       "date": "2026-09-11",
       "stock_value": 60579.64,
-      "nsp_value": 89108.02,
-      "cash_value": 7475.63,
-      "total_value": 157163.29
+      "nsp_value": 90763.59,
+      "cash_value": 6086.13,
+      "total_value": 157429.36
     },
     {
       "date": "2026-09-14",
       "stock_value": 65747.23,
-      "nsp_value": 89108.02,
-      "cash_value": 1464.34,
-      "total_value": 156319.59
+      "nsp_value": 90979.53,
+      "cash_value": 74.84,
+      "total_value": 156801.6
     },
     {
       "date": "2026-09-15",
       "stock_value": 64527.56,
-      "nsp_value": 89108.02,
-      "cash_value": 1464.34,
-      "total_value": 155099.92
+      "nsp_value": 91051.51,
+      "cash_value": 74.84,
+      "total_value": 155653.91
     },
     {
       "date": "2026-09-16",
       "stock_value": 49504.07,
-      "nsp_value": 89108.02,
-      "cash_value": 13516.47,
-      "total_value": 152128.56
+      "nsp_value": 91123.49,
+      "cash_value": 12126.97,
+      "total_value": 152754.53
     },
     {
       "date": "2026-09-17",
       "stock_value": 61087.34,
-      "nsp_value": 89108.02,
-      "cash_value": 3470.83,
-      "total_value": 153666.19
+      "nsp_value": 91195.47,
+      "cash_value": 2081.33,
+      "total_value": 154364.14
     },
     {
       "date": "2026-09-18",
       "stock_value": 60066.14,
-      "nsp_value": 89108.02,
-      "cash_value": 3470.83,
-      "total_value": 152644.99
+      "nsp_value": 91267.46,
+      "cash_value": 2081.33,
+      "total_value": 153414.93
     },
     {
       "date": "2026-09-21",
       "stock_value": 59904.5,
-      "nsp_value": 89108.02,
-      "cash_value": 3470.83,
-      "total_value": 152483.35
+      "nsp_value": 91483.4,
+      "cash_value": 2081.33,
+      "total_value": 153469.23
     },
     {
       "date": "2026-09-22",
       "stock_value": 59156.74,
-      "nsp_value": 89108.02,
-      "cash_value": 3470.83,
-      "total_value": 151735.59
+      "nsp_value": 91555.38,
+      "cash_value": 2081.33,
+      "total_value": 152793.45
     },
     {
       "date": "2026-09-23",
       "stock_value": 64119.21,
-      "nsp_value": 89108.02,
-      "cash_value": -1644.17,
-      "total_value": 151583.06
+      "nsp_value": 91627.36,
+      "cash_value": -3033.67,
+      "total_value": 152712.9
     },
     {
       "date": "2026-09-24",
       "stock_value": 61101.41,
-      "nsp_value": 80654.45,
-      "cash_value": 8520.23,
-      "total_value": 150276.09
+      "nsp_value": 83245.77,
+      "cash_value": 7130.74,
+      "total_value": 151477.92
     },
     {
       "date": "2026-09-25",
       "stock_value": 66277.78,
-      "nsp_value": 80654.45,
-      "cash_value": 3381.83,
-      "total_value": 150314.06
+      "nsp_value": 83317.75,
+      "cash_value": 1992.34,
+      "total_value": 151587.87
     },
     {
       "date": "2026-09-28",
       "stock_value": 64764.04,
-      "nsp_value": 80654.45,
-      "cash_value": 3381.83,
-      "total_value": 148800.32
+      "nsp_value": 83533.7,
+      "cash_value": 1992.34,
+      "total_value": 150290.08
     },
     {
       "date": "2026-09-29",
       "stock_value": 63769.05,
-      "nsp_value": 80654.45,
-      "cash_value": 3381.83,
-      "total_value": 147805.33
+      "nsp_value": 83605.68,
+      "cash_value": 1992.34,
+      "total_value": 149367.07
     },
     {
       "date": "2026-09-30",
       "stock_value": 63191.24,
-      "nsp_value": 80654.45,
-      "cash_value": 3381.83,
-      "total_value": 147227.52
+      "nsp_value": 83677.66,
+      "cash_value": 1992.34,
+      "total_value": 148861.24
     },
     {
       "date": "2026-10-01",
       "stock_value": 65156.99,
-      "nsp_value": 80654.45,
-      "cash_value": 3381.83,
-      "total_value": 149193.27
+      "nsp_value": 83749.64,
+      "cash_value": 1992.34,
+      "total_value": 150898.97
     },
     {
       "date": "2026-10-02",
       "stock_value": 64776.44,
-      "nsp_value": 80654.45,
-      "cash_value": 3381.83,
-      "total_value": 148812.72
+      "nsp_value": 83821.62,
+      "cash_value": 1992.34,
+      "total_value": 150590.4
     },
     {
       "date": "2026-10-05",
       "stock_value": 65693.14,
-      "nsp_value": 82766.08,
-      "cash_value": 1389.5,
-      "total_value": 149848.72
+      "nsp_value": 86149.19,
+      "cash_value": 0.0,
+      "total_value": 151842.33
+    },
+    {
+      "date": "2026-10-06",
+      "stock_value": 65731.72,
+      "nsp_value": 86149.19,
+      "cash_value": 0.0,
+      "total_value": 151880.91
     }
   ],
-  "portfolio_current_value": 149848.72,
+  "portfolio_current_value": 151880.91,
   "pnl_timeline": [
     {
       "date": "2025-11-13",
@@ -5799,60 +6720,60 @@
     }
   },
   "last_prices": {
-    "AAGYO": 8.96,
-    "AEFES": 18.08,
-    "AKBNK": 68.95,
-    "AKCNS": 207.2,
-    "AKSA": 10.56,
-    "ALBRK": 8.85,
-    "ALVES": 0.56,
-    "ASELS": 371.5,
-    "BETAE": 60.15,
-    "BIGCH": 3.76,
-    "BRSAN": 692.0,
-    "BULGS": 11.85,
-    "CIMSA": 42.46,
-    "EKDMR": 28.4,
-    "EKGYO": 19.91,
-    "EKIM": 14.1,
-    "ENJSA": 112.5,
-    "EREGL": 37.64,
-    "FRMPL": 24.08,
-    "GARAN": 130.4,
-    "GATEG": 115.2,
-    "GENKM": 7.6,
-    "GLRMK": 140.0,
-    "GRSEL": 274.5,
-    "HALKB": 44.78,
-    "INTET": 52.65,
-    "ISVEA": 22.32,
-    "KRDMD": 45.02,
-    "LXGYO": 7.69,
-    "MASFN": 37.1,
-    "MCARD": 98.2,
-    "METEN": 20.1,
-    "NETCD": 88.15,
-    "ORZAX": 73.95,
-    "PEKGY": 2.7,
-    "QUICK": 46.96,
-    "RYSAS": 24.68,
-    "SELEC": 79.55,
-    "SISE": 38.1,
-    "SSAAT": 26.82,
-    "SVGYO": 3.59,
-    "TATGD": 16.73,
-    "TKFEN": 255.5,
-    "TKNKA": 51.55,
-    "TOASO": 264.75,
-    "TRALT": 43.88,
-    "TSKB": 10.05,
-    "VAKBN": 33.94,
-    "YEOTK": 27.5,
-    "YKBNK": 35.9,
-    "ALTINS": 71.4,
-    "DMLKTG": 6.98,
-    "GOLDA": 8.94,
-    "SARAE": 39.02,
+    "AAGYO": 8.78,
+    "AEFES": 18.67,
+    "AKBNK": 69.5,
+    "AKCNS": 207.7,
+    "AKSA": 10.37,
+    "ALBRK": 8.79,
+    "ALVES": 0.61,
+    "ASELS": 376.0,
+    "BETAE": 59.1,
+    "BIGCH": 3.87,
+    "BRSAN": 679.0,
+    "BULGS": 13.03,
+    "CIMSA": 41.56,
+    "EKDMR": 29.26,
+    "EKGYO": 19.75,
+    "EKIM": 15.51,
+    "ENJSA": 111.6,
+    "EREGL": 37.08,
+    "FRMPL": 23.58,
+    "GARAN": 131.2,
+    "GATEG": 115.0,
+    "GENKM": 7.63,
+    "GLRMK": 137.3,
+    "GRSEL": 275.0,
+    "HALKB": 45.24,
+    "INTET": 54.25,
+    "ISVEA": 24.54,
+    "KRDMD": 44.4,
+    "LXGYO": 7.26,
+    "MASFN": 37.44,
+    "MCARD": 97.15,
+    "METEN": 20.76,
+    "NETCD": 88.55,
+    "ORZAX": 72.45,
+    "PEKGY": 2.43,
+    "QUICK": 48.5,
+    "RYSAS": 25.7,
+    "SELEC": 74.3,
+    "SISE": 38.0,
+    "SSAAT": 27.1,
+    "SVGYO": 3.24,
+    "TATGD": 16.63,
+    "TKFEN": 260.0,
+    "TKNKA": 56.7,
+    "TOASO": 271.25,
+    "TRALT": 43.32,
+    "TSKB": 9.97,
+    "VAKBN": 33.72,
+    "YEOTK": 27.8,
+    "YKBNK": 36.46,
+    "ALTINS": 71.41,
+    "DMLKTG": 6.97,
+    "GOLDA": 8.79,
+    "SARAE": 39.12,
     "SOHOE": 7.58
   },
   "benchmark_prices": {
@@ -6078,7 +6999,8 @@
       "2026-09-30": 11947.2,
       "2026-10-01": 12249.0,
       "2026-10-02": 12270.2,
-      "2026-10-05": 12443.92
+      "2026-10-05": 12443.9,
+      "2026-10-06": 12374.26
     },
     "altin": {
       "2025-11-16": 5500.26,
@@ -6308,7 +7230,8 @@
       "2026-09-29": 6547.99,
       "2026-09-30": 6588.94,
       "2026-10-01": 6542.73,
-      "2026-10-04": 6525.73
+      "2026-10-04": 6537.09,
+      "2026-10-05": 6577.78
     }
   }
 }

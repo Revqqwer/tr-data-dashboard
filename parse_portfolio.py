@@ -14,7 +14,7 @@ import json
 import os
 import time
 import requests
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from collections import defaultdict
 
 OLD_PDF_PATH  = os.path.join(os.path.dirname(__file__), '..', '..', 'Downloads', 'Ekstre3 (1).pdf')
@@ -29,6 +29,18 @@ MMF_FUNDS = {
     'GOP': 'Golden Global Portföy Para Piyasası Katılım Fonu',
     'MPK': 'MPK Para Piyasası Fonu',
 }
+
+# TEFAS fon fiyatı vermediğinde (2026-09 itibarıyla API boş dönüyor) elle girilen son
+# fiyatlar. Bilinen noktalar arası iş günleri DOĞRUSAL doldurulur — para piyasası fonu
+# her gün az az değerlenir; son fiyat tek günde eklenince grafikte sahte sıçrama olurdu.
+MANUAL_MMF_PRICES = {
+    'NSP': {'2026-10-05': 1.931160},
+}
+
+# Ekstre sonundaki gerçek nakit (kullanıcı beyanı). Teorik nakit (işlem tutarları) komisyon,
+# stopaj, saklama vb. küçük kalemleri içermediği için zamanla kayar; None değilse tüm seri
+# sabit bir farkla kaydırılıp son gün bu değere oturtulur.
+FINAL_CASH = 0.0
 
 # GENKMH is a rights-derived lot, treat as same stock GENKM
 TICKER_NORM = {'GENKMH': 'GENKM', 'GOLDAH': 'GOLDA', 'SOHOEH': 'SOHOE', 'INTETH': 'INTET'}
@@ -361,6 +373,28 @@ def fetch_mmf_prices(fund_code: str, start_date: date, end_date: date) -> dict:
     return prices
 
 
+def _fill_mmf_prices(prices: dict, hist: list, manual: dict) -> dict:
+    """TEFAS fiyatları + işlem fiyatları + elle girilen fiyatlar; aradaki iş günlerini doğrusal doldurur."""
+    known = dict(prices)
+    for h in hist:
+        known.setdefault(h['date'], h['price'])
+    known.update(manual)
+    if not manual:
+        return prices
+    pts = sorted((date.fromisoformat(k), v) for k, v in known.items())
+    out = dict(prices)
+    out.update(manual)
+    for (d0, p0), (d1, p1) in zip(pts, pts[1:]):
+        span = (d1 - d0).days
+        d = d0 + timedelta(days=1)
+        while d < d1:
+            k = d.isoformat()
+            if d.weekday() < 5 and k not in out:
+                out[k] = p0 + (p1 - p0) * (d - d0).days / span
+            d += timedelta(days=1)
+    return out
+
+
 def build_nsp_daily_value(nsp_position_history: list, nsp_prices: dict) -> list:
     """
     For every date with a TEFAS price, find how many NSP units were held
@@ -642,6 +676,10 @@ def build_portfolio_daily_value(trades: list, mmf_trades_all: list, mmf_daily_va
                        if first_trade_date_str and d <= first_trade_date_str)
     initial_cash_offset = -raw_at_start
 
+    if FINAL_CASH is not None and cash_events:
+        final_raw = initial_cash_offset + sum(delta for _, delta in cash_events)
+        initial_cash_offset += FINAL_CASH - final_raw
+
     def theoretical_cash_at(d_str: str) -> float:
         running = sum(delta for d, delta in cash_events if d <= d_str)
         return initial_cash_offset + running
@@ -774,6 +812,7 @@ def main():
         end_date   = date.today()
         print(f'Fetching {code} prices from TEFAS ({first_date} to {end_date})...')
         prices = fetch_mmf_prices(code, first_date, end_date)
+        prices = _fill_mmf_prices(prices, hist, MANUAL_MMF_PRICES.get(code, {}))
         print(f'  Got {len(prices)} {code} price points')
         daily = build_nsp_daily_value(hist, prices)
 
