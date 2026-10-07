@@ -250,6 +250,7 @@ def compute_pnl(trades):
     lots     = defaultdict(list)   # ticker -> [{qty, price}]
     summary  = {}
     timeline = []   # [{date, ticker, pnl, cumulative_pnl}]
+    closed   = []   # her SATIŞ ayrı bir kapanan işlem (FIFO ile eşleşen alımlarla)
     cum_pnl  = 0.0
 
     # Anchor point at day before first trade
@@ -271,16 +272,18 @@ def compute_pnl(trades):
         s = summary[ticker]
 
         if t['type'] == 'alis':
-            lots[ticker].append({'qty': t['qty'], 'price': t['price']})
+            lots[ticker].append({'qty': t['qty'], 'price': t['price'], 'date': t['date']})
             s['buy_qty']    += t['qty']
             s['buy_amount'] += t['amount']
         else:
             remaining    = t['qty']
             cost_of_sold = 0.0
+            buy_dates    = []
             while remaining > 0 and lots[ticker]:
                 lot  = lots[ticker][0]
                 take = min(lot['qty'], remaining)
                 cost_of_sold += take * lot['price']
+                buy_dates.append(lot['date'])
                 lot['qty']   -= take
                 remaining    -= take
                 if lot['qty'] == 0:
@@ -290,6 +293,19 @@ def compute_pnl(trades):
             s['sell_amount']  += t['amount']
             s['realized_pnl'] += pnl
             cum_pnl           += pnl
+            matched = t['qty'] - remaining
+            closed.append({
+                'ticker':    ticker,
+                'buy_date':  min(buy_dates) if buy_dates else None,
+                'sell_date': t['date'],
+                'qty':       t['qty'],
+                'avg_buy':   round(cost_of_sold / matched, 4) if matched else 0,
+                'avg_sell':  round(t['amount'] / t['qty'], 4) if t['qty'] else 0,
+                'cost':      round(cost_of_sold, 2),
+                'proceeds':  round(t['amount'], 2),
+                'pnl':       round(pnl, 2),
+                'pnl_pct':   round(pnl / cost_of_sold * 100, 2) if cost_of_sold else 0,
+            })
             timeline.append({
                 'date':           t['settle_date'],
                 'ticker':         ticker,
@@ -309,6 +325,7 @@ def compute_pnl(trades):
                 'cost_basis': round(total_qty * avg, 2),
             }
 
+    compute_pnl.closed_trades = closed
     return summary, open_positions, timeline
 
 
@@ -925,6 +942,7 @@ def main():
         'portfolio_daily_value':    portfolio_daily_value,
         'portfolio_current_value':  round(portfolio_current_value, 2),
         'pnl_timeline':             pnl_timeline,
+        'closed_trades':            compute_pnl.closed_trades,
         'balance_history':       balance_history,
         'dividends':             dividends,
         'pnl_by_ticker':   {
