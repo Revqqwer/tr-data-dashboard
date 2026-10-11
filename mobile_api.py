@@ -99,6 +99,37 @@ def api_search():
     return jsonify(out[:15])
 
 
+# ── BIST 30 ısı haritası ────────────────────────────────────────────────────
+_HEAT: dict = {'ts': 0, 'data': []}
+_HEAT_TTL = 60
+
+
+@mobile_bp.route('/api/m/bist30')
+def api_bist30():
+    """BIST 30 hisseleri: günlük değişim + piyasa değeri (TradingView scanner, endeks üyeliği dinamik)."""
+    now = time.time()
+    if _HEAT['data'] and now - _HEAT['ts'] < _HEAT_TTL:
+        return jsonify(_HEAT['data'])
+    try:
+        r = requests.post('https://scanner.tradingview.com/turkey/scan', headers=_TV_HEADERS, timeout=10, json={
+            'filter': [], 'options': {'lang': 'tr'}, 'markets': ['turkey'],
+            'symbols': {'query': {'types': []}, 'tickers': [],
+                        'groups': [{'type': 'index', 'values': ['BIST:XU030']}]},
+            'columns': ['name', 'close', 'change', 'market_cap_basic'],
+            'sort': {'sortBy': 'market_cap_basic', 'sortOrder': 'desc'}, 'range': [0, 40]})
+        out = []
+        for it in r.json().get('data', []):
+            d = it.get('d') or []
+            if len(d) >= 4 and d[2] is not None:
+                out.append({'symbol': it['s'], 'ticker': d[0], 'price': d[1],
+                            'change': d[2], 'mcap': d[3] or 0})
+        if out:
+            _HEAT.update(ts=now, data=out)
+    except Exception:
+        pass
+    return jsonify(_HEAT['data'])
+
+
 # ── TEFAS fonları ───────────────────────────────────────────────────────────
 def _tefas():
     from tefas_backend.database import engine, FundMeta, FundDaily, FundFlow
