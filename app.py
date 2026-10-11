@@ -1523,6 +1523,20 @@ def index():
                            logged_in=session.get('logged_in', False))
 
 
+@app.route('/uygulama-onizleme')
+def app_preview():
+    """Mobil uygulamanın arayüzünü (www/index.html) tarayıcıda, yalnızca admin için gösterir —
+    yeni derleme almadan telefonda denemek için. API çağrıları aynı kaynaktan, oturumla yapılır."""
+    if not _admin_ok():
+        return redirect(url_for('login'))
+    from flask import Response
+    with open(os.path.join(os.path.dirname(__file__), 'app_preview', 'index.html'), encoding='utf-8') as f:
+        html = f.read()
+    resp = Response(html, mimetype='text/html')
+    resp.headers['Cache-Control'] = 'no-store'
+    return resp
+
+
 @app.route('/sitemap.xml')
 def sitemap():
     from flask import Response
