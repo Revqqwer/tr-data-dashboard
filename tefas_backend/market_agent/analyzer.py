@@ -97,6 +97,12 @@ Ardından 1-2 cümle: günün genel havası ve en dikkat çeken hareket.]
 5. Başlık — 2 cümle özet
 [5-7 haber]
 
+━━━ 🇹🇷 TÜRKİYE ━━━
+[TÜRKİYE HABERLERİ listesinden yalnızca Türkiye ekonomisi, TCMB, enflasyon, Borsa İstanbul,
+Türk şirketleri ve Türkiye'yi doğrudan ilgilendiren gelişmeleri seç; global haberleri burada tekrar etme.
+3-5 madde, her biri 1-2 cümle, kendi cümlelerinle yaz (metni kopyalama). Uygun haber yoksa
+"Bugün öne çıkan Türkiye haberi yok" yaz.]
+
 ━━━ 🎯 TEMATİK FIRSATLAR ━━━
 [En değerli bölüm. Birden fazla tema varsa her birini ayrı blok yaz.
 Her tema için ŞU FORMAT'ı kullan:
@@ -142,6 +148,11 @@ FORMAT (kesinlikle bu yapıyı kullan):
 ━━━ MAKRO TAKVİM ━━━
 [Fed, CPI, istihdam, diğer önemli veriler — bullet liste]
 • Tarih — Veri/Etkinlik
+
+━━━ 🇹🇷 TÜRKİYE'DE BU HAFTA ━━━
+[TÜRKİYE HABERLERİ listesinden haftanın Türkiye'yi ilgilendiren en önemli 4-6 gelişmesi
+(TCMB, enflasyon, Borsa İstanbul, Türk şirketleri, politika/ekonomi). Her biri 1-2 cümle,
+kendi cümlelerinle yaz (metni kopyalama). Global haberleri burada tekrar etme.]
 
 ━━━ 🏗️ TEMATİK DEEP-DIVE ━━━
 [Haftanın öne çıkan yatırım teması/temaları. Her tema için ŞU FORMAT:
@@ -248,6 +259,12 @@ def _format_upcoming_earnings(earnings: list[dict]) -> str:
     return "\n".join(lines)
 
 
+def _format_tr_news(items: list[dict] | None) -> str:
+    if not items:
+        return "(Türkiye haberi alınamadı)"
+    return "\n".join(f"- {x['title']} — {x.get('summary','')[:200]}" for x in items)
+
+
 def _format_markets(markets: list[dict] | None) -> str:
     if not markets:
         return "(piyasa verisi alınamadı — PİYASALAR bölümünde rakam verme, sadece genel havayı yaz)"
@@ -262,7 +279,7 @@ def _format_markets(markets: list[dict] | None) -> str:
     return "\n".join(lines)
 
 
-def generate_daily_report(filtered_news: list[dict], earnings: list[dict], markets: list[dict] | None = None) -> str:
+def generate_daily_report(filtered_news: list[dict], earnings: list[dict], markets: list[dict] | None = None, tr_news: list[dict] | None = None) -> str:
     today = datetime.now().strftime("%d %B %Y")
 
     news_text = "\n".join([
@@ -276,6 +293,7 @@ def generate_daily_report(filtered_news: list[dict], earnings: list[dict], marke
         + "\n\nPİYASA VERİLERİ (TradingView, kesin veri — PİYASALAR bölümünde yalnızca bunları kullan):\n"
         + _format_markets(markets)
         + "\n\nFİLTRELENMİŞ HABERLER:\n" + news_text
+        + "\n\nTÜRKİYE HABERLERİ (Bloomberg HT başlıkları — yalnızca 🇹🇷 TÜRKİYE bölümü için):\n" + _format_tr_news(tr_news)
         + "\n\nEARNINGS:\n" + _format_earnings_text(earnings)
     )
 
@@ -292,7 +310,7 @@ def generate_daily_report(filtered_news: list[dict], earnings: list[dict], marke
         return f"Rapor oluşturulamadı: {e}"
 
 
-def generate_weekly_report(filtered_news: list[dict], upcoming_earnings: list[dict], markets: list[dict] | None = None) -> str:
+def generate_weekly_report(filtered_news: list[dict], upcoming_earnings: list[dict], markets: list[dict] | None = None, tr_news: list[dict] | None = None) -> str:
     today      = datetime.now()
     week_start = (today - timedelta(days=7)).strftime("%d %b")
     week_end   = today.strftime("%d %b %Y")
@@ -308,6 +326,7 @@ def generate_weekly_report(filtered_news: list[dict], upcoming_earnings: list[di
         + "\n\nPİYASA VERİLERİ (TradingView, kesin veri — endeks/fiyat rakamı verirken yalnızca bunları ve HAFTALIK değişimi kullan, rakam uydurma):\n"
         + _format_markets(markets)
         + "\n\nHAFTANIN HABERLERİ:\n" + news_text
+        + "\n\nTÜRKİYE HABERLERİ (Bloomberg HT başlıkları — yalnızca 🇹🇷 bölümü için):\n" + _format_tr_news(tr_news)
         + "\n\nÖNÜMÜZDEKİ HAFTA EARNINGS:\n" + _format_upcoming_earnings(upcoming_earnings)
     )
 
