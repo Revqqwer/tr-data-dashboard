@@ -66,7 +66,31 @@ def quotes(symbols: list) -> dict:
                                               'name': d[2], 'currency': d[3], 'change_abs': d[4]})
         except Exception:
             pass
+        # TradingView tarayıcısı bazı endeksleri (ör. XGMYO) vermiyor → günlük endeks veritabanından türet
+        for s in need:
+            if s in _DB_INDEX and s not in _QCACHE:
+                d = _db_index_quote(s)
+                if d:
+                    _QCACHE[s] = (now, d)
     return {s: _QCACHE[s][1] for s in symbols if s in _QCACHE}
+
+
+_DB_INDEX = {'BIST:XGMYO': ('BIST GAYRIMENKUL YAT ORT', 'BIST GYO Endeksi')}
+
+
+def _db_index_quote(sym):
+    """collect_bist.py'nin topladığı günlük endeks serisinden son kapanış + günlük değişim."""
+    try:
+        name, label = _DB_INDEX[sym]
+        with sqlite3.connect(str(_ROOT / 'data' / 'bist_cache.db'), timeout=10) as c:
+            r = c.execute("SELECT values_, last_price FROM index_history WHERE name=? AND period='1y'", (name,)).fetchone()
+        if not r:
+            return None
+        vals = json.loads(r[0])
+        ch = (vals[-1] / vals[-2] - 1) * 100 if len(vals) >= 2 and vals[-2] else None
+        return {'symbol': sym, 'price': r[1], 'change': ch, 'name': label, 'currency': None, 'change_abs': None}
+    except Exception:
+        return None
 
 
 @mobile_bp.route('/api/m/quotes')
