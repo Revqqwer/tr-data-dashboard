@@ -37,19 +37,22 @@ def main():
         return
 
     from tefas_backend.market_agent.reports import get_latest
-    rep = get_latest('daily')
+    # Pazar günleri günlük yerine haftalık bülten hazırlanır → bildirim de ona göre
+    rep, body = get_latest('daily'), 'Sabah bülteni çıktı!'
     if not rep or rep.get('date') != today:
-        print('bugünün günlük bülteni yok, gönderilmedi')
+        rep, body = get_latest('weekly'), 'Haftalık bülten çıktı!'
+    if not rep or rep.get('date') != today:
+        print('bugünün bülteni yok, gönderilmedi')
         return
 
     if DRY:
-        print('[dry] gönderilecek: Kahveni kap gel! Sabah bülteni çıktı! —', rep.get('title'))
+        print('[dry] gönderilecek: Kahveni kap gel!', body, '—', rep.get('title'))
         return
 
     import push
     res = push.send_push(
         '☕ Kahveni kap gel!',
-        'Sabah bülteni çıktı!',
+        body,
         url='/dashboard#market-briefs', tag='daily-brief',
     )
     print('push:', res)
