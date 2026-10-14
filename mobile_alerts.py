@@ -105,8 +105,10 @@ def run():
                 msgs.append((f'ret:{code}:{f["date"]}', f'{code} günlük {_fmt_pct(r1)} {yon}',
                              f'{code} fonu {f["date"]} günü {_fmt_pct(r1)} {yon}.'))
 
-        if brief and prefs.get('briefs', True):
-            msgs.append((f'brief:{brief["id"]}', 'Piyasa özeti hazır', brief.get('title') or 'Yeni piyasa bülteni yayında.'))
+        # Günlük bülten bildirimi push_daily_brief.py'den 09:30'da gider (herkese birden);
+        # burada yalnızca haftalık bülten kalır, böylece günlük için çift bildirim olmaz.
+        if brief and brief.get('type') == 'weekly' and prefs.get('briefs', True):
+            msgs.append((f'brief:{brief["id"]}', 'Haftalık piyasa özeti hazır', brief.get('title') or 'Yeni haftalık bülten yayında.'))
 
         # aynı gün aynı olay tekrar gönderilmez; bülten ve tarihli fon olayları kalıcı anahtarlıdır
         fresh = [m for m in msgs if last.get(m[0]) != today and not (m[0].startswith(('brief:', 'flow:', 'ret:', 'above:', 'below:')) and m[0] in last)]
