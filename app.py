@@ -1707,6 +1707,7 @@ def api_portfolio():
     pf = _portfolio_with_overrides()
     if pf is None:
         return jsonify({'error': 'portfolio data not found'}), 404
+    pf.pop('account_no', None)   # hesap numarası dışarı verilmez
     return jsonify(pf)
 
 

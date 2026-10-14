@@ -904,7 +904,6 @@ def main():
     output = {
         'period':       f'{first_overall} / {last_overall}',
         'account_name': 'AHMET EMİN TAHTACI',
-        'account_no':   '73285',
         'broker':       'PUSULA Yatırım',
         'summary': {
             'total_realized_pnl': round(total_realized, 2),
