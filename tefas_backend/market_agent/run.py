@@ -244,7 +244,7 @@ def run_daily() -> str:
     print(f"✓ {len(filtered)} haber seçildi\n")
 
     print("📝 Günlük rapor yazılıyor (Claude Sonnet)...")
-    report = generate_daily_report(filtered, data["earnings"])
+    report = generate_daily_report(filtered, data["earnings"], data.get("markets"))
 
     save_report("daily", report)
     print("\n" + "=" * 60)
@@ -278,7 +278,7 @@ def run_weekly() -> str:
     print(f"✓ {len(filtered)} haber seçildi\n")
 
     print("📝 Haftalık rapor yazılıyor (Claude Sonnet)...")
-    report = generate_weekly_report(filtered, data["earnings"])
+    report = generate_weekly_report(filtered, data["earnings"], data.get("markets"))
 
     save_report("weekly", report)
     print("\n" + "=" * 60)
