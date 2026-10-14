@@ -159,8 +159,8 @@ def _report_to_telegram(report_text: str):
     try:
         claude = anthropic.Anthropic(api_key=_os.environ.get("ANTHROPIC_API_KEY", ""))
         msg = claude.messages.create(
-            model="claude-haiku-4-5",
-            max_tokens=2000,
+            model="claude-haiku-5-5",
+            max_tokens=8000,
             messages=[{"role": "user", "content": f"""Aşağıdaki finans raporunu kısa ve öz bir sesli özete dönüştür.
 Kurallar:
 - SADECE konuşma dili kullan, sıcak ve akıcı Türkçe
@@ -174,7 +174,7 @@ Kurallar:
 RAPOR:
 {report_text}"""}]
         )
-        speech_text = msg.content[0].text
+        speech_text = "".join(b.text for b in msg.content if b.type == "text")
         print(f"✓ Konuşma metni hazır ({len(speech_text)} karakter)")
     except Exception as e:
         print(f"⚠️  Claude dönüşümü başarısız: {e}")

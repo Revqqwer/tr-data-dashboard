@@ -19,10 +19,19 @@ def _get_client():
 
 # Model fiyatları ($ / 1M token) — girdi, çıktı
 _PRICES = {
+    "claude-haiku-5-5":  (0.10, 0.50),
+    "claude-sonnet-5-5": (2.0, 10.0),
     "claude-haiku-4-5":  (1.0, 5.0),
     "claude-sonnet-4-5": (3.0, 15.0),
     "claude-opus-4-8":   (5.0, 25.0),
 }
+
+
+def _text(resp) -> str:
+    """Yanıttaki metin bloklarını birleştirir (5.5 modelleri önce düşünme bloğu döndürür)."""
+    if getattr(resp, "stop_reason", None) == "refusal":
+        raise RuntimeError(f"Model yanıtı reddetti: {getattr(resp, 'stop_details', None)}")
+    return "".join(b.text for b in resp.content if b.type == "text")
 
 
 def _log_usage(resp, model: str, label: str):
@@ -187,12 +196,13 @@ def filter_news(raw_news: list[dict], prev_report_content: str = "") -> list[dic
 
     try:
         resp = _get_client().messages.create(
-            model="claude-haiku-4-5",
-            max_tokens=2500,
+            model="claude-haiku-5-5",
+            max_tokens=8000,
+            output_config={"effort": "low"},
             messages=[{"role": "user", "content": prompt + "\n\nHABERLER:\n" + headlines}]
         )
-        _log_usage(resp, "claude-haiku-4-5", "haber filtreleme")
-        text = resp.content[0].text.strip()
+        _log_usage(resp, "claude-haiku-5-5", "haber filtreleme")
+        text = _text(resp).strip()
         start = text.find('[')
         end   = text.rfind(']') + 1
         if start >= 0 and end > start:
@@ -252,12 +262,12 @@ def generate_daily_report(filtered_news: list[dict], earnings: list[dict]) -> st
 
     try:
         resp = _get_client().messages.create(
-            model="claude-sonnet-4-5",
-            max_tokens=6000,
+            model="claude-sonnet-5-5",
+            max_tokens=16000,
             messages=[{"role": "user", "content": content}]
         )
-        _log_usage(resp, "claude-sonnet-4-5", "günlük rapor")
-        return resp.content[0].text
+        _log_usage(resp, "claude-sonnet-5-5", "günlük rapor")
+        return _text(resp)
     except Exception as e:
         log.error("Günlük rapor hatası: %s", e)
         return f"Rapor oluşturulamadı: {e}"
@@ -282,12 +292,12 @@ def generate_weekly_report(filtered_news: list[dict], upcoming_earnings: list[di
 
     try:
         resp = _get_client().messages.create(
-            model="claude-sonnet-4-5",
-            max_tokens=8000,
+            model="claude-sonnet-5-5",
+            max_tokens=16000,
             messages=[{"role": "user", "content": content}]
         )
-        _log_usage(resp, "claude-sonnet-4-5", "haftalık rapor")
-        return resp.content[0].text
+        _log_usage(resp, "claude-sonnet-5-5", "haftalık rapor")
+        return _text(resp)
     except Exception as e:
         log.error("Haftalık rapor hatası: %s", e)
         return f"Rapor oluşturulamadı: {e}"
