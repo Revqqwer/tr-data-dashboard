@@ -43,13 +43,13 @@ def main():
         return
 
     if DRY:
-        print('[dry] gönderilecek: Günlük piyasa bülteni yayında —', rep.get('title'))
+        print('[dry] gönderilecek: Kahveni kap gel! Sabah bülteni çıktı! —', rep.get('title'))
         return
 
     import push
     res = push.send_push(
-        '📊 Günlük piyasa bülteni yayında',
-        'Dün gece global piyasalarda neler oldu — özet hazır.',
+        '☕ Kahveni kap gel!',
+        'Sabah bülteni çıktı!',
         url='/dashboard#market-briefs', tag='daily-brief',
     )
     print('push:', res)
