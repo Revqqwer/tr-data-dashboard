@@ -6,7 +6,8 @@ Veri Fintables'tan tarayıcı script'iyle (Tampermonkey, bofa_sync.user.js) geli
 Fintables açılınca çalıştığı için veri birikebilir. Bu görev her akşam bakar:
   • Sitedeki son BOFA günü ile beklenen son iş günü arasında ≥ REMIND_LAG iş günü fark varsa
   • ve son hatırlatmadan beri ≥ REMIND_EVERY gün geçtiyse
-admin hesabının (ADMIN_USERS) e-posta adresine kısa bir hatırlatma gönderir.
+BOFA_REMIND_TO (.env, git'te yok) adresine kısa bir hatırlatma gönderir.
+Adres kodda tutulmaz; .env'de yoksa admin hesabının kayıtlı e-postası kullanılır.
 
 PA zamanlanmış görev (UTC):  16:30 (= 19:30 İstanbul)
     cd ~/tr-data-dashboard && python3.10 bofa_reminder.py
@@ -25,7 +26,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 DRY = '--dry' in sys.argv
-REMIND_LAG = 3          # bu kadar iş günü geride kalınca hatırlat
+REMIND_LAG = 6          # 1 haftadan fazla (6+ iş günü) geride kalınca hatırlat
 REMIND_EVERY = 3        # aynı hatırlatmayı en sık bu kadar günde bir gönder
 ROOT = Path(__file__).resolve().parent
 MARK = ROOT / 'data' / '.bofa_reminder_sent'
@@ -71,7 +72,8 @@ def main():
         except ValueError:
             pass
 
-    to = admin_emails()
+    env_to = os.environ.get('BOFA_REMIND_TO', '').strip()
+    to = [a.strip() for a in env_to.split(',') if a.strip()] if env_to else admin_emails()
     if not to:
         print('admin e-posta adresi bulunamadı')
         return
@@ -84,7 +86,7 @@ def main():
             'Kutu bir hata yazarsa: Fintables ve 3nfinans admin oturumlarının açık olduğundan emin ol.\n\n'
             '— 3N Finans otomatik hatırlatma\n')
     if DRY:
-        print('[dry] gönderilecek:', to, '|', subject)
+        print('[dry] gönderilecek:', len(to), 'alıcı |', subject)
         return
 
     import mailer
