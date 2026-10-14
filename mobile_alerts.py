@@ -10,6 +10,10 @@ Aynı olay için aynı gün tekrar bildirim gitmez (mobile_watch.last_sent).
 PA zamanlanmış görev:  cd ~/tr-data-dashboard && python3 mobile_alerts.py
    (borsa saatlerinde saatlik çalıştırılabilir; tekrarı kendisi engeller)
 Deneme:                python3 mobile_alerts.py --dry
+
+Eşik hareketi (günlük ±%N) bildirimleri saatlik çalıştırmada GİTMEZ; yalnızca günde iki kez:
+   python3 mobile_alerts.py --moves     # 10:30 ve 18:00 İstanbul (PA/UTC: 07:30 ve 15:00)
+Sabah bildirilen aynı yöndeki hareket akşam tekrar gönderilmez.
 """
 import json
 import sqlite3
@@ -24,6 +28,7 @@ import fcm
 import mobile_api
 
 DRY = '--dry' in sys.argv
+MOVES = '--moves' in sys.argv   # yalnızca eşik hareketi bildirimleri (PA: 10:30 ve 18:00 İstanbul)
 MAX_PER_RUN = 4          # cihaz başına tek çalıştırmada en fazla bildirim
 
 
@@ -84,13 +89,18 @@ def run():
             ch = d.get('change') or 0
             if abs(ch) >= move:
                 yon = 'yükseldi' if ch > 0 else 'düştü'
-                msgs.append((f'move:{tk}', f'{tk} {_fmt_pct(ch)} {yon}', f'{tk} bugün {_fmt_pct(ch)} {yon}, fiyat {px}{cur}.'))
+                # eşik hareketi yalnızca --moves çalıştırmasında (10:30 ve 18:00); yön anahtarda olduğu için
+                # sabah bildirilen aynı yöndeki hareket akşam tekrar gitmez, ters yöne dönerse yeni bildirim olur
+                if MOVES:
+                    msgs.append((f'move:{tk}:{"up" if ch > 0 else "down"}', f'{tk} {_fmt_pct(ch)} {yon}', f'{tk} bugün {_fmt_pct(ch)} {yon}, fiyat {px}{cur}.'))
+            if MOVES:
+                continue
             if s.get('above') and d['price'] >= float(s['above']):
                 msgs.append((f'above:{tk}:{s["above"]}', f'{tk} hedefine ulaştı', f'{tk} {px}{cur} — alarm seviyen {s["above"]} aşıldı.'))
             if s.get('below') and d['price'] <= float(s['below']):
                 msgs.append((f'below:{tk}:{s["below"]}', f'{tk} alarm seviyesinin altında', f'{tk} {px}{cur} — alarm seviyen {s["below"]} altına indi.'))
 
-        for code in fcodes:
+        for code in ([] if MOVES else fcodes):
             f = funds.get(code)
             if not f:
                 continue
@@ -107,7 +117,7 @@ def run():
 
         # Günlük bülten bildirimi push_daily_brief.py'den 09:30'da gider (herkese birden);
         # burada yalnızca haftalık bülten kalır, böylece günlük için çift bildirim olmaz.
-        if brief and brief.get('type') == 'weekly' and prefs.get('briefs', True):
+        if brief and not MOVES and brief.get('type') == 'weekly' and prefs.get('briefs', True):
             msgs.append((f'brief:{brief["id"]}', 'Haftalık piyasa özeti hazır', brief.get('title') or 'Yeni haftalık bülten yayında.'))
 
         # aynı gün aynı olay tekrar gönderilmez; bülten ve tarihli fon olayları kalıcı anahtarlıdır
