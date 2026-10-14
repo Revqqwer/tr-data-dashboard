@@ -37,14 +37,14 @@ def _parse_pub_dt(date_str: str):
 
 # ── RSS Feed'leri ─────────────────────────────────────────────────────────────
 RSS_FEEDS = {
-    "reuters_biz":      "https://feeds.reuters.com/reuters/businessNews",
-    "reuters_fin":      "https://feeds.reuters.com/reuters/financialNewsOnly",
+    "reuters_biz":      "https://news.google.com/rss/search?q=site:reuters.com+business+markets&hl=en-US&gl=US&ceid=US:en",
+    "reuters_fin":      "https://news.google.com/rss/search?q=site:reuters.com+stocks+economy&hl=en-US&gl=US&ceid=US:en",
     "cnbc_markets":     "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000664",
     "marketwatch":      "http://feeds.marketwatch.com/marketwatch/topstories/",
-    "wsj_business":     "https://feeds.a.dj.com/rss/WSJcomUSBusiness.xml",
+    "wsj_business":     "https://feeds.content.dowjones.io/public/rss/WSJcomUSBusiness",
+    "wsj_markets":      "https://feeds.content.dowjones.io/public/rss/RSSMarketsMain",
     "seeking_alpha":    "https://seekingalpha.com/market_currents.xml",
-    "yahoo_finance":    "https://finance.yahoo.com/news/rssindex",
-    "ft_markets":       "https://www.ft.com/rss/home/us",
+    "ft_markets":       "https://www.ft.com/markets?format=rss",
     # Bloomberg via Google News
     "bloomberg_mkts":   "https://news.google.com/rss/search?q=site:bloomberg.com+markets+stocks&hl=en-US&gl=US&ceid=US:en",
     "bloomberg_earn":   "https://news.google.com/rss/search?q=site:bloomberg.com+earnings&hl=en-US&gl=US&ceid=US:en",
