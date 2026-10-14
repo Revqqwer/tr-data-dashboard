@@ -81,7 +81,10 @@ FORMAT (kesinlikle bu yapıyı kullan, başka bir şey ekleme):
 📊 GÜNLÜK PİYASA BÜLTENİ — {date}
 
 ━━━ PİYASALAR ━━━
-[S&P 500, Nasdaq, DXY, 10Y — haberlerden çıkarabildiğin kadar kısa tablo/özet]
+[SADECE aşağıdaki PİYASA VERİLERİ'ndeki rakamları kullan; rakam uydurma, haberlerden rakam çıkarma.
+Sırayla kısa satırlar: ABD, Avrupa, Asya, Türkiye, Döviz/faiz/emtia. Her endeks için seviye ve günlük %.
+Bir değer veride yoksa o satırı yazma. Asya endeksleri bülten saatinde işlem görüyor olabilir; onları "bu sabah" diye an.
+Ardından 1-2 cümle: günün genel havası ve en dikkat çeken hareket.]
 
 ━━━ BUGÜNKÜ EARNINGS ━━━
 [Her şirket: 🟢/🔴 ŞİRKET: beat/miss + tepki — yoksa "Bugün öne çıkan earnings yok"]
@@ -245,7 +248,21 @@ def _format_upcoming_earnings(earnings: list[dict]) -> str:
     return "\n".join(lines)
 
 
-def generate_daily_report(filtered_news: list[dict], earnings: list[dict]) -> str:
+def _format_markets(markets: list[dict] | None) -> str:
+    if not markets:
+        return "(piyasa verisi alınamadı — PİYASALAR bölümünde rakam verme, sadece genel havayı yaz)"
+    lines, group = [], None
+    for m in markets:
+        if m["group"] != group:
+            group = m["group"]
+            lines.append(f"[{group}]")
+        ch = f"{m['change']:+.2f}%" if m.get("change") is not None else "?"
+        wk = f"{m['week']:+.2f}%" if m.get("week") is not None else "?"
+        lines.append(f"- {m['name']}: {m['price']:,.2f} | günlük {ch} | haftalık {wk}")
+    return "\n".join(lines)
+
+
+def generate_daily_report(filtered_news: list[dict], earnings: list[dict], markets: list[dict] | None = None) -> str:
     today = datetime.now().strftime("%d %B %Y")
 
     news_text = "\n".join([
@@ -256,6 +273,8 @@ def generate_daily_report(filtered_news: list[dict], earnings: list[dict]) -> st
 
     content = (
         _DAILY_PROMPT.format(date=today)
+        + "\n\nPİYASA VERİLERİ (TradingView, kesin veri — PİYASALAR bölümünde yalnızca bunları kullan):\n"
+        + _format_markets(markets)
         + "\n\nFİLTRELENMİŞ HABERLER:\n" + news_text
         + "\n\nEARNINGS:\n" + _format_earnings_text(earnings)
     )
@@ -273,7 +292,7 @@ def generate_daily_report(filtered_news: list[dict], earnings: list[dict]) -> st
         return f"Rapor oluşturulamadı: {e}"
 
 
-def generate_weekly_report(filtered_news: list[dict], upcoming_earnings: list[dict]) -> str:
+def generate_weekly_report(filtered_news: list[dict], upcoming_earnings: list[dict], markets: list[dict] | None = None) -> str:
     today      = datetime.now()
     week_start = (today - timedelta(days=7)).strftime("%d %b")
     week_end   = today.strftime("%d %b %Y")
@@ -286,6 +305,8 @@ def generate_weekly_report(filtered_news: list[dict], upcoming_earnings: list[di
 
     content = (
         _WEEKLY_PROMPT.format(date_range=f"{week_start} — {week_end}")
+        + "\n\nPİYASA VERİLERİ (TradingView, kesin veri — endeks/fiyat rakamı verirken yalnızca bunları ve HAFTALIK değişimi kullan, rakam uydurma):\n"
+        + _format_markets(markets)
         + "\n\nHAFTANIN HABERLERİ:\n" + news_text
         + "\n\nÖNÜMÜZDEKİ HAFTA EARNINGS:\n" + _format_upcoming_earnings(upcoming_earnings)
     )

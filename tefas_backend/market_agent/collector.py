@@ -198,6 +198,42 @@ def fetch_upcoming_earnings(finnhub_key: str, days: int = 7) -> list[dict]:
         return []
 
 
+# Bültenin PİYASALAR bölümü için kesin veri (model rakam uydurmasın diye)
+MARKET_GROUPS = [
+    ("ABD", [("SP:SPX", "S&P 500"), ("NASDAQ:NDX", "Nasdaq 100"), ("DJ:DJI", "Dow Jones"),
+             ("TVC:RUT", "Russell 2000"), ("CBOE:VIX", "VIX")]),
+    ("Avrupa", [("TVC:SX5E", "Euro Stoxx 50"), ("XETR:DAX", "DAX"), ("TVC:UKX", "FTSE 100"),
+                ("EURONEXT:PX1", "CAC 40"), ("INDEX:FTSEMIB", "FTSE MIB"), ("BME:IBC", "IBEX 35")]),
+    ("Asya", [("TVC:NI225", "Nikkei 225"), ("TVC:HSI", "Hang Seng"), ("SSE:000001", "Şanghay Bileşik"),
+              ("KRX:KOSPI", "KOSPI"), ("NSE:NIFTY", "Nifty 50")]),
+    ("Türkiye", [("BIST:XU100", "BIST 100"), ("FX_IDC:USDTRY", "USD/TRY")]),
+    ("Döviz, faiz ve emtia", [("TVC:DXY", "Dolar Endeksi (DXY)"), ("FX_IDC:EURUSD", "EUR/USD"),
+                              ("TVC:US10Y", "ABD 10Y faiz (%)"), ("TVC:GOLD", "Ons altın ($)"),
+                              ("FX:UKOIL", "Brent petrol ($)"), ("BITSTAMP:BTCUSD", "Bitcoin ($)")]),
+]
+
+
+def fetch_market_snapshot() -> list[dict]:
+    """TradingView tarayıcısından son fiyat, günlük ve haftalık % değişim."""
+    syms = [s for _, items in MARKET_GROUPS for s, _ in items]
+    try:
+        r = requests.post("https://scanner.tradingview.com/global/scan", timeout=15,
+                          headers={"Origin": "https://www.tradingview.com", "User-Agent": "Mozilla/5.0"},
+                          json={"symbols": {"tickers": syms, "query": {"types": []}},
+                                "columns": ["close", "change", "Perf.W"]})
+        got = {x["s"]: x["d"] for x in r.json().get("data", [])}
+    except Exception as e:
+        log.warning("Piyasa verisi alınamadı: %s", e)
+        return []
+    out = []
+    for group, items in MARKET_GROUPS:
+        for sym, name in items:
+            d = got.get(sym)
+            if d and d[0] is not None:
+                out.append({"group": group, "name": name, "price": d[0], "change": d[1], "week": d[2]})
+    return out
+
+
 def collect_all(daily: bool = True) -> dict:
     """Tüm kaynaklardan veri topla"""
     finnhub_key = os.environ.get("FINNHUB_API_KEY", "")
@@ -254,8 +290,13 @@ def collect_all(daily: bool = True) -> dict:
     fresh = dated + undated[:max(0, 20 - len(dated))]  # en fazla 20 tarihi bilinmeyen
 
     print(f"✓ {len(unique)} benzersiz → {len(dated)} güncel ({cutoff_hours}h) + {len(undated[:max(0,20-len(dated))])} tarihi bilinmeyen, {len(earnings)} earnings")
+    print("📈 Piyasa verileri (TradingView) çekiliyor...")
+    markets = fetch_market_snapshot()
+    print(f"✓ {len(markets)} piyasa verisi")
+
     return {
         "news":         fresh,
         "earnings":     earnings,
+        "markets":      markets,
         "collected_at": datetime.now().isoformat(),
     }
