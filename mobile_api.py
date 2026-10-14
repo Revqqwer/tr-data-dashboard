@@ -103,6 +103,20 @@ def _db_index_quote(sym):
         return None
 
 
+@mobile_bp.route('/api/m/version')
+def api_version():
+    """Zorunlu güncelleme: uygulama sürümü 'min'den eskiyse güncelleme ekranı açılır.
+    Yeni sürüm iki mağazada da YAYINLANDIKTAN SONRA data/app_version.json'daki 'min' yükseltilir."""
+    try:
+        with open(_ROOT / 'data' / 'app_version.json', encoding='utf-8') as f:
+            v = json.load(f)
+    except Exception:
+        v = {'min': '1.0'}
+    resp = jsonify(v)
+    resp.headers['Cache-Control'] = 'no-store'
+    return resp
+
+
 @mobile_bp.route('/api/m/quotes')
 def api_quotes():
     syms = [s.strip().upper() for s in (request.args.get('s') or '').split(',') if s.strip()][:60]
