@@ -8,7 +8,6 @@
 Bu ikisi hesabın tam işlem geçmişini oluşturur; aralarında tarih çakışması
 olsa bile OLD sadece CUTOVER öncesini, NEW sadece CUTOVER-ve-sonrasını kullanır.
 """
-import pdfplumber
 import re
 import json
 import os
@@ -77,6 +76,7 @@ def extract_lines(pdf_path: str):
     """Extract raw transaction rows from all pages."""
     line_re    = re.compile(r'^(\d{2}/\d{2}/\d{4})\s+1200\.100\s+(.+)$')
     amounts_re = re.compile(r'(-?[\d\.]+,\d{2})\s+(-?[\d\.]+,\d{2})\s+(-?[\d\.]+,\d{2})\s*$')
+    import pdfplumber   # yalnızca PDF okurken gerekir (update_portfolio.py PA'da bunsuz çalışır)
     rows = []
     with pdfplumber.open(pdf_path) as pdf:
         for page in pdf.pages:
