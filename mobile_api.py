@@ -35,9 +35,9 @@ _QTTL = 60
 
 @mobile_bp.after_app_request
 def _cors(resp):
-    """Yalnızca uygulama kökeninden gelen /api/ isteklerine CORS izni."""
+    """Yalnızca uygulama kökeninden gelen /api/ ve /bist/api/ isteklerine CORS izni."""
     origin = request.headers.get('Origin', '')
-    if origin in APP_ORIGINS and request.path.startswith('/api/'):
+    if origin in APP_ORIGINS and request.path.startswith(('/api/', '/bist/api/')):
         resp.headers['Access-Control-Allow-Origin'] = origin
         resp.headers['Access-Control-Allow-Headers'] = 'Content-Type'
         resp.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
