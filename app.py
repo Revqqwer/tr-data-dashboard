@@ -1356,7 +1356,9 @@ def api_bofa_sync_status():
     if not _admin_ok():
         return jsonify({'error': 'admin girişi gerekli'}), 403
     import bofa_db
-    return jsonify(bofa_db.status())
+    resp = jsonify(bofa_db.status())
+    resp.headers['Cache-Control'] = 'no-store'
+    return resp
 
 
 @app.route('/api/bofa-sync/import', methods=['POST'])
