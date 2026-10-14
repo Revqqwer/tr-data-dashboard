@@ -213,6 +213,32 @@ MARKET_GROUPS = [
 ]
 
 
+TR_NEWS_FEED = "https://www.bloomberght.com/rss"
+
+
+def fetch_tr_news(hours: int = 28, limit: int = 40) -> list[dict]:
+    """Bloomberg HT başlıkları (Türkiye bölümü için; global akıştan ayrı tutulur)."""
+    try:
+        import feedparser
+        feed = feedparser.parse(TR_NEWS_FEED, agent="Mozilla/5.0")
+    except Exception as e:
+        log.warning("Bloomberg HT alınamadı: %s", e)
+        return []
+    from datetime import timezone as _tz
+    cutoff = datetime.now(_tz.utc) - timedelta(hours=hours)
+    out = []
+    for e in feed.entries:
+        dt = _parse_pub_dt(e.get("published", ""))
+        if dt is not None and dt < cutoff:
+            continue
+        out.append({"title": e.get("title", "").strip(),
+                    "summary": (e.get("summary", "") or "").strip()[:300],
+                    "published": e.get("published", "")})
+        if len(out) >= limit:
+            break
+    return out
+
+
 def fetch_market_snapshot() -> list[dict]:
     """TradingView tarayıcısından son fiyat, günlük ve haftalık % değişim."""
     syms = [s for _, items in MARKET_GROUPS for s, _ in items]
@@ -290,6 +316,10 @@ def collect_all(daily: bool = True) -> dict:
     fresh = dated + undated[:max(0, 20 - len(dated))]  # en fazla 20 tarihi bilinmeyen
 
     print(f"✓ {len(unique)} benzersiz → {len(dated)} güncel ({cutoff_hours}h) + {len(undated[:max(0,20-len(dated))])} tarihi bilinmeyen, {len(earnings)} earnings")
+    print("🇹🇷 Bloomberg HT çekiliyor...")
+    tr_news = fetch_tr_news(hours=28 if daily else 8 * 24)
+    print(f"✓ {len(tr_news)} Türkiye haberi")
+
     print("📈 Piyasa verileri (TradingView) çekiliyor...")
     markets = fetch_market_snapshot()
     print(f"✓ {len(markets)} piyasa verisi")
@@ -298,5 +328,6 @@ def collect_all(daily: bool = True) -> dict:
         "news":         fresh,
         "earnings":     earnings,
         "markets":      markets,
+        "tr_news":      tr_news,
         "collected_at": datetime.now().isoformat(),
     }
