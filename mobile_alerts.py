@@ -4,7 +4,7 @@ Mağaza uygulaması kişisel bildirimleri — her cihazın takip listesine göre
 
   • Hisse: günlük değişim ≥ eşik (varsayılan %3) veya kullanıcının fiyat alarmı (üstü/altı)
   • Fon:   son TEFAS gününde fona ≥ %1 para girişi/çıkışı veya ≥ %2 günlük getiri
-  • Bülten: yeni günlük/haftalık piyasa özeti
+  • (Bülten bildirimleri push_daily_brief.py'de, 09:30)
 
 Aynı olay için aynı gün tekrar bildirim gitmez (mobile_watch.last_sent).
 PA zamanlanmış görev:  cd ~/tr-data-dashboard && python3 mobile_alerts.py
@@ -67,7 +67,6 @@ def run():
     all_funds = sorted({f for d in devices for f in json.loads(d[2] or '[]')})
     q = mobile_api.quotes(all_syms) if all_syms else {}
     funds = {f['code']: f for f in mobile_api.fund_summary(all_funds)} if all_funds else {}
-    brief = _latest_brief()
 
     sent_total = 0
     for token, stocks, fcodes, prefs, last_sent, platform in devices:
@@ -115,10 +114,7 @@ def run():
                 msgs.append((f'ret:{code}:{f["date"]}', f'{code} günlük {_fmt_pct(r1)} {yon}',
                              f'{code} fonu {f["date"]} günü {_fmt_pct(r1)} {yon}.'))
 
-        # Günlük bülten bildirimi push_daily_brief.py'den 09:30'da gider (herkese birden);
-        # burada yalnızca haftalık bülten kalır, böylece günlük için çift bildirim olmaz.
-        if brief and not MOVES and brief.get('type') == 'weekly' and prefs.get('briefs', True):
-            msgs.append((f'brief:{brief["id"]}', 'Haftalık piyasa özeti hazır', brief.get('title') or 'Yeni haftalık bülten yayında.'))
+        # Günlük ve haftalık bülten bildirimleri push_daily_brief.py'den 09:30'da gider (burada yok)
 
         # aynı gün aynı olay tekrar gönderilmez; bülten ve tarihli fon olayları kalıcı anahtarlıdır
         fresh = [m for m in msgs if last.get(m[0]) != today and not (m[0].startswith(('brief:', 'flow:', 'ret:', 'above:', 'below:')) and m[0] in last)]
