@@ -80,8 +80,18 @@ _DB_INDEX = {'BIST:XGMYO': ('BIST GAYRIMENKUL YAT ORT', 'BIST GYO Endeksi')}
 
 def _db_index_quote(sym):
     """collect_bist.py'nin topladığı günlük endeks serisinden son kapanış + günlük değişim."""
+    name, label = _DB_INDEX[sym]
+    # 1) canlı: TradingView websocket'ten son günlük barlar (son bar o anki fiyat)
     try:
-        name, label = _DB_INDEX[sym]
+        import bist_api
+        dates, closes = bist_api.fetch_tv_ws(sym.split(':')[1], 'BIST', 3)
+        if closes and len(closes) >= 2 and closes[-2]:
+            return {'symbol': sym, 'price': closes[-1], 'change': (closes[-1] / closes[-2] - 1) * 100,
+                    'name': label, 'currency': None, 'change_abs': closes[-1] - closes[-2]}
+    except Exception:
+        pass
+    # 2) yedek: collect_bist.py'nin kaydettiği günlük seri
+    try:
         with sqlite3.connect(str(_ROOT / 'data' / 'bist_cache.db'), timeout=10) as c:
             r = c.execute("SELECT values_, last_price FROM index_history WHERE name=? AND period='1y'", (name,)).fetchone()
         if not r:
