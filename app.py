@@ -1349,6 +1349,30 @@ def admin_bofa_import(secret):
     return jsonify({'results': results, 'status': bofa_db.status()})
 
 
+# ── BOFA otomatik senkron (Fintables sayfasındaki tarayıcı script'i kullanır) ──
+# Yetki: 3nfinans'a admin hesabıyla giriş yapmış tarayıcının oturum çerezi.
+@app.route('/api/bofa-sync/status')
+def api_bofa_sync_status():
+    if not _admin_ok():
+        return jsonify({'error': 'admin girişi gerekli'}), 403
+    import bofa_db
+    return jsonify(bofa_db.status())
+
+
+@app.route('/api/bofa-sync/import', methods=['POST'])
+def api_bofa_sync_import():
+    if not _admin_ok():
+        return jsonify({'error': 'admin girişi gerekli'}), 403
+    import bofa_db
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict) or not data:
+        return jsonify({'error': 'boş ya da geçersiz veri'}), 400
+    res = bofa_db.import_data(data)
+    return jsonify({'imported': [r['date'] for r in res if not r.get('error') and not r.get('skipped')],
+                    'errors': [r for r in res if r.get('error')],
+                    'status': bofa_db.status()})
+
+
 @app.route('/admin/<secret>/bofa/site')
 def admin_bofa_site_preview(secret):
     """Üyelere açılacak BofA sayfasının önizlemesi (yayınlanmadan, admin anahtarıyla)."""

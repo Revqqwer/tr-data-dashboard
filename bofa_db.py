@@ -99,7 +99,11 @@ def import_file(path: str) -> list:
     """Tek yanıt ya da {tarih: yanıt} paketi içeren JSON dosyasını içe aktarır."""
     with open(path, encoding='utf-8') as f:
         data = json.load(f)
+    return import_data(data)
 
+
+def import_data(data: dict) -> list:
+    """Tek yanıt ya da {tarih: yanıt} paketini içe aktarır (dosya ya da tarayıcı senkronu)."""
     con = connect()
     out = []
     try:
