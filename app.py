@@ -1488,6 +1488,68 @@ def _update_last_seen():
                 pass
 
 
+# ── İzleyici portföyleri: üyeliksiz gönderim + yayında torbadan çekiliş ─────────
+@app.route('/portfoy-paylas')
+def portfoy_paylas():
+    return render_template('portfoy_paylas.html')
+
+
+@app.route('/api/izleyici/submit', methods=['POST'])
+def izleyici_submit():
+    import izleyici_portfoy as ip_
+    if request.form.get('website'):                     # bot tuzağı (görünmez alan)
+        return jsonify({'ok': True})
+    img = request.files.get('image')
+    res = ip_.submit(request.form.get('nick', ''), request.form.get('text', ''),
+                     img.stream if img and img.filename else None, _client_ip())
+    return jsonify(res), (200 if res.get('ok') else 400)
+
+
+@app.route('/torba')
+def torba():
+    if not _admin_ok():
+        return redirect(url_for('login'))
+    return render_template('torba.html')
+
+
+@app.route('/api/torba/state')
+def torba_state():
+    if not _admin_ok():
+        return jsonify({'error': 'Yetkisiz'}), 403
+    import izleyici_portfoy as ip_
+    return jsonify(ip_.state())
+
+
+@app.route('/api/torba/<action>', methods=['POST'])
+def torba_action(action):
+    if not _admin_ok():
+        return jsonify({'error': 'Yetkisiz'}), 403
+    import izleyici_portfoy as ip_
+    if action == 'draw':
+        return jsonify(ip_.draw())
+    if action == 'reset':
+        return jsonify({'ok': True, 'n': ip_.reset_bag()})
+    if action == 'delete':
+        return jsonify({'ok': ip_.delete(int((request.get_json(silent=True) or {}).get('id', 0)))})
+    if action == 'clear':
+        return jsonify({'ok': True, 'n': ip_.clear_all()})
+    return jsonify({'error': 'bilinmeyen işlem'}), 400
+
+
+@app.route('/torba/img/<int:item_id>')
+def torba_img(item_id):
+    if not _admin_ok():
+        return ('', 403)
+    import izleyici_portfoy as ip_
+    from flask import send_file
+    p = ip_.image_path(item_id)
+    if not p:
+        return ('', 404)
+    resp = send_file(p)
+    resp.headers['Cache-Control'] = 'private, no-store'
+    return resp
+
+
 # ── Giriş kapısı: girişsiz kullanıcı sadece public yolları açabilir ──────────
 _PUBLIC_EXACT = {
     '/', '/login', '/register', '/logout', '/forgot-password', '/reset-password',
@@ -1498,6 +1560,7 @@ _PUBLIC_EXACT = {
     '/sw.js', '/manifest.json',
     '/api/subscribe', '/api/track', '/api/subscribers/count',
     '/auth/discord', '/auth/discord/callback', '/auth/discord/setup',
+    '/portfoy-paylas', '/api/izleyici/submit',   # izleyici portföy gönderimi (üyeliksiz)
 }
 _PUBLIC_PREFIXES = (
     '/static/', '/admin/', '/confirm-subscription/', '/unsubscribe/', '/e/o/', '/favicon',
@@ -1509,7 +1572,7 @@ _PUBLIC_PREFIXES = (
 # App Store 5.1.1(v): hesap gerektirmeyen içerik üyeliksiz açılmalı → uygulamada giriş istenmez.
 _NATIVE_UA_TAG = '3NFinansApp'
 # Uygulamada misafirken de kapalı kalan, hesaba bağlı yollar
-_ACCOUNT_ONLY_PREFIXES = ('/carkifelek', '/api/wheel/', '/profile')
+_ACCOUNT_ONLY_PREFIXES = ('/carkifelek', '/api/wheel/', '/profile', '/torba', '/api/torba/')
 
 
 def _is_native_app() -> bool:

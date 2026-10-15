@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Portföyünü Paylaş — 3N Finans</title>
+<meta name="description" content="Portföyünü 3N Finans yayınına gönder; yayında torbadan rastgele portföyler çekip yorumluyoruz.">
+<link rel="icon" href="/static/icons/icon-192.png">
+<style>
+  :root{--bg:#0a1120;--panel:#101c31;--panel2:#0d1728;--border:#22324b;--text:#eaf1fd;--muted:#8ea3c4;
+    --accent:#f0b429;--good:#22c55e;--bad:#ef4444}
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;min-height:100vh;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    background:radial-gradient(1200px 700px at 50% -8%,#182a49 0%,var(--bg) 58%);color:var(--text);-webkit-font-smoothing:antialiased}
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border)}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;text-decoration:none;color:inherit}
+  .brand .logo{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--accent),#a855f7);
+    display:flex;align-items:center;justify-content:center;font-size:13px;color:#14100a}
+  .wrap{max-width:620px;margin:0 auto;padding:26px 16px 60px}
+  h1{font-size:26px;margin:4px 0 8px;letter-spacing:-.5px}
+  .lead{color:var(--muted);font-size:15px;line-height:1.6;margin:0 0 22px}
+  .card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--border);border-radius:18px;padding:20px;margin-bottom:16px}
+  label{display:block;font-size:13px;font-weight:700;color:var(--muted);margin:0 0 7px}
+  input[type=text],textarea{width:100%;background:#0b1424;border:1px solid var(--border);color:var(--text);
+    padding:12px 14px;border-radius:12px;font-size:15px;font-family:inherit}
+  textarea{min-height:150px;resize:vertical;line-height:1.5}
+  input:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(240,180,41,.15)}
+  .field{margin-bottom:18px}
+  .drop{border:2px dashed #33465f;border-radius:14px;padding:22px 14px;text-align:center;color:var(--muted);
+    cursor:pointer;transition:.15s;font-size:14px;line-height:1.5}
+  .drop:hover,.drop.over{border-color:var(--accent);color:var(--text);background:rgba(240,180,41,.05)}
+  .drop b{color:var(--text)}
+  .preview{display:none;position:relative;margin-top:12px}
+  .preview img{max-width:100%;max-height:340px;border-radius:12px;border:1px solid var(--border);display:block;margin:0 auto}
+  .preview button{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.7);color:#fff;border:0;border-radius:999px;
+    padding:6px 12px;font-weight:700;cursor:pointer}
+  .or{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px;font-weight:700;letter-spacing:1px;margin:18px 0}
+  .or::before,.or::after{content:'';flex:1;height:1px;background:var(--border)}
+  .hint{font-size:12.5px;color:var(--muted);margin-top:6px;line-height:1.5}
+  .warn{font-size:13px;color:#fcd34d;background:rgba(240,180,41,.08);border:1px solid rgba(240,180,41,.25);
+    border-radius:12px;padding:10px 12px;line-height:1.5;margin-bottom:18px}
+  .btn{width:100%;border:0;cursor:pointer;border-radius:14px;font-weight:800;font-size:16px;padding:15px;
+    background:linear-gradient(135deg,#ffd76a,var(--accent));color:#211603;transition:filter .15s}
+  .btn:hover{filter:brightness(1.05)} .btn:disabled{opacity:.5;cursor:not-allowed}
+  .msg{margin-top:12px;font-size:14px;text-align:center;min-height:20px}
+  .msg.err{color:#fca5a5} .msg.ok{color:#86efac}
+  .done{display:none;text-align:center;padding:30px 10px}
+  .done .big{font-size:52px;margin-bottom:8px}
+  .done h2{margin:0 0 8px}
+  .done p{color:var(--muted);line-height:1.6}
+  .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a class="brand" href="/"><span class="logo">3N</span> 3N Finans</a>
+</div>
+<div class="wrap">
+  <div id="formBox">
+    <h1>🎒 Portföyünü torbaya at</h1>
+    <p class="lead">Yayında torbadan rastgele portföyler çekip yorumluyoruz. Portföyünün <b>ekran görüntüsünü</b> yükle
+      ya da hisselerini <b>elle yaz</b> — ikisi de olur. Üyelik gerekmez.</p>
+
+    <form id="f" class="card" autocomplete="off">
+      <div class="field">
+        <label for="nick">İsim / takma ad (yayında bu görünecek)</label>
+        <input type="text" id="nick" name="nick" maxlength="40" placeholder="ör. YouTube kullanıcı adın" required>
+      </div>
+
+      <div class="warn">⚠️ Ekran görüntüsünde <b>hesap numarası, ad-soyad, TC kimlik</b> gibi bilgiler varsa yüklemeden önce
+        kırp ya da karala. Portföyün yayında ekranda gösterilebilir.</div>
+
+      <div class="field">
+        <label>Ekran görüntüsü</label>
+        <div class="drop" id="drop">📷 <b>Dosya seçmek için dokun</b><br>ya da sürükle-bırak / yapıştır (Ctrl+V)<br>
+          <span style="font-size:12px">PNG, JPG, WEBP · en fazla 5 MB</span></div>
+        <input type="file" id="image" name="image" accept="image/png,image/jpeg,image/webp" hidden>
+        <div class="preview" id="preview"><img id="previewImg" alt="Önizleme"><button type="button" id="rm">Kaldır</button></div>
+      </div>
+
+      <div class="or">VE / VEYA</div>
+
+      <div class="field">
+        <label for="text">Portföyünü yaz</label>
+        <textarea id="text" name="text" maxlength="2000" placeholder="ör.&#10;THYAO %30&#10;ASELS %25&#10;Altın fonu %20&#10;Nakit %25&#10;&#10;İstersen neden aldığını da yaz."></textarea>
+        <div class="hint"><span id="cnt">0</span> / 2000</div>
+      </div>
+
+      <div class="hp" aria-hidden="true"><input type="text" name="website" tabindex="-1" autocomplete="off"></div>
+
+      <button class="btn" id="send" type="submit">Torbaya At</button>
+      <div class="msg" id="msg"></div>
+    </form>
+    <p class="hint" style="text-align:center">Gönderdiklerini yalnızca 3N Finans ekibi görür; yayında torbadan çekilirse ekranda gösterilebilir.
+      Yatırım tavsiyesi değildir.</p>
+  </div>
+
+  <div class="done card" id="done">
+    <div class="big">🎉</div>
+    <h2>Portföyün torbada!</h2>
+    <p>Yayında torbadan çekilirse ekranda yorumlayacağız. Takipte kal.</p>
+    <a href="/" style="color:var(--accent);font-weight:700;text-decoration:none">3N Finans'a dön →</a>
+  </div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const fileInput=$('image'), drop=$('drop');
+let file=null;
+function setFile(f){
+  if(!f) return;
+  if(!/^image\/(png|jpeg|webp)$/.test(f.type)){showMsg('Sadece PNG, JPG ya da WEBP yükleyebilirsin.',true);return}
+  if(f.size>5*1024*1024){showMsg('Görsel en fazla 5 MB olabilir.',true);return}
+  file=f; $('previewImg').src=URL.createObjectURL(f); $('preview').style.display='block'; drop.style.display='none'; showMsg('');
+}
+function clearFile(){file=null;fileInput.value='';$('preview').style.display='none';drop.style.display='block'}
+drop.onclick=()=>fileInput.click();
+fileInput.onchange=()=>setFile(fileInput.files[0]);
+$('rm').onclick=clearFile;
+['dragover','dragenter'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.add('over')}));
+['dragleave','drop'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.remove('over')}));
+drop.addEventListener('drop',ev=>setFile(ev.dataTransfer.files[0]));
+document.addEventListener('paste',ev=>{const it=[...(ev.clipboardData||{}).items||[]].find(i=>i.type.startsWith('image/'));if(it)setFile(it.getAsFile())});
+$('text').oninput=()=>{$('cnt').textContent=$('text').value.length};
+function showMsg(t,err){const m=$('msg');m.textContent=t;m.className='msg'+(t?(err?' err':' ok'):'')}
+$('f').onsubmit=async ev=>{
+  ev.preventDefault();
+  const nick=$('nick').value.trim(), text=$('text').value.trim();
+  if(nick.length<2){showMsg('Lütfen bir isim ya da takma ad yaz.',true);return}
+  if(!file&&!text){showMsg('Bir ekran görüntüsü yükle ya da portföyünü yaz.',true);return}
+  const fd=new FormData($('f')); fd.delete('image'); if(file) fd.append('image',file,file.name||'portfoy.png');
+  $('send').disabled=true; showMsg('Gönderiliyor…');
+  try{
+    const r=await fetch('/api/izleyici/submit',{method:'POST',body:fd});
+    const j=await r.json().catch(()=>({}));
+    if(r.ok&&j.ok){$('formBox').style.display='none';$('done').style.display='block';window.scrollTo(0,0)}
+    else showMsg(j.error||'Gönderilemedi, tekrar dene.',true);
+  }catch(e){showMsg('Bağlantı hatası, tekrar dene.',true)}
+  $('send').disabled=false;
+};
+</script>
+</body>
+</html>
