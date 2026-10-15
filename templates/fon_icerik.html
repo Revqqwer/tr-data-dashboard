@@ -264,12 +264,16 @@ async function showStock(code) {
     type: 'bar',
     data: {labels: d.series.map(x => pname(x.period)), datasets: [
       {label: 'Toplam değer (TL)', data: d.series.map(x => x.value), backgroundColor: css('--accent') + 'aa', yAxisID: 'y'},
-      {label: 'Fon sayısı', type: 'line', data: d.series.map(x => x.funds), borderColor: css('--gold'), pointRadius: 3, yAxisID: 'y2'}]},
+      {label: 'Fon sayısı', type: 'line', data: d.series.map(x => x.funds), borderColor: css('--gold'), pointRadius: 3, yAxisID: 'y2'},
+      {label: 'Toplam lot', type: 'line', data: d.series.map(x => x.lots), borderColor: '#34d399', backgroundColor: '#34d399',
+       borderDash: [6, 4], pointRadius: 3, yAxisID: 'y3'}]},
     options: {responsive: true, maintainAspectRatio: false, plugins: {legend: {labels: {color: css('--muted')}},
-      tooltip: {callbacks: {label: c => c.dataset.label + ': ' + (c.datasetIndex === 0 ? tl(c.parsed.y) + ' TL' : c.parsed.y)}}},
+      tooltip: {callbacks: {label: c => c.dataset.label + ': ' + (c.datasetIndex === 0 ? tl(c.parsed.y) + ' TL'
+        : c.datasetIndex === 2 ? tl(c.parsed.y) + ' lot' : c.parsed.y)}}},
       scales: {x: {ticks: {color: css('--muted')}, grid: {color: css('--grid')}},
                y: {ticks: {color: css('--muted'), callback: v => tl(v)}, grid: {color: css('--grid')}},
-               y2: {position: 'right', ticks: {color: css('--gold'), precision: 0}, grid: {display: false}}}}
+               y2: {position: 'right', ticks: {color: css('--gold'), precision: 0}, grid: {display: false}},
+               y3: {position: 'right', ticks: {color: '#34d399', callback: v => tl(v)}, grid: {display: false}}}}
   });
   renderStockTable();
   $('stockFundQ').addEventListener('input', debounce(renderStockTable, 150));
