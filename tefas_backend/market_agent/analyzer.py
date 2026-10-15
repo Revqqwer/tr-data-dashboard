@@ -81,10 +81,16 @@ FORMAT (kesinlikle bu yapıyı kullan, başka bir şey ekleme):
 📊 GÜNLÜK PİYASA BÜLTENİ — {date}
 
 ━━━ PİYASALAR ━━━
-[SADECE aşağıdaki PİYASA VERİLERİ'ndeki rakamları kullan; rakam uydurma, haberlerden rakam çıkarma.
-Sırayla kısa satırlar: ABD, Avrupa, Asya, Türkiye, Döviz/faiz/emtia. Her endeks için seviye ve günlük %.
-Bir değer veride yoksa o satırı yazma. Asya endeksleri bülten saatinde işlem görüyor olabilir; onları "bu sabah" diye an.
-Ardından 1-2 cümle: günün genel havası ve en dikkat çeken hareket.]
+[Sözel, akıcı bir paragraf yaz (4-6 cümle); endeks listesi, tablo ya da madde DÖKME.
+Önce günün genel havasını söyle (ör. risk-off / risk-on, nerede satış, nerede alım vardı).
+Bölge bölge kısaca anlat ama yalnızca ÖNEMLİ endeksleri an: ABD için S&P 500 ve Nasdaq,
+Avrupa için genel seyir + gerekirse DAX, Asya için genel seyir + yalnızca sert hareket eden endeks(ler),
+Türkiye için BIST 100; dolar/faiz/altın/petrolde sadece dikkat çeken bir hareket varsa değin.
+Örnek ton: "Gün risk-off geçti. ABD'de teknoloji ağırlıklı Nasdaq %2 düşerken Avrupa'da Almanya
+endeksi hafif yükseldi. En sert hareket Asya'daydı: KOSPI %7,85 geriledi."
+Rakam az olsun: yalnızca öne çıkan hareketler için yüzde ver, endeks seviyelerini (puan) yazma.
+Rakamları SADECE aşağıdaki PİYASA VERİLERİ'nden al; uydurma, haberlerden rakam çıkarma.
+Asya endeksleri bülten saatinde işlem görüyor olabilir; onları "bu sabah" diye an.]
 
 ━━━ BUGÜNKÜ EARNINGS ━━━
 [Her şirket: 🟢/🔴 ŞİRKET: beat/miss + tepki — yoksa "Bugün öne çıkan earnings yok"]
