@@ -33,7 +33,12 @@ MOVES = '--moves' in sys.argv   # yalnızca eşik hareketi bildirimleri (PA: 10:
 # 18:00'de ABD seansı yeni açılmış olur, rakam yanıltıcı → akşam çalışmasında ABD hisseleri atlanır.
 from datetime import datetime as _dt
 from zoneinfo import ZoneInfo as _ZI
-EVENING = _dt.now(_ZI('Europe/Istanbul')).hour >= 14
+_NOW_TR = _dt.now(_ZI('Europe/Istanbul'))
+EVENING = _NOW_TR.hour >= 14
+# Seans olmayan günlerde fiyat servisi son seansın değişimini göstermeye devam eder → tekrar bildirmemek için:
+#   BIST: yalnızca Pzt–Cum;  ABD (sabah, "dün kapanışta"): yalnızca Sal–Cmt (Pzt–Cum seanslarının ertesi sabahı)
+BIST_DAY = _NOW_TR.weekday() <= 4
+US_MORNING_DAY = 1 <= _NOW_TR.weekday() <= 5
 MAX_PER_RUN = 4          # cihaz başına tek çalıştırmada en fazla bildirim
 
 
@@ -96,7 +101,7 @@ def run():
                 # eşik hareketi yalnızca --moves çalıştırmasında (10:30 ve 18:00); yön anahtarda olduğu için
                 # sabah bildirilen aynı yöndeki hareket akşam tekrar gitmez, ters yöne dönerse yeni bildirim olur
                 us = not s['symbol'].startswith('BIST:')
-                if MOVES and not (us and EVENING):
+                if MOVES and ((not us and BIST_DAY) or (us and not EVENING and US_MORNING_DAY)):
                     when = 'dün kapanışta' if us else 'bugün'
                     title = f'{tk} {when} {_fmt_pct(ch)} {yon}' if us else f'{tk} {_fmt_pct(ch)} {yon}'
                     msgs.append((f'move:{tk}:{"up" if ch > 0 else "down"}', title, f'{tk} {when} {_fmt_pct(ch)} {yon}, fiyat {px}{cur}.'))
