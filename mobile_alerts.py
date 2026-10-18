@@ -138,7 +138,8 @@ def run():
             if DRY:
                 print(f'[dry] {token[:10]}… {title} | {body}')
             else:
-                res = sender.send(title, body, url='/', tag='kisisel', tokens=[token])
+                route = 'funds' if key.startswith(('flow:', 'ret:')) else 'watch'
+                res = sender.send(title, body, url='/', tag='kisisel', tokens=[token], route=route)
                 print(token[:10], title, res)
             last[key] = today
             sent_total += 1
@@ -207,7 +208,7 @@ def run_weekly():
         if DRY:
             print(f'[dry] {token[:10]}… {title} | {body}')
         else:
-            res = sender.send(title, body, url='/', tag='haftalik', tokens=[token])
+            res = sender.send(title, body, url='/', tag='haftalik', tokens=[token], route='watch')
             print(token[:10], body, res)
             last[key] = today
             with sqlite3.connect(mobile_api.DB_PATH) as c:

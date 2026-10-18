@@ -57,7 +57,7 @@ def _access_token() -> str:
     return _tok_cache[1]
 
 
-def send(title: str, body: str, url: str = '/', tag: str = None, tokens: list = None) -> dict:
+def send(title: str, body: str, url: str = '/', tag: str = None, tokens: list = None, route: str = None) -> dict:
     """Tüm Android cihazlarına bildirim. Geçersiz token'lar (404 UNREGISTERED / 400) silinir."""
     if not configured():
         return {'ok': False, 'error': 'FCM ayarlı değil (.env: FCM_SA_PATH)'}
@@ -71,7 +71,7 @@ def send(title: str, body: str, url: str = '/', tag: str = None, tokens: list = 
     sent = failed = pruned = 0
     for t in tokens:
         msg = {'message': {'token': t, 'notification': {'title': title, 'body': body},
-                           'data': {'url': url},
+                           'data': {'url': url, 'route': route or ''},   # route: uygulamada açılacak sekme
                            'android': {'priority': 'high',
                                        'notification': {'tag': tag or 'genel', 'sound': 'default'}}}}
         try:

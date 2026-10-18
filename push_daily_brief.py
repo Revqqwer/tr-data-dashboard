@@ -54,6 +54,7 @@ def main():
         '☕ Kahveni kap gel!',
         body,
         url='/dashboard#market-briefs', tag='daily-brief',
+        route='briefs:' + rep.get('type', 'daily'),   # uygulama: Bülten sekmesi, doğru alt sekme
     )
     print('push:', res)
     if res.get('ok'):

@@ -94,7 +94,7 @@ def _provider_token() -> str:
     return tok
 
 
-def send(title: str, body: str, url: str = '/', tag: str = None, tokens: list = None) -> dict:
+def send(title: str, body: str, url: str = '/', tag: str = None, tokens: list = None, route: str = None) -> dict:
     """Tüm iOS cihazlarına bildirim. Geçersiz token'lar (400 BadDeviceToken / 410) silinir."""
     if not configured():
         return {'ok': False, 'error': 'APNs ayarlı değil (.env: APNS_KEY_ID/TEAM_ID/KEY_PATH)'}
@@ -109,7 +109,7 @@ def send(title: str, body: str, url: str = '/', tag: str = None, tokens: list = 
     host = 'https://api.sandbox.push.apple.com' if SANDBOX else 'https://api.push.apple.com'
     payload = json.dumps({'aps': {'alert': {'title': title, 'body': body}, 'sound': 'default',
                                   'thread-id': tag or 'genel'},
-                          'url': url}, ensure_ascii=False).encode()
+                          'url': url, 'route': route or ''}, ensure_ascii=False).encode()   # route: uygulamada açılacak sekme
     headers = {'authorization': f'bearer {_provider_token()}', 'apns-topic': BUNDLE_ID,
                'apns-push-type': 'alert', 'apns-priority': '10'}
     sent = failed = pruned = 0
