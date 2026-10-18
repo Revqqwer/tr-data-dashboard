@@ -81,17 +81,17 @@ def count() -> int:
 
 
 def send_push(title: str, body: str, url: str = '/', tag: str = None,
-              icon: str = None) -> dict:
+              icon: str = None, route: str = None) -> dict:
     """Web Push abonelerine + iOS uygulamasına (APNs) birlikte gönderir."""
     web = _send_web(title, body, url, tag, icon)
     try:
         import apns
-        ios = apns.send(title, body, url=url, tag=tag) if apns.configured() else None
+        ios = apns.send(title, body, url=url, tag=tag, route=route) if apns.configured() else None
     except Exception as e:
         ios = {'ok': False, 'error': str(e)[:120]}
     try:
         import fcm
-        android = fcm.send(title, body, url=url, tag=tag) if fcm.configured() else None
+        android = fcm.send(title, body, url=url, tag=tag, route=route) if fcm.configured() else None
     except Exception as e:
         android = {'ok': False, 'error': str(e)[:120]}
     out = dict(web)
