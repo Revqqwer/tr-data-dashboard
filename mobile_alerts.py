@@ -193,8 +193,14 @@ def run_weekly():
         if len(rows) == 1:
             tk, v = rows[0]
             body = f'{tk} bu hafta {sg(v)} {"yükseldi" if v >= 0 else "düştü"}.'
+        elif up == 0:
+            body = (f'{len(rows)} hissenin hepsi düştü. En çok düşen: {rows[-1][0]} {sg(rows[-1][1])} · '
+                    f'En az düşen: {rows[0][0]} {sg(rows[0][1])}')
+        elif up == len(rows):
+            body = (f'{len(rows)} hissenin hepsi yükseldi. En çok yükselen: {rows[0][0]} {sg(rows[0][1])} · '
+                    f'En az yükselen: {rows[-1][0]} {sg(rows[-1][1])}')
         else:
-            body = (f'{len(rows)} hisseden {up} tanesi yükseldi. '
+            body = (f'{len(rows)} hisseden {up} tanesi yükseldi, {len(rows) - up} tanesi düştü. '
                     f'En iyi: {rows[0][0]} {sg(rows[0][1])} · En kötü: {rows[-1][0]} {sg(rows[-1][1])}')
         title = '📈 Takip listen bu hafta' if up >= len(rows) - up else '📉 Takip listen bu hafta'
         sender = fcm if platform == 'android' else apns
