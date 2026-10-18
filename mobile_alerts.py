@@ -15,8 +15,8 @@ Eşik hareketi (günlük ±%N) bildirimleri saatlik çalıştırmada GİTMEZ; ya
    python3 mobile_alerts.py --moves     # 10:30 ve 18:00 İstanbul (PA/UTC: 07:30 ve 15:00)
 Sabah bildirilen aynı yöndeki hareket akşam tekrar gönderilmez.
 
-Haftalık takip listesi özeti (cihaz başına tek bildirim), Pazar 10:00:
-   python3 mobile_alerts.py --weekly    # PA günlük 07:00 UTC; Pazar değilse çıkar
+Haftalık takip listesi özeti (cihaz başına tek bildirim), Cumartesi 18:00:
+   python3 mobile_alerts.py --weekly    # PA günlük 15:00 UTC; Cumartesi değilse çıkar
 """
 import json
 import sqlite3
@@ -148,7 +148,7 @@ def run():
     print(f'{len(devices)} cihaz, {sent_total} bildirim')
 
 
-WEEKLY_DAY = 6   # haftalık takip listesi özeti: 6 = Pazar (5 = Cumartesi)
+WEEKLY_DAY = 5   # haftalık takip listesi özeti: 5 = Cumartesi (6 = Pazar)
 
 
 def _weekly_perf(symbols: list) -> dict:
