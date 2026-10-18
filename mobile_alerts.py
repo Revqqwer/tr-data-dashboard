@@ -14,6 +14,9 @@ Deneme:                python3 mobile_alerts.py --dry
 Eşik hareketi (günlük ±%N) bildirimleri saatlik çalıştırmada GİTMEZ; yalnızca günde iki kez:
    python3 mobile_alerts.py --moves     # 10:30 ve 18:00 İstanbul (PA/UTC: 07:30 ve 15:00)
 Sabah bildirilen aynı yöndeki hareket akşam tekrar gönderilmez.
+
+Haftalık takip listesi özeti (cihaz başına tek bildirim), Pazar 10:00:
+   python3 mobile_alerts.py --weekly    # PA günlük 07:00 UTC; Pazar değilse çıkar
 """
 import json
 import sqlite3
@@ -145,5 +148,67 @@ def run():
     print(f'{len(devices)} cihaz, {sent_total} bildirim')
 
 
+WEEKLY_DAY = 6   # haftalık takip listesi özeti: 6 = Pazar (5 = Cumartesi)
+
+
+def _weekly_perf(symbols: list) -> dict:
+    """TradingView'dan haftalık % değişim (Perf.W) — cuma kapanışına göre kesinleşmiş hafta."""
+    import requests
+    out = {}
+    try:
+        r = requests.post(mobile_api._TV_SCAN, headers=mobile_api._TV_HEADERS, timeout=15, json={
+            'symbols': {'tickers': symbols, 'query': {'types': []}}, 'columns': ['Perf.W']})
+        for it in r.json().get('data', []):
+            d = it.get('d') or []
+            if d and d[0] is not None:
+                out[it['s']] = d[0]
+    except Exception as e:
+        print('haftalık veri alınamadı:', e)
+    return out
+
+
+def run_weekly():
+    """Haftada bir, cihaz başına TEK bildirim: takip listesinin haftalık özeti."""
+    if _NOW_TR.weekday() != WEEKLY_DAY and '--force' not in sys.argv:
+        print('bugün haftalık özet günü değil')
+        return
+    mobile_api.init_db()
+    with sqlite3.connect(mobile_api.DB_PATH) as c:
+        devices = c.execute('SELECT token, stocks, last_sent, platform FROM mobile_watch').fetchall()
+    syms = sorted({s['symbol'] for d in devices for s in json.loads(d[1] or '[]')})
+    perf = _weekly_perf(syms) if syms else {}
+    key = 'weekly:' + _NOW_TR.strftime('%G-W%V')
+    today = date.today().isoformat()
+    sent = 0
+    for token, stocks, last_sent, platform in devices:
+        last = json.loads(last_sent or '{}')
+        if key in last and not DRY:
+            continue
+        rows = [(s['symbol'].split(':')[-1], perf[s['symbol']]) for s in json.loads(stocks or '[]') if s['symbol'] in perf]
+        if not rows:
+            continue
+        rows.sort(key=lambda x: x[1], reverse=True)
+        up = sum(1 for _, v in rows if v > 0)
+        sg = lambda v: ('+' if v >= 0 else '−') + _fmt_pct(v)
+        if len(rows) == 1:
+            tk, v = rows[0]
+            body = f'{tk} bu hafta {sg(v)} {"yükseldi" if v >= 0 else "düştü"}.'
+        else:
+            body = (f'{len(rows)} hisseden {up} tanesi yükseldi. '
+                    f'En iyi: {rows[0][0]} {sg(rows[0][1])} · En kötü: {rows[-1][0]} {sg(rows[-1][1])}')
+        title = '📈 Takip listen bu hafta' if up >= len(rows) - up else '📉 Takip listen bu hafta'
+        sender = fcm if platform == 'android' else apns
+        if DRY:
+            print(f'[dry] {token[:10]}… {title} | {body}')
+        else:
+            res = sender.send(title, body, url='/', tag='haftalik', tokens=[token])
+            print(token[:10], body, res)
+            last[key] = today
+            with sqlite3.connect(mobile_api.DB_PATH) as c:
+                c.execute('UPDATE mobile_watch SET last_sent=? WHERE token=?', (json.dumps(last), token))
+        sent += 1
+    print(f'{len(devices)} cihaz, {sent} haftalık özet')
+
+
 if __name__ == '__main__':
-    run()
+    run_weekly() if '--weekly' in sys.argv else run()
