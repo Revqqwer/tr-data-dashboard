@@ -29,6 +29,11 @@ import mobile_api
 
 DRY = '--dry' in sys.argv
 MOVES = '--moves' in sys.argv   # yalnızca eşik hareketi bildirimleri (PA: 10:30 ve 18:00 İstanbul)
+# ABD hisseleri: 10:30'da ABD seansı kapalı → TradingView değişimi bir önceki günün kapanışı ("dün kapanışta").
+# 18:00'de ABD seansı yeni açılmış olur, rakam yanıltıcı → akşam çalışmasında ABD hisseleri atlanır.
+from datetime import datetime as _dt
+from zoneinfo import ZoneInfo as _ZI
+EVENING = _dt.now(_ZI('Europe/Istanbul')).hour >= 14
 MAX_PER_RUN = 4          # cihaz başına tek çalıştırmada en fazla bildirim
 
 
@@ -90,8 +95,11 @@ def run():
                 yon = 'yükseldi' if ch > 0 else 'düştü'
                 # eşik hareketi yalnızca --moves çalıştırmasında (10:30 ve 18:00); yön anahtarda olduğu için
                 # sabah bildirilen aynı yöndeki hareket akşam tekrar gitmez, ters yöne dönerse yeni bildirim olur
-                if MOVES:
-                    msgs.append((f'move:{tk}:{"up" if ch > 0 else "down"}', f'{tk} {_fmt_pct(ch)} {yon}', f'{tk} bugün {_fmt_pct(ch)} {yon}, fiyat {px}{cur}.'))
+                us = not s['symbol'].startswith('BIST:')
+                if MOVES and not (us and EVENING):
+                    when = 'dün kapanışta' if us else 'bugün'
+                    title = f'{tk} {when} {_fmt_pct(ch)} {yon}' if us else f'{tk} {_fmt_pct(ch)} {yon}'
+                    msgs.append((f'move:{tk}:{"up" if ch > 0 else "down"}', title, f'{tk} {when} {_fmt_pct(ch)} {yon}, fiyat {px}{cur}.'))
             if MOVES:
                 continue
             if s.get('above') and d['price'] >= float(s['above']):
