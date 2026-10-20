@@ -20,6 +20,8 @@ def _make_title(report_type: str, now: datetime) -> str:
     month = MONTHS_TR[now.month]
     year  = now.year
     if report_type == "daily":
+        if now.weekday() == 0:   # Pazartesi: son seans Cuma
+            return f"{day} {month} {year} Global Piyasa Özeti — Cuma ve Hafta Sonu Neler Oldu?"
         return f"{day} {month} {year} Global Piyasa Özeti — Dün Neler Oldu?"
     else:
         ws   = now - timedelta(days=6)
