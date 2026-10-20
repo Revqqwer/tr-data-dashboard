@@ -281,8 +281,35 @@ def _format_markets(markets: list[dict] | None) -> str:
             lines.append(f"[{group}]")
         ch = f"{m['change']:+.2f}%" if m.get("change") is not None else "?"
         wk = f"{m['week']:+.2f}%" if m.get("week") is not None else "?"
-        lines.append(f"- {m['name']}: {m['price']:,.2f} | günlük {ch} | haftalık {wk}")
+        dt = ''
+        if m.get('date'):
+            d = datetime.strptime(m['date'], '%Y-%m-%d')
+            dt = f" | seans tarihi {['Pzt','Sal','Çar','Per','Cum','Cmt','Paz'][d.weekday()]} {d:%d.%m}"
+        lines.append(f"- {m['name']}: {m['price']:,.2f} | günlük {ch} | haftalık {wk}{dt}")
     return "\n".join(lines)
+
+
+def _time_context() -> str:
+    """Bültenin hangi güne ve hangi seansa ait olduğunu modele açıkça söyler (Pazartesi = Cuma kapanışı)."""
+    from zoneinfo import ZoneInfo
+    now = datetime.now(ZoneInfo('Europe/Istanbul'))
+    days = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar']
+    wd = now.weekday()
+    if wd == 0:
+        last = now - timedelta(days=3)
+        return (f"ZAMAN BAĞLAMI: Bugün Pazartesi ({now:%d.%m.%Y}), bülten sabah 06:00'da yazılıyor. "
+                f"Hafta sonu piyasalar kapalıydı. ABD, Avrupa ve Borsa İstanbul'un SON SEANSI CUMA ({last:%d.%m.%Y}) idi: "
+                "PİYASA VERİLERİ'ndeki ABD, Avrupa, Türkiye ve döviz/emtia rakamları CUMA KAPANIŞIDIR. "
+                "Bunları 'dün' ya da 'bugün' diye DEĞİL, 'Cuma günü' / 'haftanın son işlem gününde' diye anlat. "
+                "Asya endeksleri ise bu sabah (Pazartesi) işlem görüyor; onları 'bu sabah Asya'da' diye an. "
+                "Haberlerden Cuma'ya ait olanları 'Cuma günü', hafta sonuna ait olanları 'hafta sonu' diye ayır; "
+                "Pazartesi günü yaşanmış gibi yazma. Bülten başlığında da Cuma ve hafta sonunu özetlediğini belli et.")
+    if wd == 5:
+        return (f"ZAMAN BAĞLAMI: Bugün Cumartesi ({now:%d.%m.%Y}). Son seans dün, Cuma'ydı; ABD/Avrupa/Türkiye rakamları "
+                "Cuma kapanışı. Asya piyasaları bugün kapalı; Asya rakamları da Cuma kapanışıdır, 'bu sabah' deme.")
+    yday = days[wd - 1]
+    return (f"ZAMAN BAĞLAMI: Bugün {days[wd]} ({now:%d.%m.%Y}). ABD, Avrupa ve Türkiye rakamları dünkü ({yday}) kapanış; "
+            "Asya endeksleri bu sabah işlem görüyor.")
 
 
 def generate_daily_report(filtered_news: list[dict], earnings: list[dict], markets: list[dict] | None = None, tr_news: list[dict] | None = None) -> str:
@@ -296,6 +323,10 @@ def generate_daily_report(filtered_news: list[dict], earnings: list[dict], marke
 
     content = (
         _DAILY_PROMPT.format(date=today)
+        + "\n\n" + _time_context()
+        + "\nHer piyasa rakamının yanında TradingView'daki SEANS TARİHİ var; esas bu tarihtir. Seans tarihi bugün değilse "
+          "o rakamı o günün hareketi olarak anlat (ör. 'Cuma günü S&P 500 %1 düştü'); tatil yüzünden eski kalan bir piyasa "
+          "varsa 'tatil nedeniyle kapalıydı' diye belirt, bugün olmuş gibi yazma."
         + "\n\nPİYASA VERİLERİ (TradingView, kesin veri — PİYASALAR bölümünde yalnızca bunları kullan):\n"
         + _format_markets(markets)
         + "\n\nFİLTRELENMİŞ HABERLER:\n" + news_text

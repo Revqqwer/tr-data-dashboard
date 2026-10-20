@@ -246,7 +246,7 @@ def fetch_market_snapshot() -> list[dict]:
         r = requests.post("https://scanner.tradingview.com/global/scan", timeout=15,
                           headers={"Origin": "https://www.tradingview.com", "User-Agent": "Mozilla/5.0"},
                           json={"symbols": {"tickers": syms, "query": {"types": []}},
-                                "columns": ["close", "change", "Perf.W"]})
+                                "columns": ["close", "change", "Perf.W", "time"]})
         got = {x["s"]: x["d"] for x in r.json().get("data", [])}
     except Exception as e:
         log.warning("Piyasa verisi alınamadı: %s", e)
@@ -256,8 +256,17 @@ def fetch_market_snapshot() -> list[dict]:
         for sym, name in items:
             d = got.get(sym)
             if d and d[0] is not None:
-                out.append({"group": group, "name": name, "price": d[0], "change": d[1], "week": d[2]})
+                from zoneinfo import ZoneInfo
+                day = datetime.fromtimestamp(d[3], ZoneInfo("Europe/Istanbul")).date() if len(d) > 3 and d[3] else None
+                out.append({"group": group, "name": name, "price": d[0], "change": d[1], "week": d[2],
+                            "date": day.isoformat() if day else None})   # verinin ait olduğu seans günü
     return out
+
+
+def _daily_window_hours() -> int:
+    """Günlük bülten haber penceresi: Pazartesi sabahı son seans Cuma → Cuma sabahından beri (~76 saat)."""
+    from zoneinfo import ZoneInfo
+    return 76 if datetime.now(ZoneInfo('Europe/Istanbul')).weekday() == 0 else 28
 
 
 def collect_all(daily: bool = True) -> dict:
@@ -265,7 +274,7 @@ def collect_all(daily: bool = True) -> dict:
     finnhub_key = os.environ.get("FINNHUB_API_KEY", "")
     newsapi_key = os.environ.get("NEWSAPI_KEY", "")
 
-    lookback_days = 1 if daily else 7
+    lookback_days = (3 if _daily_window_hours() > 28 else 1) if daily else 7
     from_date = (datetime.now() - timedelta(days=lookback_days)).strftime("%Y-%m-%d")
 
     print("📡 RSS feed'leri çekiliyor...")
@@ -299,7 +308,7 @@ def collect_all(daily: bool = True) -> dict:
 
     # Tarih filtresi: günlük=28 saat, haftalık=8 gün
     from datetime import timezone as _tz
-    cutoff_hours = 28 if daily else 8 * 24
+    cutoff_hours = _daily_window_hours() if daily else 8 * 24
     cutoff_dt = datetime.now(_tz.utc) - timedelta(hours=cutoff_hours)
 
     dated, undated = [], []
@@ -317,7 +326,7 @@ def collect_all(daily: bool = True) -> dict:
 
     print(f"✓ {len(unique)} benzersiz → {len(dated)} güncel ({cutoff_hours}h) + {len(undated[:max(0,20-len(dated))])} tarihi bilinmeyen, {len(earnings)} earnings")
     print("🇹🇷 Bloomberg HT çekiliyor...")
-    tr_news = fetch_tr_news(hours=28 if daily else 8 * 24)
+    tr_news = fetch_tr_news(hours=_daily_window_hours() if daily else 8 * 24)
     print(f"✓ {len(tr_news)} Türkiye haberi")
 
     print("📈 Piyasa verileri (TradingView) çekiliyor...")
