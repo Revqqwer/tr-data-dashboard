@@ -24,7 +24,8 @@ logging.basicConfig(
 )
 
 from tefas_backend.market_agent.collector import collect_all
-from tefas_backend.market_agent.analyzer  import filter_news, generate_daily_report, generate_weekly_report
+from tefas_backend.market_agent.analyzer  import filter_news, generate_daily_report, generate_weekly_report, recent_context
+from tefas_backend.market_agent.validate  import validate_report
 from tefas_backend.market_agent.reports   import save_report
 import sqlite3 as _sqlite3, smtplib as _smtp, os as _os
 from email.mime.text import MIMEText as _MIMEText
@@ -225,6 +226,23 @@ RAPOR:
         except:
             pass
 
+def _drop_already_used(news: list[dict], days: int = 3) -> list[dict]:
+    """Son bültenlerde kullanılmış haberlerin (orijinal başlık bazında) aynısını ya da çok benzerini ele."""
+    import difflib
+    from tefas_backend.market_agent.reports import get_reports
+    used = [t.lower() for r in get_reports("daily", days) for t in (r.get("news_titles") or [])]
+    if not used:
+        return news
+    out = []
+    for item in news:
+        t = item.get("title", "").lower()
+        if any(t[:60] == u[:60] or difflib.SequenceMatcher(None, t, u).ratio() > 0.85 for u in used):
+            continue
+        out.append(item)
+    print(f"♻️  Daha önce kullanılan {len(news) - len(out)} haber elendi")
+    return out
+
+
 def run_daily() -> str:
     print("=" * 60)
     print("🗞️  GÜNLÜK RAPOR OLUŞTURULUYOR")
@@ -232,21 +250,24 @@ def run_daily() -> str:
 
     data     = collect_all(daily=True)
 
-    # Bir önceki günlük raporu bağlam olarak al
     from tefas_backend.market_agent.reports import get_latest
-    prev = get_latest("daily")
-    prev_content = prev.get("content", "") if prev else ""
-    if prev_content:
-        print("📋 Önceki rapor bağlam olarak yüklendi (tekrar önleme aktif)")
+
+    # Son bültenler: tekrar ve çelişki önleme (haber başlıkları, temalar, kodlar)
+    recent = recent_context(3)
+    if recent:
+        print("📋 Son 3 bülten bağlam olarak yüklendi (tekrar önleme aktif)")
+    news = _drop_already_used(data["news"])
 
     print("\n🤖 Haberler filtreleniyor (Claude Haiku)...")
-    filtered = filter_news(data["news"], prev_report_content=prev_content)
+    filtered = filter_news(news, prev_report_content=recent)
     print(f"✓ {len(filtered)} haber seçildi\n")
 
     print("📝 Günlük rapor yazılıyor (Claude Sonnet)...")
-    report = generate_daily_report(filtered, data["earnings"], data.get("markets"), data.get("tr_news"))
+    report = generate_daily_report(filtered, data["earnings"], data.get("markets"), data.get("tr_news"),
+                                   recent=recent, week_earnings=data.get("week_earnings"))
+    report = validate_report(report)
 
-    save_report("daily", report)
+    save_report("daily", report, {"news_titles": [x.get("title", "") for x in filtered][:30]})
     print("\n" + "=" * 60)
     print(report)
     print("=" * 60)
@@ -279,6 +300,7 @@ def run_weekly() -> str:
 
     print("📝 Haftalık rapor yazılıyor (Claude Sonnet)...")
     report = generate_weekly_report(filtered, data["earnings"], data.get("markets"), data.get("tr_news"))
+    report = validate_report(report)
 
     save_report("weekly", report)
     print("\n" + "=" * 60)

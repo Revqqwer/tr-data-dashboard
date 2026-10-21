@@ -21,7 +21,7 @@ def _make_title(report_type: str, now: datetime) -> str:
     year  = now.year
     if report_type == "daily":
         if now.weekday() == 0:   # Pazartesi: son seans Cuma
-            return f"{day} {month} {year} Global Piyasa Özeti — Cuma ve Hafta Sonu Neler Oldu?"
+            return f"{day} {month} {year} Global Piyasa Özeti — Hafta Sonu ve Haftanın Gündemi"
         return f"{day} {month} {year} Global Piyasa Özeti — Dün Neler Oldu?"
     else:
         ws   = now - timedelta(days=6)
@@ -30,7 +30,7 @@ def _make_title(report_type: str, now: datetime) -> str:
         return f"{wday} {wmon} — {day} {month} {year} Haftası Global Piyasa Özeti — Bu Hafta Neler Oldu?"
 
 
-def save_report(report_type: str, content: str) -> str:
+def save_report(report_type: str, content: str, meta: dict | None = None) -> str:
     """Raporu diske kaydet. Dosya adını döner."""
     REPORTS_DIR.mkdir(parents=True, exist_ok=True)
     now       = datetime.now()
@@ -46,6 +46,8 @@ def save_report(report_type: str, content: str) -> str:
         "date":       now.strftime("%Y-%m-%d"),
         "date_label": f"{now.day} {MONTHS_TR[now.month]} {now.year}",
     }
+    if meta:
+        data.update(meta)   # ör. news_titles: bültende kullanılan haberlerin orijinal başlıkları (tekrar önleme)
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2))
     print(f"✓ Rapor kaydedildi: {filename}")
     return filename
