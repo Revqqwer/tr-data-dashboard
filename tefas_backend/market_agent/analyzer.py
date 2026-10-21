@@ -387,7 +387,9 @@ def _create(model: str, content: str, label: str, max_tokens: int = 16000):
 def generate_daily_report(filtered_news: list[dict], earnings: list[dict], markets: list[dict] | None = None,
                           tr_news: list[dict] | None = None, recent: str = "",
                           week_earnings: list[dict] | None = None) -> str:
-    today = datetime.now().strftime("%d %B %Y")
+    from tefas_backend.market_agent.reports import MONTHS_TR
+    _n = datetime.now()
+    today = f"{_n.day} {MONTHS_TR[_n.month]} {_n.year}"
 
     news_text = "\n".join([
         f"- [{item.get('theme','?').upper()}|{item.get('importance',3)}★] "
@@ -421,8 +423,10 @@ def generate_daily_report(filtered_news: list[dict], earnings: list[dict], marke
 
 def generate_weekly_report(filtered_news: list[dict], upcoming_earnings: list[dict], markets: list[dict] | None = None, tr_news: list[dict] | None = None) -> str:
     today      = datetime.now()
-    week_start = (today - timedelta(days=7)).strftime("%d %b")
-    week_end   = today.strftime("%d %b %Y")
+    from tefas_backend.market_agent.reports import MONTHS_TR
+    _ws = today - timedelta(days=7)
+    week_start = f"{_ws.day} {MONTHS_TR[_ws.month]}"
+    week_end   = f"{today.day} {MONTHS_TR[today.month]} {today.year}"
 
     news_text = "\n".join([
         f"- [{item.get('theme','?').upper()}|{item.get('importance',3)}★] "
