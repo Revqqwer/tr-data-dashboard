@@ -207,6 +207,7 @@ MARKET_GROUPS = [
     ("Asya", [("TVC:NI225", "Nikkei 225"), ("TVC:HSI", "Hang Seng"), ("SSE:000001", "Şanghay Bileşik"),
               ("KRX:KOSPI", "KOSPI"), ("NSE:NIFTY", "Nifty 50")]),
     ("Türkiye", [("BIST:XU100", "BIST 100"), ("FX_IDC:USDTRY", "USD/TRY")]),
+    ("ABD vadeli (bu sabah)", [("CME_MINI:ES1!", "S&P 500 vadeli"), ("CME_MINI:NQ1!", "Nasdaq 100 vadeli")]),
     ("Döviz, faiz ve emtia", [("TVC:DXY", "Dolar Endeksi (DXY)"), ("FX_IDC:EURUSD", "EUR/USD"),
                               ("TVC:US10Y", "ABD 10Y faiz (%)"), ("TVC:GOLD", "Ons altın ($)"),
                               ("FX:UKOIL", "Brent petrol ($)"), ("BITSTAMP:BTCUSD", "Bitcoin ($)")]),
@@ -264,9 +265,15 @@ def fetch_market_snapshot() -> list[dict]:
 
 
 def _daily_window_hours() -> int:
-    """Günlük bülten haber penceresi: Pazartesi sabahı son seans Cuma → Cuma sabahından beri (~76 saat)."""
+    """Günlük bülten haber penceresi.
+    Hafta içi: son 28 saat. Pazartesi: Cumartesi 06:00'dan beri — Cuma'nın haberleri zaten
+    Cumartesi bülteninde verildi, Pazartesi yalnızca hafta sonu çıkanları alır (~48 saat)."""
     from zoneinfo import ZoneInfo
-    return 76 if datetime.now(ZoneInfo('Europe/Istanbul')).weekday() == 0 else 28
+    now = datetime.now(ZoneInfo('Europe/Istanbul'))
+    if now.weekday() == 0:
+        sat = (now - timedelta(days=2)).replace(hour=6, minute=0, second=0, microsecond=0)
+        return max(int((now - sat).total_seconds() // 3600) + 1, 24)
+    return 28
 
 
 def collect_all(daily: bool = True) -> dict:
@@ -274,7 +281,7 @@ def collect_all(daily: bool = True) -> dict:
     finnhub_key = os.environ.get("FINNHUB_API_KEY", "")
     newsapi_key = os.environ.get("NEWSAPI_KEY", "")
 
-    lookback_days = (3 if _daily_window_hours() > 28 else 1) if daily else 7
+    lookback_days = (2 if _daily_window_hours() > 28 else 1) if daily else 7
     from_date = (datetime.now() - timedelta(days=lookback_days)).strftime("%Y-%m-%d")
 
     print("📡 RSS feed'leri çekiliyor...")
@@ -291,8 +298,11 @@ def collect_all(daily: bool = True) -> dict:
     newsapi += fetch_newsapi(newsapi_key, "Fed interest rates inflation GDP", from_date)
 
     print("💰 Earnings çekiliyor...")
+    week_earnings = []
     if daily:
         earnings = fetch_earnings_today(finnhub_key)
+        if datetime.now().weekday() == 0:          # Pazartesi: haftanın bilanço takvimi
+            week_earnings = fetch_upcoming_earnings(finnhub_key, days=5)
     else:
         earnings = fetch_upcoming_earnings(finnhub_key, days=7)
 
@@ -338,5 +348,6 @@ def collect_all(daily: bool = True) -> dict:
         "earnings":     earnings,
         "markets":      markets,
         "tr_news":      tr_news,
+        "week_earnings": week_earnings,
         "collected_at": datetime.now().isoformat(),
     }

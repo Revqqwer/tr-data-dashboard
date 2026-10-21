@@ -74,7 +74,7 @@ Sen deneyimli bir finansal analistsin. Aşağıdaki verilere dayanarak Türkçe 
 
 Hedef okuyucu: Tematik hisse yatırımı yapan, küresel piyasaları takip eden yatırımcı.
 Ton: Profesyonel, net, gereksiz akademik dil yok. Doğrudan ve bilgilendirici.
-Uzunluk: Tematik Fırsatlar bölümü hariç her bölüm kısa (2-4 cümle). Tematik bölüm gerekirse uzun olabilir.
+Uzunluk: KISA tut — bülten telefonda okunuyor. Toplam en fazla ~4.000 karakter. Her bölüm kısa (2-4 cümle).
 
 FORMAT (kesinlikle bu yapıyı kullan, başka bir şey ekleme):
 
@@ -93,7 +93,7 @@ Rakamları SADECE aşağıdaki PİYASA VERİLERİ'nden al; uydurma, haberlerden 
 Asya endeksleri bülten saatinde işlem görüyor olabilir; onları "bu sabah" diye an.]
 
 ━━━ BUGÜNKÜ EARNINGS ━━━
-[Her şirket: 🟢/🔴 ŞİRKET: beat/miss + tepki — yoksa "Bugün öne çıkan earnings yok"]
+[En fazla 5 şirket, her biri tek satır: 🟢/🔴 ŞİRKET: beat/miss + tepki — yoksa "Bugün öne çıkan earnings yok"]
 
 ━━━ GÜNÜN KRİTİK HABERLERİ ━━━
 1. Başlık — 2 cümle özet
@@ -101,7 +101,7 @@ Asya endeksleri bülten saatinde işlem görüyor olabilir; onları "bu sabah" d
 3. Başlık — 2 cümle özet
 4. Başlık — 2 cümle özet
 5. Başlık — 2 cümle özet
-[5-7 haber]
+[En fazla 5 haber. Yalnızca YENİ gelişmeler — SON BÜLTENLER'de anlatılanları tekrar etme.]
 
 ━━━ 🇹🇷 TÜRKİYE ━━━
 [TÜRKİYE HABERLERİ listesinden yalnızca Türkiye ekonomisi, TCMB, enflasyon, Borsa İstanbul,
@@ -110,19 +110,22 @@ Türk şirketleri ve Türkiye'yi doğrudan ilgilendiren gelişmeleri seç; globa
 "Bugün öne çıkan Türkiye haberi yok" yaz.]
 
 ━━━ 🎯 TEMATİK FIRSATLAR ━━━
-[En değerli bölüm. Birden fazla tema varsa her birini ayrı blok yaz.
-Her tema için ŞU FORMAT'ı kullan:
+[EN FAZLA 3 tema (yeni gelişme azsa 1-2 yeterli). Her tema ayrı blok, ŞU FORMAT:
 
 **🏷️ TEMA ADI — Kısa başlık**
-[2-3 cümle analiz: katalitör nedir, neden önemli, zaman ufku]
+[2 cümle analiz: katalitör nedir, neden önemli, zaman ufku]
 
 ┌─ POZİSYON FIRSATLARI ─────────────────────────────────
 │ Ticker1, Ticker2, Ticker3
-│ Sektör/ETF: SEKTÖR_ADI
+│ Sektör/ETF: ETF1, ETF2
 └───────────────────────────────────────────────────────
 
-[Risk faktörleri varsa 1 satırda belirt]
-]
+Risk: tek satır
+
+KOD KURALLARI: Yalnızca NYSE/Nasdaq'ta BUGÜN işlem gören hisse ve ETF kodlarını yaz (en fazla 4 hisse + 2 ETF).
+Kodun hangi şirkete ait olduğundan emin değilsen YAZMA. Satın alınmış/birleşmiş/iflas etmiş şirketlerin eski
+kodlarını, tezgâhüstü (OTC) ADR'leri ve yabancı borsa kodlarını (ör. .PA, .DE, .KS) yazma. Ters (short/bear/inverse)
+ve kaldıraçlı (2x, 3x, Ultra) ETF'leri ASLA yazma. "Sektör/ETF:" satırına yalnızca ETF kodu yaz, açıklama yazma.]
 
 ━━━ FOREX RADAR ━━━
 [DXY ve önemli pariteler — 1-2 cümle]
@@ -190,19 +193,14 @@ def filter_news(raw_news: list[dict], prev_report_content: str = "") -> list[dic
     if not raw_news:
         return []
 
-    # Önceki rapor bağlamı
+    # Son bültenlerde anlatılanlar (tekrar önleme) — çağıran, recent_context() özetini verir
     if prev_report_content:
-        # Önceki rapordan başlıkları çıkar (━━━ satırlarını ve bold başlıkları)
-        import re
-        prev_lines = [l.strip() for l in prev_report_content.split('\n')
-                      if l.strip() and not l.startswith('━') and not l.startswith('📊')]
-        prev_sample = '\n'.join(prev_lines[:30])
         prev_context = (
-            "⚠️ ÖNEMLİ: Aşağıdaki haberler dün zaten rapor edildi. "
-            "Bunları veya bunlara çok benzer haberleri SEÇME. "
-            "Sadece YENİ gelişmeleri seç. "
-            "Bir önceki haberin güncellemesi varsa 'GÜNCELLEME:' prefix'i ile dahil et.\n\n"
-            f"DÜN RAPOR EDİLENLER (tekrarlama):\n{prev_sample}"
+            "⚠️ ÖNEMLİ: Aşağıdaki konular SON BÜLTENLERDE zaten anlatıldı. Aynı olayı/açıklamayı/tahmini "
+            "(farklı kaynaktan ya da farklı başlıkla gelse bile) SEÇME. Yalnızca YENİ gelişmeleri seç; "
+            "anlatılmış bir konuda gerçekten yeni bir gelişme (karar, rakam, sonuç) varsa başlığına "
+            "'GÜNCELLEME:' ekleyerek seçebilirsin.\n\n"
+            f"SON BÜLTENLERDE ANLATILANLAR (tekrarlama):\n{prev_report_content}"
         )
     else:
         prev_context = ""
@@ -312,7 +310,83 @@ def _time_context() -> str:
             "Asya endeksleri bu sabah işlem görüyor.")
 
 
-def generate_daily_report(filtered_news: list[dict], earnings: list[dict], markets: list[dict] | None = None, tr_news: list[dict] | None = None) -> str:
+def recent_context(limit: int = 3) -> str:
+    """Son günlük bültenlerin özeti (tarih, haber başlıkları, temalar ve kodlar) — tekrar ve çelişki önleme."""
+    import re
+    from tefas_backend.market_agent.reports import get_reports
+    from tefas_backend.market_agent.positions import parse_report_positions
+    days = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz']
+    blocks = []
+    for r in get_reports("daily", limit):
+        c = r.get("content", "")
+        sec = c.split("GÜNÜN KRİTİK HABERLERİ")[-1].split("━━━")[1] if "GÜNÜN KRİTİK HABERLERİ" in c else ""
+        heads = []
+        for line in sec.split("\n"):
+            m = re.match(r"^\s*\d+\.\s*(.+)$", line)
+            if m:
+                h = m.group(1).replace("**", "")
+                heads.append(h.split(" — ")[0].strip()[:140])
+        tr = c.split("🇹🇷 TÜRKİYE")[-1].split("━━━")[1] if "🇹🇷 TÜRKİYE" in c else ""
+        tr_heads = [l.strip("•- ").strip()[:110] for l in tr.split("\n") if l.strip().startswith("•")]
+        themes = [f"{t['theme']} [{', '.join(t['tickers'][:6])}]" for t in parse_report_positions(c)]
+        try:
+            d = datetime.strptime(r.get("date", ""), "%Y-%m-%d")
+            label = f"{days[d.weekday()]} {d:%d.%m}"
+        except Exception:
+            label = r.get("date", "?")
+        blocks.append(f"[{label} bülteni]\nHaberler: " + " | ".join(heads)
+                      + ("\nTürkiye: " + " | ".join(tr_heads) if tr_heads else "")
+                      + ("\nTemalar ve kodlar: " + " | ".join(themes) if themes else ""))
+    return "\n\n".join(blocks)
+
+
+def _recent_rules(recent: str) -> str:
+    if not recent:
+        return ""
+    return ("\n\nSON BÜLTENLER (okur bunları zaten okudu):\n" + recent + "\n\n"
+            "TEKRAR VE TUTARLILIK KURALLARI:\n"
+            "- Son bültenlerde anlatılan haberleri, temaları ve Türkiye maddelerini TEKRAR ETME. Aynı konuda gerçekten "
+            "yeni bir gelişme (karar, rakam, sonuç) varsa tek cümleyle 'güncelleme' olarak yaz.\n"
+            "- Son bültenlerdeki bilgilerle ÇELİŞME: bir şirketin halka açık olup olmadığı, kişilerin unvanı "
+            "(ör. kim Fed başkanı, kim Hazine bakanı), gerçekleşmiş bir olayın durumu aynı kalmalı.\n"
+            "- Aynı hisse/ETF için son bültenlerdekinin tersi bir görüş veriyorsan (ör. önce 'al' sonra 'kaçın') "
+            "bunu açıkça belirt ve nedenini yaz; sebepsiz yön değiştirme.")
+
+
+def _monday_rules(week_earnings: list[dict] | None) -> str:
+    from zoneinfo import ZoneInfo
+    if datetime.now(ZoneInfo('Europe/Istanbul')).weekday() != 0:
+        return ""
+    return ("\n\nPAZARTESİ KURALLARI (önemli):\n"
+            "- Cuma kapanışı ve Cuma'nın haberleri CUMARTESİ bülteninde verildi (SON BÜLTENLER'de görüyorsun). "
+            "Onları yeniden anlatma.\n"
+            "- PİYASALAR: Cuma kapanışını en fazla bir cümleyle hatırlat; asıl olarak haftaya nasıl başlandığını "
+            "anlat: bu sabah Asya ve 'ABD vadeli (bu sabah)' verileri.\n"
+            "- 'BUGÜNKÜ EARNINGS' bölümünün adını 'BU HAFTA BİLANÇOLAR' yap ve BU HAFTANIN BİLANÇO TAKVİMİ "
+            "listesinden en önemli 5-8 büyük şirketi gün adıyla yaz. Listede olmayan şirket ya da tarih yazma.\n"
+            "- GÜNÜN KRİTİK HABERLERİ: yalnızca hafta sonu (Cumartesi 06:00'dan sonra) çıkan yeni gelişmeler. "
+            "Önemli yeni haber yoksa bölümün adını 'HAFTANIN GÜNDEMİ' yap ve 3-5 maddede bu hafta piyasayı neyin "
+            "beklediğini yaz (bilançolar, haberlerde geçen bu haftaki toplantı/veri/olaylar). Haberlerde tarihi "
+            "geçmeyen veri/toplantı tarihi UYDURMA.\n"
+            "- TEMATİK FIRSATLAR: yeni gelişme yoksa en fazla 1-2 tema; Cumartesi'nin temalarını tekrarlama.\n\n"
+            "BU HAFTANIN BİLANÇO TAKVİMİ (Finnhub):\n" + _format_upcoming_earnings(week_earnings or []))
+
+
+def _create(model: str, content: str, label: str, max_tokens: int = 16000):
+    """Model çağrısı; yanıt token sınırında kesilirse (yarım bülten) bir kez daha dener."""
+    for attempt in range(2):
+        resp = _get_client().messages.create(model=model, max_tokens=max_tokens,
+                                             messages=[{"role": "user", "content": content}])
+        _log_usage(resp, model, label)
+        if getattr(resp, "stop_reason", None) != "max_tokens":
+            return _text(resp)
+        log.warning("%s yarıda kesildi (max_tokens) — yeniden deneniyor", label)
+    return _text(resp)
+
+
+def generate_daily_report(filtered_news: list[dict], earnings: list[dict], markets: list[dict] | None = None,
+                          tr_news: list[dict] | None = None, recent: str = "",
+                          week_earnings: list[dict] | None = None) -> str:
     today = datetime.now().strftime("%d %B %Y")
 
     news_text = "\n".join([
@@ -332,16 +406,14 @@ def generate_daily_report(filtered_news: list[dict], earnings: list[dict], marke
         + "\n\nFİLTRELENMİŞ HABERLER:\n" + news_text
         + "\n\nTÜRKİYE HABERLERİ (Bloomberg HT başlıkları — yalnızca 🇹🇷 TÜRKİYE bölümü için):\n" + _format_tr_news(tr_news)
         + "\n\nEARNINGS:\n" + _format_earnings_text(earnings)
+        + _recent_rules(recent)
+        + _monday_rules(week_earnings)
+        + f"\n\nYIL: İçinde bulunduğumuz yıl {datetime.now().year}. Bu yıla ve geleceğe ait olayları "
+          f"{datetime.now().year - 1} diye yazma; '{datetime.now().year - 1}' yalnızca geçen yıla açık atıf için kullanılır."
     )
 
     try:
-        resp = _get_client().messages.create(
-            model="claude-sonnet-5-5",
-            max_tokens=16000,
-            messages=[{"role": "user", "content": content}]
-        )
-        _log_usage(resp, "claude-sonnet-5-5", "günlük rapor")
-        return _text(resp)
+        return _create("claude-sonnet-5-5", content, "günlük rapor")
     except Exception as e:
         log.error("Günlük rapor hatası: %s", e)
         return f"Rapor oluşturulamadı: {e}"
@@ -365,16 +437,13 @@ def generate_weekly_report(filtered_news: list[dict], upcoming_earnings: list[di
         + "\n\nHAFTANIN HABERLERİ:\n" + news_text
         + "\n\nTÜRKİYE HABERLERİ (Bloomberg HT başlıkları — yalnızca 🇹🇷 bölümü için):\n" + _format_tr_news(tr_news)
         + "\n\nÖNÜMÜZDEKİ HAFTA EARNINGS:\n" + _format_upcoming_earnings(upcoming_earnings)
+        + "\n\nKOD KURALLARI: POZİSYON FIRSATLARI'na yalnızca NYSE/Nasdaq'ta bugün işlem gören hisse/ETF kodlarını yaz; "
+          "emin olmadığın, kapanmış, OTC, yabancı borsa, ters (short/bear) ya da kaldıraçlı (2x/3x) ETF kodlarını yazma."
+        + f"\n\nYIL: İçinde bulunduğumuz yıl {datetime.now().year}; bu yılın olaylarını {datetime.now().year - 1} diye yazma."
     )
 
     try:
-        resp = _get_client().messages.create(
-            model="claude-sonnet-5-5",
-            max_tokens=16000,
-            messages=[{"role": "user", "content": content}]
-        )
-        _log_usage(resp, "claude-sonnet-5-5", "haftalık rapor")
-        return _text(resp)
+        return _create("claude-sonnet-5-5", content, "haftalık rapor")
     except Exception as e:
         log.error("Haftalık rapor hatası: %s", e)
         return f"Rapor oluşturulamadı: {e}"
