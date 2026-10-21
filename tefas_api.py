@@ -1250,6 +1250,17 @@ def category_top_funds():
 # Global Piyasa Takip
 # ---------------------------------------------------------------------------
 # ── Market Agent ─────────────────────────────────────────────────────────────
+def _app_fmt(reports):
+    """Mobil uygulamaya (UA: 3NFinansApp) bülteni sade metin olarak ver; ?raw=1 ile ham metin.
+    news_titles iç alandır, istemciye gönderme."""
+    is_app = "3NFinansApp" in (request.headers.get("User-Agent") or "")
+    from tefas_backend.market_agent.reports import app_plain
+    for r in reports:
+        r.pop("news_titles", None)
+        if is_app and not request.args.get("raw"):
+            r["content"] = app_plain(r.get("content", ""))
+
+
 @tefas_bp.route("/api/market-briefs")
 def market_briefs():
     err = _auth()
@@ -1259,6 +1270,7 @@ def market_briefs():
     try:
         from tefas_backend.market_agent.reports import get_reports
         reports = get_reports(report_type, limit)
+        _app_fmt(reports)
         # Ön hesaplanmış tematik fırsat getirileri (compute_brief_positions.py) varsa iliştir
         try:
             import json, os
@@ -1285,7 +1297,9 @@ def market_briefs_latest():
     report_type = request.args.get("type", "daily")
     try:
         from tefas_backend.market_agent.reports import get_latest
-        return jsonify({"ok": True, "report": get_latest(report_type)})
+        rep = get_latest(report_type)
+        _app_fmt([rep] if rep else [])
+        return jsonify({"ok": True, "report": rep})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 

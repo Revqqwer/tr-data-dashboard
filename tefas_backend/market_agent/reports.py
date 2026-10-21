@@ -87,3 +87,46 @@ def delete_by_id(report_id: str) -> bool:
             f.unlink()
             return True
     return False
+
+
+_EN_MONTHS = {"January": "Ocak", "February": "Şubat", "March": "Mart", "April": "Nisan", "May": "Mayıs",
+              "June": "Haziran", "July": "Temmuz", "August": "Ağustos", "September": "Eylül",
+              "October": "Ekim", "November": "Kasım", "December": "Aralık"}
+
+
+def app_plain(content: str) -> str:
+    """Mobil uygulama bülteni düz metin (white-space: pre-wrap) gösterir: markdown işaretleri ve kutu çizgileri
+    telefonda bozuk görünür. Bu fonksiyon metni dar ekranda okunur sade metne çevirir."""
+    import re
+    out = []
+    lines = (content or "").split("\n")
+    for i, line in enumerate(lines):
+        t = line.strip()
+        if i == 0 and (t.startswith("📊") or t.startswith("📋") or t.startswith("# ")):
+            continue                                   # başlık zaten kartta yazıyor
+        if t.startswith("```"):
+            continue
+        m = re.match(r"^━+\s*(.*?)\s*━+$", t)
+        if m:                                          # bölüm başlığı
+            if out and out[-1] != "":
+                out.append("")
+            out.append("▍" + m.group(1).upper())
+            continue
+        if t.startswith("┌"):
+            out.append("📌 Pozisyon fırsatları:")
+            continue
+        if t.startswith("└") or re.fullmatch(r"[─━\-]{3,}", t):
+            continue
+        if t.startswith("│"):
+            t = t.lstrip("│").strip()
+            if not t:
+                continue
+            line = "   " + t
+        line = re.sub(r"^#{1,6}\s*", "", line)
+        line = line.replace("**", "").replace("__", "")
+        out.append(line.rstrip())
+    text = "\n".join(out)
+    text = re.sub(r"\n{3,}", "\n\n", text).strip()
+    for en, tr in _EN_MONTHS.items():
+        text = re.sub(rf"(\d{{1,2}}) {en} (\d{{4}})", rf"\1 {tr} \2", text)
+    return text
