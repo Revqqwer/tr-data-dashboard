@@ -302,7 +302,9 @@ python build_tefas.py
 - **`SECRET_KEY`** `.env`'den okunur; yoksa repo'daki sabit yedeğe düşer (güvensiz —
   üretimde mutlaka `.env`'de tanımlı olmalı). Değiştirilirse **tüm oturumlar düşer**.
 - Tüm `/api/*` endpoint'leri `_auth()` kontrolü yapar; `_require_login` before_request'i
-  public olmayan sayfaları `/login`'e yönlendirir (`_PUBLIC_EXACT` / `_PUBLIC_PREFIXES`).
+  **(Eki 2026'dan beri site geneli açık)** yalnızca üye bölümlerini (`_MEMBER_PREFIXES`: BOFA Takip,
+  BIST Portföy, Fon İçerikleri, TEFAS Flow) ve hesap sayfalarını (`_ACCOUNT_PREFIXES`) `/login?uye=1`'e
+  yönlendirir; panelde misafire bu bölümlerde "Ücretsiz üye ol" kartı gösterilir. Yeni sayfa varsayılan AÇIK'tır.
 
 ---
 
@@ -318,7 +320,7 @@ python build_tefas.py
 - **Mail:** Gmail SMTP değil **Brevo relay** (`mailer.py`, env ile değişir). SPF/DKIM/DMARC
   Cloudflare'de tanımlı; DMARC `p=reject` + `aspf=r` (Brevo dönüş adresi alt alan adından
   geldiği için `aspf=s` OLMAZ).
-- **PWA:** `/sw.js` ve `/manifest.json` mutlaka `_PUBLIC_EXACT`'te olmalı — login gate'ine
+- **PWA:** `/sw.js` ve `/manifest.json` asla üye listesine girmemeli — login gate'ine
   takılırsa tarayıcı HTML alır, site "kurulabilir" sayılmaz.
 - **Mobil taşma:** flex/grid öğeleri varsayılan `min-width:auto` yüzünden içeriğinden
   daha dar olamaz; iOS'ta yatay taşma yapar (Chromium'da görünmez). Çözüm: `.main{min-width:0}`

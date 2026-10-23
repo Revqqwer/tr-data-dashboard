@@ -246,6 +246,16 @@
 
   </nav>
 
+  {% if guest_gate %}
+  <script>
+    // Misafir: üye bölümlerinin yanında kilit (üyelik ücretsiz)
+    ['tefas', 'bist', 'bofa', 'fon-icerik'].forEach(function (p) {
+      document.querySelectorAll('.nav-item[data-page="' + p + '"]').forEach(function (a) {
+        a.insertAdjacentHTML('beforeend', ' <span title="Üyelere özel · üyelik ücretsiz" style="margin-left:auto;font-size:10px;opacity:.7;">🔒</span>');
+      });
+    });
+  </script>
+  {% endif %}
   <script>
     // Türkiye Ekonomi Verileri başlığına tıklayınca aç/kapat
     document.getElementById('section-title-ekonomi').addEventListener('click', function() {
@@ -1411,13 +1421,26 @@
   </header>
 
   <!-- ── TEFAS iframe ── -->
+{% macro member_gate(page, title, desc) -%}
+  <div style="min-height:calc(100vh - 56px);display:flex;align-items:center;justify-content:center;padding:32px 16px;">
+    <div style="max-width:440px;width:100%;text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px 26px;">
+      <div style="font-size:34px;margin-bottom:10px;">🔒</div>
+      <div style="font-size:19px;font-weight:800;color:var(--text);margin-bottom:8px;">{{ title }} üyelere özel</div>
+      <div style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:6px;">{{ desc }}</div>
+      <div style="font-size:14px;color:var(--text);line-height:1.6;margin-bottom:20px;"><b>Üyelik tamamen ücretsiz</b> — e-posta ile 30 saniyede kayıt ol.</div>
+      <a href="/register?next=/dashboard%23{{ page }}" style="display:inline-block;padding:11px 26px;border-radius:999px;background:linear-gradient(135deg,#2dd4bf,#3b82f6);color:#04121a;font-weight:800;text-decoration:none;font-size:15px;">Ücretsiz Üye Ol</a>
+      <div style="margin-top:14px;font-size:13px;color:var(--text-muted);">Zaten üye misin? <a href="/login?next=/dashboard%23{{ page }}" style="color:var(--accent,#5aa9ff);">Giriş yap</a></div>
+    </div>
+  </div>
+{%- endmacro %}
   <div class="page-content hidden" id="page-tefas" style="padding:0;overflow:hidden;">
+    {% if guest_gate %}{{ member_gate("tefas", "TEFAS fon akışları", "Hangi fona ne kadar para girdi/çıktı, fon liderboardu, kategori akışları ve BIST100'ü geçen fon istatistikleri.") }}{% else %}
     <iframe
       src="/tefas/"
       id="tefas-iframe"
       style="width:100%;height:calc(100vh - 56px);border:none;display:block;"
       loading="lazy"
-    ></iframe>
+    ></iframe>{% endif %}
   </div>
 
   <!-- ── KRİPTO ETF TOPBAR ── -->
@@ -1448,12 +1471,13 @@
 
   <!-- ── BIST PORTFÖY iframe ── -->
   <div class="page-content hidden" id="page-bist" style="padding:0;overflow:hidden;">
+    {% if guest_gate %}{{ member_gate("bist", "BIST Portföy", "Model portföyün pozisyonları, gerçekleşmiş kâr/zarar ve endeksle karşılaştırmalı performansı.") }}{% else %}
     <iframe
       src="/tefas/bist"
       id="bist-iframe"
       style="width:100%;height:calc(100vh - 56px);border:none;display:block;"
       loading="lazy"
-    ></iframe>
+    ></iframe>{% endif %}
   </div>
 
   <!-- ── GLOBAL HİSSE PORTFÖYÜ ── -->
@@ -1477,12 +1501,13 @@
 
   <!-- ── BOFA TAKİP iframe ── -->
   <div class="page-content hidden" id="page-bofa" style="padding:0;overflow:hidden;">
+    {% if guest_gate %}{{ member_gate("bofa", "BOFA Takip", "Bank of America'nın Borsa İstanbul'daki günlük net alım/satımı, kümülatif pozisyonu ve en çok aldığı/sattığı hisseler.") }}{% else %}
     <iframe
       src="/bofa"
       id="bofa-iframe"
       style="width:100%;height:calc(100vh - 56px);border:none;display:block;"
       loading="lazy"
-    ></iframe>
+    ></iframe>{% endif %}
   </div>
 
   <!-- ── FON İÇERİKLERİ TOPBAR ── -->
@@ -1495,12 +1520,13 @@
 
   <!-- ── FON İÇERİKLERİ iframe ── -->
   <div class="page-content hidden" id="page-fon-icerik" style="padding:0;overflow:hidden;">
+    {% if guest_gate %}{{ member_gate("fon-icerik", "Fon İçerikleri", "KAP raporlarından hangi fonun hangi hisseyi taşıdığı, aylık alım/satımlar ve en çok alınan hisseler.") }}{% else %}
     <iframe
       src="/fon-icerik"
       id="fon-icerik-iframe"
       style="width:100%;height:calc(100vh - 56px);border:none;display:block;"
       loading="lazy"
-    ></iframe>
+    ></iframe>{% endif %}
   </div>
 
   <!-- ── PİYASA ÖZETİ TOPBAR ── -->
