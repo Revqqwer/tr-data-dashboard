@@ -505,22 +505,33 @@ def fund_detail(code: str, period: str = None) -> dict:
         per = period if period in periods else periods[0]
         prev = _prev(periods, per)
         cur = con.execute('SELECT stock, name, lots, value, weight_pct, avg_cost FROM kap_holdings WHERE fund_code=? AND period=? ORDER BY value DESC', (code, per)).fetchall()
-        pl = {}
+        pl, pv = {}, {}
         if prev:
-            pl = {r['stock']: r['lots'] for r in con.execute('SELECT stock, lots FROM kap_holdings WHERE fund_code=? AND period=?', (code, prev))}
+            for r in con.execute('SELECT stock, lots, value, name FROM kap_holdings WHERE fund_code=? AND period=?', (code, prev)):
+                pl[r['stock']] = r['lots']
+                pv[r['stock']] = r
+        # Dönem sonu fiyatı = rapordaki değer / lot. Δ değer = Δ lot × bu fiyat (ay içindeki gerçek işlem
+        # fiyatları bilinmediği için yaklaşık). Çıkan hissede fondaki fiyat yok → o ay başka fonlardaki fiyat.
+        px = {r[0]: r[1] for r in con.execute(
+            'SELECT stock, SUM(value) / SUM(lots) FROM kap_holdings WHERE period=? AND lots > 0 GROUP BY stock', (per,))}
         holdings = []
         for r in cur:
             p = pl.get(r['stock']) if prev else None
+            d = (r['lots'] - (p or 0)) if prev else None
+            price = (r['value'] / r['lots']) if r['lots'] else px.get(r['stock'])
             holdings.append({'code': r['stock'], 'name': r['name'], 'lots': r['lots'], 'value': r['value'], 'weight': r['weight_pct'],
-                             'avg_cost': r['avg_cost'], 'prev_lots': p if prev else None,
-                             'delta_lots': (r['lots'] - (p or 0)) if prev else None,
+                             'avg_cost': r['avg_cost'], 'prev_lots': p if prev else None, 'price': price,
+                             'delta_lots': d, 'delta_value': (d * price) if d is not None and price else None,
                              'status': None if not prev else ('new' if not p else ('up' if r['lots'] > p else ('down' if r['lots'] < p else 'same')))})
         exited = []
         if prev:
             cs = {r['stock'] for r in cur}
             for s, l in pl.items():
                 if s not in cs:
-                    exited.append({'code': s, 'prev_lots': l})
+                    o = pv[s]
+                    price = px.get(s) or ((o['value'] / l) if l else None)
+                    exited.append({'code': s, 'name': o['name'], 'prev_lots': l, 'prev_value': o['value'], 'price': price,
+                                   'delta_value': -l * price if price else None})
         weights = {}
         for r in con.execute('SELECT period, stock, weight_pct FROM kap_holdings WHERE fund_code=?', (code,)):
             weights.setdefault(r['stock'], {})[r['period']] = r['weight_pct']

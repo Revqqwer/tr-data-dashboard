@@ -312,14 +312,19 @@ async function searchFund() {
 function renderFundTable() {
   const d = FUND; if (!d) return;
   const q = ($('holdQ') ? $('holdQ').value : '').trim().toUpperCase();
-  const rows = sortRows(d.holdings.filter(h => !q || h.code.includes(q) || (h.name || '').toUpperCase().includes(q)), SORT.fund);
+  // Önceki ay taşıyıp bu ay çıkan hisseler de listede: lot 0, Δ lot = −önceki lot
+  const out = d.exited.map(e => ({code: e.code, name: e.name, weight: 0, lots: 0, value: 0, avg_cost: null,
+                                  delta_lots: -e.prev_lots, delta_value: e.delta_value, status: 'exit'}));
+  const all = d.holdings.concat(out);
+  const rows = sortRows(all.filter(h => !q || h.code.includes(q) || (h.name || '').toUpperCase().includes(q)), SORT.fund);
   $('fundTbl').innerHTML = thead('fund', [[null, '#'], ['code', 'Hisse'], ['weight', 'Ağırlık', 1], ['lots', 'Lot', 1], ['value', 'Değer', 1],
-                                          ['avg_cost', 'Ort. maliyet', 1], ['delta_lots', 'Δ lot', 1], ['status', 'Durum']]) + '<tbody>' +
-    (rows.length ? rows.map(h => `<tr><td class="dim">${d.holdings.indexOf(h) + 1}</td><td class="link" data-code="${h.code}" title="${esc(h.name)}">${h.code}</td><td class="r">%${f2(h.weight)}</td>
+                                          ['avg_cost', 'Ort. maliyet', 1], ['delta_lots', 'Δ lot', 1], ['delta_value', 'Δ değer (TL)', 1], ['status', 'Durum']]) + '<tbody>' +
+    (rows.length ? rows.map(h => `<tr${h.status === 'exit' ? ' class="exited"' : ''}><td class="dim">${h.status === 'exit' ? '' : d.holdings.indexOf(h) + 1}</td><td class="link" data-code="${h.code}" title="${esc(h.name)}">${h.code}</td><td class="r">%${f2(h.weight)}</td>
       <td class="r">${lot(h.lots)}</td><td class="r">${tl(h.value)}</td><td class="r">${h.avg_cost ? f2(h.avg_cost) : '—'}</td>
-      <td class="r ${cls(h.delta_lots)}">${lot(h.delta_lots, true)}</td><td>${badge(h.status)}</td></tr>`).join('') :
-      '<tr><td colspan="8" class="dim">Bu filtreyle hisse yok</td></tr>') + '</tbody>';
-  $('holdCount').textContent = `${rows.length} / ${d.holdings.length} hisse`;
+      <td class="r ${cls(h.delta_lots)}">${lot(h.delta_lots, true)}</td>
+      <td class="r ${cls(h.delta_value)}" title="Δ lot × dönem sonu fiyatı (yaklaşık)">${h.delta_value == null ? '—' : tl(h.delta_value, true)}</td><td>${badge(h.status)}</td></tr>`).join('') :
+      '<tr><td colspan="9" class="dim">Bu filtreyle hisse yok</td></tr>') + '</tbody>';
+  $('holdCount').textContent = `${rows.length} / ${all.length} hisse` + (out.length ? ` · ${out.length} çıktı` : '');
 }
 async function showFund(code) {
   setTab('fund'); $('fundQ').value = code;
@@ -333,12 +338,15 @@ async function showFund(code) {
       <div class="stat"><div class="lbl">Fon büyüklüğü</div><div class="val">${rep.fund_value ? tl(rep.fund_value) + ' TL' : '—'}</div></div>
       <div class="stat"><div class="lbl">Hisse oranı</div><div class="val">%${f2(rep.stock_pct)}</div><div class="note">${d.holdings.length} hisse</div></div>
       <div class="stat"><div class="lbl">Yeni giriş / çıkış</div><div class="val"><span class="pos">${d.holdings.filter(h => h.status === 'new').length}</span> / <span class="neg">${d.exited.length}</span></div><div class="note">${d.prev ? pname(d.prev) + ' → ' + pname(d.period) : 'önceki ay yok'}</div></div>
+      ${d.prev ? (() => { const v = [...d.holdings, ...d.exited].map(h => h.delta_value || 0), buy = v.filter(x => x > 0).reduce((a, x) => a + x, 0), sell = v.filter(x => x < 0).reduce((a, x) => a + x, 0);
+        return `<div class="stat"><div class="lbl">Aylık net alım / satım</div><div class="val ${cls(buy + sell)}">${tl(buy + sell, true)} TL</div>
+          <div class="note"><span class="pos">+${tl(buy)}</span> alım · <span class="neg">${tl(sell, true)}</span> satım · Δ lot × dönem sonu fiyatı (yaklaşık)</div></div>`; })() : ''}
     </div>
     <div class="card"><h2>Ağırlık geçmişi — ilk 6 hisse</h2><div class="chartbox"><canvas id="fundChart"></canvas></div></div>
     <div class="card"><div class="row" style="justify-content:space-between;margin-bottom:8px"><h2 style="margin:0">Portföydeki hisseler <span class="dim" id="holdCount" style="text-transform:none;letter-spacing:0"></span></h2>
       <input type="text" id="holdQ" placeholder="Hisse ara (kod / ad)" style="text-transform:uppercase"></div>
       <div class="tscroll"><table id="fundTbl"></table></div>
-      ${d.exited.length ? `<div class="hint"><b>Bu ay çıkanlar:</b> ${d.exited.map(e => `<span class="link" style="cursor:pointer" data-code="${e.code}">${e.code}</span>`).join(', ')}</div>` : ''}</div>`;
+      <div class="hint">Δ değer = Δ lot × dönem sonu fiyatı (rapordaki değer ÷ lot); ay içindeki gerçek işlem fiyatları raporda olmadığı için yaklaşıktır. Ort. maliyet: fonun KAP raporunda bildirdiği, elindeki lotların birim alış maliyeti.</div></div>`;
   const per = [...d.periods].reverse(), palette = ['#5aa9ff', '#22c55e', '#f0b429', '#ef4444', '#a78bfa', '#14b8a6'];
   const top = d.holdings.slice(0, 6);
   mk('fundChart', {
