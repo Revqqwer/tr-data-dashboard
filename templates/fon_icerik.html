@@ -76,6 +76,7 @@
     <button class="tab on" data-t="top">Bu ay en çok alınan / satılan</button>
     <button class="tab" data-t="stock">Hisse → hangi fonlar taşıyor</button>
     <button class="tab" data-t="fund">Fon → içeriği</button>
+    <button class="tab" data-t="big">Fonlardaki büyük hareketler</button>
   </div>
   <div class="row" style="margin-bottom:14px">
     <label class="f">Dönem <select id="period" title="Yalnızca hemen hemen tüm fonların kontrol edildiği, kapsamlı taranmış aylar listelenir."></select></label>
@@ -134,6 +135,27 @@
     <div id="fundOut"></div>
   </div>
 
+  <!-- 4) Büyük hareketler -->
+  <div id="v-big" class="hidden">
+    <div class="row" style="margin-bottom:12px">
+      <label class="f">Eşik <select id="bigPct">
+        <option value="5">Fonun %5'i ve üstü</option><option value="10" selected>Fonun %10'u ve üstü</option>
+        <option value="20">Fonun %20'si ve üstü</option><option value="30">Fonun %30'u ve üstü</option></select></label>
+      <label class="f">En az <select id="bigMin">
+        <option value="0">Tutar sınırı yok</option><option value="1000000" selected>1 mn TL</option>
+        <option value="10000000">10 mn TL</option><option value="50000000">50 mn TL</option><option value="100000000">100 mn TL</option></select></label>
+      <label class="f">Yön <select id="bigDir"><option value="">Alım + satım</option><option value="buy">Yalnızca alım</option><option value="sell">Yalnızca satım</option></select></label>
+      <input type="text" id="bigQ" placeholder="Hisse ya da fon ara" style="text-transform:uppercase">
+    </div>
+    <div class="stats" id="bigStats"></div>
+    <div class="card">
+      <div class="row" style="justify-content:space-between;margin-bottom:8px"><h2 style="margin:0">Büyük hareketler <span class="dim" id="bigCount" style="text-transform:none;letter-spacing:0"></span></h2></div>
+      <div class="tscroll"><table id="bigTbl"></table></div>
+      <div class="hint">Bir fonun o ay <b>tek bir hissedeki</b> alım/satımının fon büyüklüğüne oranı. Δ değer = Δ lot × dönem sonu fiyatı (yaklaşık; ay içi işlem fiyatları raporda yok).
+        Fon büyüklüğü KAP raporundaki fon toplam değeridir. Yalnızca iki ayda da raporu olan fonlar karşılaştırılır. Fon ya da hisse koduna tıklayınca ilgili sayfa açılır.</div>
+    </div>
+  </div>
+
   <div class="hint" style="margin-top:6px">Kaynak: KAP "Portföy Dağılım Raporu" (fonların aylık bildirimi; ay sonu durumu, ayın ~8'inde yayımlanır). Yalnızca KAP'a rapor veren
     ve raporu ayrıştırılabilen fonlar dahildir. "Aylık raporlayan fonlar" kapsamında değişimler iki ayda da raporu olan fonlar üzerinden hesaplanır; "Tüm fonlar (son rapor)" kapsamında üç aylık/seyrek raporlayan fonlar da her birinin son raporuyla dahil edilir. Fon sınıfı, KAP fon adındaki ifadelerden (Serbest, Hisse Senedi Yoğun, Değişken vb.) türetilir. Yatırım tavsiyesi değildir.</div>
 </div>
@@ -156,9 +178,9 @@ const pname = p => { const m = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu
 const badge = s => s === 'new' ? '<span class="badge new">Yeni giriş</span>' : s === 'up' ? '<span class="badge up">Artırdı</span>' :
                    s === 'down' ? '<span class="badge down">Azalttı</span>' : s === 'exit' ? '<span class="badge down">Çıktı</span>' : s === 'same' ? '<span class="badge">Değişmedi</span>' : '<span class="badge">—</span>';
 // Tablo başlığına tıklayınca sıralama: SORT[tablo] = {k: alan, dir: 1 artan | -1 azalan}
-const SORT = {stock: null, fund: null};
+const SORT = {stock: null, fund: null, big: null};
 const STATUS_ORD = {new: 5, up: 4, same: 3, down: 2, exit: 1};
-const TEXT_KEYS = ['fund', 'name', 'fclass', 'rperiod', 'code'];
+const TEXT_KEYS = ['fund', 'name', 'fclass', 'rperiod', 'code', 'fund_name'];
 function sortRows(rows, s) {
   if (!s) return rows;
   const v = r => s.k === 'status' ? (STATUS_ORD[r.status] ?? null) : (r[s.k] ?? null);
@@ -191,8 +213,37 @@ const ASOF = () => selScope() === 'asof';
 function setTab(t) {
   TAB = t;
   document.querySelectorAll('#tabs .tab').forEach(b => b.classList.toggle('on', b.dataset.t === t));
-  ['top', 'stock', 'fund'].forEach(x => $('v-' + x).classList.toggle('hidden', x !== t));
+  ['top', 'stock', 'fund', 'big'].forEach(x => $('v-' + x).classList.toggle('hidden', x !== t));
   if (t === 'top') loadTop();
+  if (t === 'big') loadBig();
+}
+
+// ── Fonlardaki büyük hareketler ─────────────────────────────────────────────
+let BIG = null;
+async function loadBig() {
+  const q = new URLSearchParams({period: $('period').value || '', cls: selCls(), min_pct: $('bigPct').value, min_tl: $('bigMin').value});
+  BIG = await api('/api/fonicerik/big-moves?' + q);
+  if (BIG.empty) { $('bigStats').innerHTML = ''; $('bigTbl').innerHTML = '<tr><td class="dim">Bu dönem için karşılaştırma yok</td></tr>'; $('bigCount').textContent = ''; return; }
+  $('bigStats').innerHTML = `
+    <div class="stat"><div class="lbl">${pname(BIG.prev)} → ${pname(BIG.period)}</div><div class="val">${nf.format(BIG.count)} hareket</div><div class="note">${nf.format(BIG.funds)} fonda · ${nf.format(BIG.comparable_funds)} fon karşılaştırıldı</div></div>
+    <div class="stat"><div class="lbl">Büyük alım</div><div class="val pos">${nf.format(BIG.n_buy)}</div><div class="note">yeni giriş + artırma</div></div>
+    <div class="stat"><div class="lbl">Büyük satım</div><div class="val neg">${nf.format(BIG.n_sell)}</div><div class="note">azaltma + tamamen çıkış</div></div>
+    <div class="stat"><div class="lbl">Eşik</div><div class="val">%${BIG.min_pct}</div><div class="note">fon büyüklüğünün · en az ${BIG.min_tl ? tl(BIG.min_tl) + ' TL' : 'tutar sınırı yok'}</div></div>`;
+  renderBig();
+}
+function renderBig() {
+  const d = BIG; if (!d || d.empty) return;
+  const dir = $('bigDir').value, fq = $('bigQ').value.trim().toUpperCase(), c = selCls();
+  const rows = sortRows(d.moves.filter(m => (!dir || (dir === 'buy' ? m.delta_value > 0 : m.delta_value < 0)) && (!c || m.fclass === c) &&
+    (!fq || m.code.includes(fq) || m.fund.includes(fq) || (m.fund_name || '').toUpperCase().includes(fq) || (m.name || '').toUpperCase().includes(fq))), SORT.big);
+  $('bigTbl').innerHTML = thead('big', [['fund', 'Fon'], ['fund_name', 'Fon adı'], ['fund_value', 'Fon büyüklüğü', 1], ['code', 'Hisse'],
+      ['delta_value', 'Δ değer (TL)', 1], ['pct', 'Fona oranı', 1], ['delta_lots', 'Δ lot', 1], ['prev_weight', 'Ağırlık (önce → sonra)', 1], ['status', 'Durum']]) + '<tbody>' +
+    (rows.length ? rows.map(m => `<tr><td class="link" data-fund="${m.fund}">${m.fund}</td><td class="nm" title="${esc(m.fund_name)}">${esc(m.fund_name)}</td>
+      <td class="r">${tl(m.fund_value)}</td><td class="link" data-code="${m.code}" title="${esc(m.name)}">${m.code}</td>
+      <td class="r ${cls(m.delta_value)}"><b>${tl(m.delta_value, true)}</b></td><td class="r ${cls(m.delta_value)}">%${f2(m.pct)}</td>
+      <td class="r">${lot(m.delta_lots, true)}</td><td class="r">%${f2(m.prev_weight)} → %${f2(m.weight)}</td><td>${badge(m.status)}</td></tr>`).join('') :
+      '<tr><td colspan="9" class="dim">Bu eşikte hareket yok</td></tr>') + '</tbody>';
+  $('bigCount').textContent = `${rows.length} / ${d.moves.length}` + (d.count > d.moves.length ? ` (ilk ${d.moves.length} gösteriliyor)` : '');
 }
 
 // ── En çok alınan / satılan ─────────────────────────────────────────────────
@@ -397,6 +448,7 @@ async function showFund(code) {
 })();
 const reloadCurrent = () => {
   if (TAB === 'top') loadTop();
+  else if (TAB === 'big') loadBig();
   else if (TAB === 'stock') { if ($('stockQ').value) showStock($('stockQ').value); }
   else if (TAB === 'fund') { if ($('fundQ').value && FUND && $('fundQ').value.toUpperCase() === FUND.fund.code) showFund(FUND.fund.code); else searchFund(); }
 };
@@ -407,6 +459,10 @@ $('clsFundQ').addEventListener('input', debounce(renderClsTable, 150));
 document.querySelectorAll('#tabs .tab').forEach(b => b.addEventListener('click', () => setTab(b.dataset.t)));
 $('topQ').addEventListener('input', debounce(loadTop, 350));
 $('topLimit').addEventListener('change', loadTop);
+$('bigPct').addEventListener('change', loadBig);
+$('bigMin').addEventListener('change', loadBig);
+$('bigDir').addEventListener('change', renderBig);
+$('bigQ').addEventListener('input', debounce(renderBig, 200));
 $('topClear').addEventListener('click', () => { $('topQ').value = ''; loadTop(); });
 $('stockGo').addEventListener('click', () => showStock($('stockQ').value));
 $('stockQ').addEventListener('keydown', e => { if (e.key === 'Enter') showStock($('stockQ').value); });
@@ -417,7 +473,7 @@ document.addEventListener('click', e => {
   if (h) {
     const [t, k] = h.dataset.sort.split(':'), s = SORT[t];
     SORT[t] = s && s.k === k ? {k, dir: -s.dir} : {k, dir: TEXT_KEYS.includes(k) ? 1 : -1};
-    (t === 'stock' ? renderStockTable : renderFundTable)();
+    ({stock: renderStockTable, fund: renderFundTable, big: renderBig})[t]();
     return;
   }
   const c = e.target.closest('[data-code]'); if (c) { showStock(c.dataset.code); return; }
