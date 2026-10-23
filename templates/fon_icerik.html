@@ -51,6 +51,7 @@
   table{width:100%;border-collapse:collapse;font-size:13px}
   th{text-align:left;color:var(--muted);font-weight:600;padding:7px 8px;border-bottom:1px solid var(--border);font-size:11px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
   td{padding:7px 8px;border-bottom:1px solid var(--grid);font-variant-numeric:tabular-nums;white-space:nowrap}
+  th.sort{cursor:pointer;user-select:none} th.sort:hover{color:var(--text)} th .arr{display:inline-block;width:12px;margin-left:3px;font-size:9px;color:var(--accent)}
   th.r,td.r{text-align:right} td.link{font-weight:700;cursor:pointer} td.link:hover{color:var(--accent);text-decoration:underline}
   td.nm{max-width:260px;overflow:hidden;text-overflow:ellipsis}
   tbody tr:hover{background:var(--surface2)}
@@ -154,6 +155,22 @@ const cls = v => v > 0 ? 'pos' : (v < 0 ? 'neg' : '');
 const pname = p => { const m = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara']; return m[+p.slice(5) - 1] + ' ' + p.slice(0, 4); };
 const badge = s => s === 'new' ? '<span class="badge new">Yeni giriş</span>' : s === 'up' ? '<span class="badge up">Artırdı</span>' :
                    s === 'down' ? '<span class="badge down">Azalttı</span>' : s === 'exit' ? '<span class="badge down">Çıktı</span>' : s === 'same' ? '<span class="badge">Değişmedi</span>' : '<span class="badge">—</span>';
+// Tablo başlığına tıklayınca sıralama: SORT[tablo] = {k: alan, dir: 1 artan | -1 azalan}
+const SORT = {stock: null, fund: null};
+const STATUS_ORD = {new: 5, up: 4, same: 3, down: 2, exit: 1};
+const TEXT_KEYS = ['fund', 'name', 'fclass', 'rperiod', 'code'];
+function sortRows(rows, s) {
+  if (!s) return rows;
+  const v = r => s.k === 'status' ? (STATUS_ORD[r.status] ?? null) : (r[s.k] ?? null);
+  return [...rows].sort((a, b) => {
+    const x = v(a), y = v(b);
+    if (x == null || y == null) return x == null ? (y == null ? 0 : 1) : -1;   // boşlar hep en sonda
+    return (typeof x === 'string' ? x.localeCompare(y, 'tr') : x - y) * s.dir;
+  });
+}
+const thead = (t, cols) => '<thead><tr>' + cols.map(([k, l, r]) => k
+  ? `<th class="sort${r ? ' r' : ''}" data-sort="${t}:${k}">${l}<span class="arr">${SORT[t] && SORT[t].k === k ? (SORT[t].dir > 0 ? '▲' : '▼') : ''}</span></th>`
+  : `<th${r ? ' class="r"' : ''}>${l}</th>`).join('') + '</tr></thead>';
 const clsTag = c => c ? `<span class="cls">${esc(c)}</span>` : '';
 async function api(u) { const r = await fetch(u); return r.json(); }
 function mk(id, cfg) { if (charts[id]) charts[id].destroy(); charts[id] = new Chart($(id), cfg); }
@@ -236,8 +253,9 @@ function renderStockTable() {
   const out = d.exited.map(e => ({fund: e.fund, name: e.name, fclass: e.fclass, rperiod: e.rperiod, weight: 0, lots: 0, value: 0,
                                   avg_cost: null, prev_weight: e.prev_weight, delta_lots: -e.prev_lots, status: 'exit'}));
   const all = d.funds.concat(out);
-  const rows = all.filter(f => (!c || f.fclass === c) && (!fq || f.fund.includes(fq) || (f.name || '').toUpperCase().includes(fq)));
-  $('stockTbl').innerHTML = '<thead><tr><th>Fon</th><th>Ad</th><th>Sınıf</th><th>Rapor</th><th class="r">Ağırlık</th><th class="r">Lot</th><th class="r">Değer</th><th class="r">Ort. maliyet</th><th class="r">Δ lot</th><th>Durum</th></tr></thead><tbody>' +
+  const rows = sortRows(all.filter(f => (!c || f.fclass === c) && (!fq || f.fund.includes(fq) || (f.name || '').toUpperCase().includes(fq))), SORT.stock);
+  $('stockTbl').innerHTML = thead('stock', [['fund', 'Fon'], ['name', 'Ad'], ['fclass', 'Sınıf'], ['rperiod', 'Rapor'], ['weight', 'Ağırlık', 1], ['lots', 'Lot', 1],
+                                            ['value', 'Değer', 1], ['avg_cost', 'Ort. maliyet', 1], ['delta_lots', 'Δ lot', 1], ['status', 'Durum']]) + '<tbody>' +
     (rows.length ? rows.map(f => `<tr${f.status === 'exit' ? ' class="exited"' : ''}><td class="link" data-fund="${f.fund}">${f.fund}</td><td class="nm" title="${esc(f.name)}">${esc(f.name)}</td><td>${clsTag(f.fclass)}</td><td>${f.rperiod ? pname(f.rperiod) : pname(d.period)}</td>
       <td class="r">%${f2(f.weight)}${f.status === 'exit' && f.prev_weight != null ? ` <span class="dim">(önce %${f2(f.prev_weight)})</span>` : ''}</td><td class="r">${lot(f.lots)}</td><td class="r">${tl(f.value)}</td><td class="r">${f.avg_cost ? f2(f.avg_cost) : '—'}</td>
       <td class="r ${cls(f.delta_lots)}">${lot(f.delta_lots, true)}</td><td>${badge(f.status)}</td></tr>`).join('') :
@@ -294,8 +312,9 @@ async function searchFund() {
 function renderFundTable() {
   const d = FUND; if (!d) return;
   const q = ($('holdQ') ? $('holdQ').value : '').trim().toUpperCase();
-  const rows = d.holdings.filter(h => !q || h.code.includes(q) || (h.name || '').toUpperCase().includes(q));
-  $('fundTbl').innerHTML = '<thead><tr><th>#</th><th>Hisse</th><th class="r">Ağırlık</th><th class="r">Lot</th><th class="r">Değer</th><th class="r">Ort. maliyet</th><th class="r">Δ lot</th><th>Durum</th></tr></thead><tbody>' +
+  const rows = sortRows(d.holdings.filter(h => !q || h.code.includes(q) || (h.name || '').toUpperCase().includes(q)), SORT.fund);
+  $('fundTbl').innerHTML = thead('fund', [[null, '#'], ['code', 'Hisse'], ['weight', 'Ağırlık', 1], ['lots', 'Lot', 1], ['value', 'Değer', 1],
+                                          ['avg_cost', 'Ort. maliyet', 1], ['delta_lots', 'Δ lot', 1], ['status', 'Durum']]) + '<tbody>' +
     (rows.length ? rows.map(h => `<tr><td class="dim">${d.holdings.indexOf(h) + 1}</td><td class="link" data-code="${h.code}" title="${esc(h.name)}">${h.code}</td><td class="r">%${f2(h.weight)}</td>
       <td class="r">${lot(h.lots)}</td><td class="r">${tl(h.value)}</td><td class="r">${h.avg_cost ? f2(h.avg_cost) : '—'}</td>
       <td class="r ${cls(h.delta_lots)}">${lot(h.delta_lots, true)}</td><td>${badge(h.status)}</td></tr>`).join('') :
@@ -386,6 +405,13 @@ $('stockQ').addEventListener('keydown', e => { if (e.key === 'Enter') showStock(
 $('fundGo').addEventListener('click', searchFund);
 $('fundQ').addEventListener('keydown', e => { if (e.key === 'Enter') searchFund(); });
 document.addEventListener('click', e => {
+  const h = e.target.closest('[data-sort]');
+  if (h) {
+    const [t, k] = h.dataset.sort.split(':'), s = SORT[t];
+    SORT[t] = s && s.k === k ? {k, dir: -s.dir} : {k, dir: TEXT_KEYS.includes(k) ? 1 : -1};
+    (t === 'stock' ? renderStockTable : renderFundTable)();
+    return;
+  }
   const c = e.target.closest('[data-code]'); if (c) { showStock(c.dataset.code); return; }
   const f = e.target.closest('[data-fund]'); if (f) showFund(f.dataset.fund);
 });
