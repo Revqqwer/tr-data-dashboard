@@ -213,7 +213,7 @@ React SPA `/tefas/` altında servis edilir (Vite `base: "/tefas/"`), route'lar c
 | Liderboard | `/` | Günlük/dönemsel en fazla giriş-çıkış fonlar |
 | Akış | `/flow` | Kategori bazlı (YAT/EMK/BYF) akış analizi |
 | Fon Ara | `/funds` | Fon arama, tarihsel grafik, portföy dağılımı |
-| Özel Fonlar | `/custom` | Seçili fonlar — 4 grafik: kümülatif akış, getiri, yatırımcı sayısı, **fon büyüklüğü (AUM)** |
+| ~~Özel Fonlar~~ | `/custom` | **Kaldırıldı (Eki 2026)** — sekme gizli, `/custom` → `/stats` yönlenir; API ve admin bölümü duruyor |
 | İstatistikler | `/stats` | Genel istatistikler |
 | Kripto ETF | `/crypto` | BTC/ETH ABD spot ETF akışları (farside.co.uk) |
 | BIST Portföy | `/bist` | Hisse portföy takibi, gerçekleşmiş K/Z, açık pozisyonlar |
