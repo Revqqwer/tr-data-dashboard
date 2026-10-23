@@ -604,7 +604,15 @@ _STATS_EXCLUDE_TYPES = ["EMK"]
 
 # Kategoride olmasa da elle dahil edilen fonlar (Hisse Senedi Yoğun ama farklı şemsiye)
 _STATS_INCLUDE_FILE = _Path(__file__).parent / "data" / "stats_include.json"
-_STATS_INCLUDE_DEFAULT = ["VHS", "IH1", "LTL", "HFO"]
+_STATS_INCLUDE_DEFAULT = [
+    "VHS", "IH1", "LTL", "HFO",
+    # Katılım hisse senedi fonları (TEFAS'ta "Katılım Şemsiye Fonu" kategorisinde)
+    "KPC", "YHK", "ZPE", "HKH", "RBH", "KPA", "KPU", "PUK", "ELZ", "GKV", "MPS", "KTI",
+    "NKT", "KH1", "DKH", "TIL", "MKA", "TLZ", "IVF", "PHK", "OHK", "KHC", "NKM", "MTK",
+    "RPI", "KHJ", "KST", "VHK",
+    # Kategorisi boş hisse yoğun fonlar
+    "SHC", "DEH",
+]
 
 
 def load_stats_include() -> list:
@@ -622,7 +630,12 @@ def load_stats_include() -> list:
 
 # Kod bazlı elle çıkarma (isim filtresine takılmayan tekil fonlar)
 _STATS_EXCLUDE_CODES_FILE = _Path(__file__).parent / "data" / "stats_exclude_codes.json"
-_STATS_EXCLUDE_CODES_DEFAULT = ["YAY", "GUH"]
+_STATS_EXCLUDE_CODES_DEFAULT = [
+    "YAY", "GUH",
+    # Endeks takip eden (pasif) hisse fonları — İstatistikler aktif yönetilen fonları ölçer
+    "ADP", "AKU", "DPT", "DZE", "GAE", "GIE", "HBU", "MMH", "SAS", "SSS",
+    "TAU", "TI3", "TIE", "TTE", "YEF", "YHZ", "YLE", "YZH",
+]
 
 
 def load_stats_exclude_codes() -> list:
