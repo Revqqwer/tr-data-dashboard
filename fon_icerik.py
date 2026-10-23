@@ -475,10 +475,13 @@ def big_moves(period: str = None, min_pct: float = 10.0, min_tl: float = 1e6, cl
         prev = _prev(periods, per) if per else None
         if not per or not prev:
             return {'empty': True, 'periods': periods}
-        sizes = _fund_sizes(con, per)
+        # Oran paydası: önceki ay sonu ve bu ay sonu büyüklüğünün büyüğü — ay içinde boşalan / tasfiye olan
+        # fonda (ay sonu büyüklüğü çok küçülmüş) oranlar %80-100'e şişmesin
+        sizes, psizes = _fund_sizes(con, per), _fund_sizes(con, prev)
         both = [r[0] for r in con.execute(
             'SELECT a.fund_code FROM kap_reports a JOIN kap_reports b ON a.fund_code=b.fund_code AND b.period=? WHERE a.period=?', (prev, per))]
-        fv = {c: sizes[c] for c in both if sizes.get(c)}
+        fv = {c: max(sizes.get(c) or 0, psizes.get(c) or 0) for c in both}
+        fv = {c: v for c, v in fv.items() if v}
         names = {r[0]: r[1] for r in con.execute('SELECT code, name FROM kap_funds')}
         if cls:
             fv = {c: v for c, v in fv.items() if classify(names.get(c)) == cls}
@@ -509,6 +512,7 @@ def big_moves(period: str = None, min_pct: float = 10.0, min_tl: float = 1e6, cl
             if qq and qq not in r['stock'] and qq not in f and qq not in (names.get(f) or '').upper():
                 continue
             out.append({'fund': f, 'fund_name': names.get(f), 'fclass': classify(names.get(f)), 'fund_value': size,
+                        'size_prev': psizes.get(f), 'size_cur': sizes.get(f),
                         'code': r['stock'], 'name': r['name'], 'prev_lots': r['pl'], 'lots': r['cl'], 'delta_lots': d,
                         'price': price, 'delta_value': dv, 'pct': pct, 'prev_weight': r['pw'], 'weight': r['cw'],
                         'status': 'new' if not r['pl'] else 'exit' if not r['cl'] else 'up' if d > 0 else 'down'})

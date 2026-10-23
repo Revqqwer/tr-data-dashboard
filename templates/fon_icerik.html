@@ -152,7 +152,7 @@
       <div class="row" style="justify-content:space-between;margin-bottom:8px"><h2 style="margin:0">Büyük hareketler <span class="dim" id="bigCount" style="text-transform:none;letter-spacing:0"></span></h2></div>
       <div class="tscroll"><table id="bigTbl"></table></div>
       <div class="hint">Bir fonun o ay <b>tek bir hissedeki</b> alım/satımının fon büyüklüğüne oranı. Δ değer = Δ lot × dönem sonu fiyatı (yaklaşık; ay içi işlem fiyatları raporda yok).
-        Fon büyüklüğü: KAP raporundaki fon toplam değeri; raporda yoksa TEFAS'taki ay sonu portföy büyüklüğü. Yalnızca iki ayda da raporu olan fonlar karşılaştırılır. Fon ya da hisse koduna tıklayınca ilgili sayfa açılır.</div>
+        Fon büyüklüğü: KAP raporundaki fon toplam değeri; raporda yoksa TEFAS'taki ay sonu portföy büyüklüğü. Oran, önceki ay ve bu ay sonu büyüklüğünün büyük olanına göre hesaplanır (ay içinde boşalan fonlarda oran şişmesin diye). Yalnızca iki ayda da raporu olan fonlar karşılaştırılır. Fon ya da hisse koduna tıklayınca ilgili sayfa açılır.</div>
     </div>
   </div>
 
@@ -239,7 +239,7 @@ function renderBig() {
   $('bigTbl').innerHTML = thead('big', [['fund', 'Fon'], ['fund_name', 'Fon adı'], ['fund_value', 'Fon büyüklüğü', 1], ['code', 'Hisse'],
       ['delta_value', 'Δ değer (TL)', 1], ['pct', 'Fona oranı', 1], ['delta_lots', 'Δ lot', 1], ['prev_weight', 'Ağırlık (önce → sonra)', 1], ['status', 'Durum']]) + '<tbody>' +
     (rows.length ? rows.map(m => `<tr><td class="link" data-fund="${m.fund}">${m.fund}</td><td class="nm" title="${esc(m.fund_name)}">${esc(m.fund_name)}</td>
-      <td class="r">${tl(m.fund_value)}</td><td class="link" data-code="${m.code}" title="${esc(m.name)}">${m.code}</td>
+      <td class="r" title="önceki ay sonu → bu ay sonu">${m.size_prev ? tl(m.size_prev) : '—'} → ${m.size_cur ? tl(m.size_cur) : '—'}</td><td class="link" data-code="${m.code}" title="${esc(m.name)}">${m.code}</td>
       <td class="r ${cls(m.delta_value)}"><b>${tl(m.delta_value, true)}</b></td><td class="r ${cls(m.delta_value)}">%${f2(m.pct)}</td>
       <td class="r">${lot(m.delta_lots, true)}</td><td class="r">%${f2(m.prev_weight)} → %${f2(m.weight)}</td><td>${badge(m.status)}</td></tr>`).join('') :
       '<tr><td colspan="9" class="dim">Bu eşikte hareket yok</td></tr>') + '</tbody>';
