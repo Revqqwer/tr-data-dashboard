@@ -58,6 +58,7 @@
   .hint{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.55}
   .badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--border);color:var(--muted)}
   .badge.up{color:var(--green);border-color:var(--green)} .badge.down{color:var(--red);border-color:var(--red)}
+  tr.exited td:not(:last-child):not(.neg){opacity:.6}
   .badge.new{color:var(--accent);border-color:var(--accent)}
   .cls{display:inline-block;font-size:10.5px;padding:1px 7px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);color:var(--muted)}
   .chartbox{position:relative;height:280px}
@@ -152,7 +153,7 @@ const lot = (v, signed) => v == null ? '—' : (signed && v > 0 ? '+' : v < 0 ? 
 const cls = v => v > 0 ? 'pos' : (v < 0 ? 'neg' : '');
 const pname = p => { const m = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara']; return m[+p.slice(5) - 1] + ' ' + p.slice(0, 4); };
 const badge = s => s === 'new' ? '<span class="badge new">Yeni giriş</span>' : s === 'up' ? '<span class="badge up">Artırdı</span>' :
-                   s === 'down' ? '<span class="badge down">Azalttı</span>' : s === 'same' ? '<span class="badge">Değişmedi</span>' : '<span class="badge">—</span>';
+                   s === 'down' ? '<span class="badge down">Azalttı</span>' : s === 'exit' ? '<span class="badge down">Çıktı</span>' : s === 'same' ? '<span class="badge">Değişmedi</span>' : '<span class="badge">—</span>';
 const clsTag = c => c ? `<span class="cls">${esc(c)}</span>` : '';
 async function api(u) { const r = await fetch(u); return r.json(); }
 function mk(id, cfg) { if (charts[id]) charts[id].destroy(); charts[id] = new Chart($(id), cfg); }
@@ -231,13 +232,17 @@ async function loadClsFunds() {
 function renderStockTable() {
   const d = STOCK; if (!d) return;
   const c = selCls(), fq = ($('stockFundQ') ? $('stockFundQ').value : '').trim().toUpperCase();
-  const rows = d.funds.filter(f => (!c || f.fclass === c) && (!fq || f.fund.includes(fq) || (f.name || '').toUpperCase().includes(fq)));
+  // Önceki ay taşıyıp bu ay çıkan fonlar da listede: lot 0'a iner, Δ lot = −önceki lot
+  const out = d.exited.map(e => ({fund: e.fund, name: e.name, fclass: e.fclass, rperiod: e.rperiod, weight: 0, lots: 0, value: 0,
+                                  avg_cost: null, prev_weight: e.prev_weight, delta_lots: -e.prev_lots, status: 'exit'}));
+  const all = d.funds.concat(out);
+  const rows = all.filter(f => (!c || f.fclass === c) && (!fq || f.fund.includes(fq) || (f.name || '').toUpperCase().includes(fq)));
   $('stockTbl').innerHTML = '<thead><tr><th>Fon</th><th>Ad</th><th>Sınıf</th><th>Rapor</th><th class="r">Ağırlık</th><th class="r">Lot</th><th class="r">Değer</th><th class="r">Ort. maliyet</th><th class="r">Δ lot</th><th>Durum</th></tr></thead><tbody>' +
-    (rows.length ? rows.map(f => `<tr><td class="link" data-fund="${f.fund}">${f.fund}</td><td class="nm" title="${esc(f.name)}">${esc(f.name)}</td><td>${clsTag(f.fclass)}</td><td>${f.rperiod ? pname(f.rperiod) : pname(d.period)}</td>
-      <td class="r">%${f2(f.weight)}</td><td class="r">${lot(f.lots)}</td><td class="r">${tl(f.value)}</td><td class="r">${f.avg_cost ? f2(f.avg_cost) : '—'}</td>
+    (rows.length ? rows.map(f => `<tr${f.status === 'exit' ? ' class="exited"' : ''}><td class="link" data-fund="${f.fund}">${f.fund}</td><td class="nm" title="${esc(f.name)}">${esc(f.name)}</td><td>${clsTag(f.fclass)}</td><td>${f.rperiod ? pname(f.rperiod) : pname(d.period)}</td>
+      <td class="r">%${f2(f.weight)}${f.status === 'exit' && f.prev_weight != null ? ` <span class="dim">(önce %${f2(f.prev_weight)})</span>` : ''}</td><td class="r">${lot(f.lots)}</td><td class="r">${tl(f.value)}</td><td class="r">${f.avg_cost ? f2(f.avg_cost) : '—'}</td>
       <td class="r ${cls(f.delta_lots)}">${lot(f.delta_lots, true)}</td><td>${badge(f.status)}</td></tr>`).join('') :
       '<tr><td colspan="10" class="dim">Bu filtreyle fon yok</td></tr>') + '</tbody>';
-  $('stockCount').textContent = `${rows.length} / ${d.funds.length} fon`;
+  $('stockCount').textContent = `${rows.length} / ${all.length} fon` + (out.length ? ` · ${d.funds.length} taşıyor, ${out.length} çıktı` : '');
 }
 async function showStock(code) {
   code = (code || '').trim().toUpperCase(); if (!code) return;
@@ -258,8 +263,7 @@ async function showStock(code) {
     <div class="card"><h2>Fonların toplam ${esc(code)} pozisyonu (aylık)</h2><div class="chartbox"><canvas id="stockChart"></canvas></div></div>
     <div class="card"><div class="row" style="justify-content:space-between;margin-bottom:8px"><h2 style="margin:0">${esc(code)} taşıyan fonlar <span class="dim" id="stockCount" style="text-transform:none;letter-spacing:0"></span></h2>
       <input type="text" id="stockFundQ" placeholder="Fon ara (kod / ad)" style="text-transform:uppercase"></div>
-      <div class="tscroll"><table id="stockTbl"></table></div>
-      ${d.exited.length ? `<div class="hint"><b>Bu ay çıkanlar:</b> ${d.exited.map(e => `<span class="link" style="cursor:pointer" data-fund="${e.fund}">${e.fund}</span>`).join(', ')}</div>` : ''}</div>`;
+      <div class="tscroll"><table id="stockTbl"></table></div></div>`;
   mk('stockChart', {
     type: 'bar',
     data: {labels: d.series.map(x => pname(x.period)), datasets: [

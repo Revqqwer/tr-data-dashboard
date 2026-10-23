@@ -87,7 +87,8 @@ def _stock_detail_asof(code, period):
                               'prev_lots': pl if pp else None, 'delta_lots': (cur['lots'] - pl) if pp else None,
                               'status': None if not pp else ('new' if not pl else ('up' if cur['lots'] > pl else ('down' if cur['lots'] < pl else 'same')))})
             elif prv:
-                exited.append({'fund': fc, 'name': names.get(fc), 'prev_lots': prv['lots'], 'rperiod': ap})
+                exited.append({'fund': fc, 'name': names.get(fc), 'fclass': classify(names.get(fc)), 'prev_lots': prv['lots'],
+                               'prev_value': prv['value'], 'prev_weight': prv['weight_pct'], 'rperiod': ap})
         funds.sort(key=lambda f: -(f['value'] or 0))
         series = [dict(r) for r in con.execute(
             'SELECT period, COUNT(*) funds, SUM(lots) lots, SUM(value) value FROM kap_holdings WHERE stock=? GROUP BY period ORDER BY period', (code,))]
@@ -323,8 +324,9 @@ def stock_detail(code: str, period: str = None, scope: str = 'monthly') -> dict:
         prev_has = set()
         if prev:
             prev_has = {r[0] for r in con.execute('SELECT fund_code FROM kap_reports WHERE period=?', (prev,))}
-            prev_lots = {r['fund_code']: r['lots'] for r in con.execute(
-                'SELECT fund_code, lots FROM kap_holdings WHERE stock=? AND period=?', (code, prev))}
+            prev_rows = {r['fund_code']: r for r in con.execute(
+                'SELECT fund_code, lots, value, weight_pct FROM kap_holdings WHERE stock=? AND period=?', (code, prev))}
+            prev_lots = {fc: r['lots'] for fc, r in prev_rows.items()}
         funds = []
         for r in rows:
             pl = prev_lots.get(r['fund_code'])
@@ -344,7 +346,9 @@ def stock_detail(code: str, period: str = None, scope: str = 'monthly') -> dict:
             for fc, pl in prev_lots.items():
                 if fc not in cur and fc in cur_has:
                     nm = con.execute('SELECT name FROM kap_funds WHERE code=?', (fc,)).fetchone()
-                    exited.append({'fund': fc, 'name': nm[0] if nm else None, 'prev_lots': pl})
+                    nm = nm[0] if nm else None
+                    exited.append({'fund': fc, 'name': nm, 'fclass': classify(nm), 'prev_lots': pl,
+                                   'prev_value': prev_rows[fc]['value'], 'prev_weight': prev_rows[fc]['weight_pct']})
         series = [dict(r) for r in con.execute(
             'SELECT period, COUNT(*) funds, SUM(lots) lots, SUM(value) value FROM kap_holdings WHERE stock=? GROUP BY period ORDER BY period', (code,))]
         name = con.execute('SELECT name FROM kap_holdings WHERE stock=? ORDER BY LENGTH(name) DESC LIMIT 1', (code,)).fetchone()
