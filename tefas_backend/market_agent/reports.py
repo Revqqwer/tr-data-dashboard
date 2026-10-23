@@ -94,6 +94,69 @@ _EN_MONTHS = {"January": "Ocak", "February": "Şubat", "March": "Mart", "April":
               "October": "Ekim", "November": "Kasım", "December": "Aralık"}
 
 
+def get_by_date(date: str, report_type: str = None) -> dict | None:
+    """O günün raporu (YYYY-MM-DD). Tür verilmezse önce günlük, yoksa haftalık."""
+    for t in ([report_type] if report_type else ["daily", "weekly"]):
+        for f in sorted(REPORTS_DIR.glob(f"{t}_{date.replace('-', '')}_*.json"), reverse=True):
+            try:
+                data = json.loads(f.read_text(encoding="utf-8"))
+                data["id"] = f.stem
+                return data
+            except Exception:
+                pass
+    return None
+
+
+def web_html(content: str) -> str:
+    """Bülten metnini herkese açık web sayfası için güvenli HTML'e çevirir
+    (━━━ bölüm başlıkları → h2, ┌│└ kutuları → kart, **kalın** → <b>)."""
+    import html, re
+    out, box = [], None
+
+    def inline(s: str) -> str:
+        s = html.escape(s)
+        return re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", s).replace("**", "")
+
+    for i, line in enumerate((content or "").split("\n")):
+        t = line.strip()
+        if i == 0 and (t.startswith("📊") or t.startswith("📋") or t.startswith("# ")):
+            continue                                   # başlık sayfada ayrıca yazıyor
+        if t.startswith("```") or re.fullmatch(r"[─━\-]{3,}", t):
+            continue
+        m = re.match(r"^━+\s*(.*?)\s*━+$", t)
+        if m:
+            out.append(f"<h2>{inline(m.group(1))}</h2>")
+            continue
+        if t.startswith("┌"):
+            box = []
+            continue
+        if t.startswith("└"):
+            if box:
+                out.append('<div class="box"><div class="box-t">📌 Pozisyon fırsatları</div>' +
+                           "".join(f"<div>{inline(x)}</div>" for x in box) + "</div>")
+            box = None
+            continue
+        if t.startswith("│"):
+            t = t.strip("│").strip()
+            if t and box is not None:
+                box.append(t)
+            continue
+        if not t:
+            continue
+        hm = re.match(r"^#{1,6}\s*(.*)$", t)
+        if hm:
+            out.append(f"<h3>{inline(hm.group(1))}</h3>")
+        elif re.match(r"^[•\-–▸●▪]\s+", t):
+            item = re.sub(r"^[•\-–▸●▪]\s+", "", t)
+            out.append(f'<p class="li">{inline(item)}</p>')
+        else:
+            out.append(f"<p>{inline(t)}</p>")
+    text = "\n".join(out)
+    for en, tr in _EN_MONTHS.items():
+        text = re.sub(rf"(\d{{1,2}}) {en} (\d{{4}})", rf"\1 {tr} \2", text)
+    return text
+
+
 def app_plain(content: str) -> str:
     """Mobil uygulama bülteni düz metin (white-space: pre-wrap) gösterir: markdown işaretleri ve kutu çizgileri
     telefonda bozuk görünür. Bu fonksiyon metni dar ekranda okunur sade metne çevirir."""

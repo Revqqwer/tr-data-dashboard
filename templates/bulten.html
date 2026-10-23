@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+{% set wk = '?t=weekly' if rep and rep.type == 'weekly' else '' %}
+{% set url = 'https://www.3nfinans.com/bulten/' ~ (rep.date ~ wk if rep else '') %}
+<title>{{ rep.title if rep else 'Bülten bulunamadı' }} · 3N Finans</title>
+<meta name="description" content="{{ desc }}">
+<link rel="canonical" href="{{ url }}">
+<meta name="theme-color" content="#070b16">
+<link rel="icon" href="/static/icons/favicon-32.png">
+<link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="3N Finans">
+<meta property="og:title" content="{{ rep.title if rep else '3N Finans Bülten' }}">
+<meta property="og:description" content="{{ desc }}">
+<meta property="og:url" content="{{ url }}">
+<meta property="og:image" content="https://www.3nfinans.com/static/og-image-v3.png">
+<meta property="og:locale" content="tr_TR">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ rep.title if rep else '3N Finans Bülten' }}">
+<meta name="twitter:description" content="{{ desc }}">
+<meta name="twitter:image" content="https://www.3nfinans.com/static/og-image-v3.png">
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+  :root{--bg:#070b16;--surface:#0e1424;--surface2:#131b2e;--border:#1f2a42;--text:#e8eef9;--muted:#8d9bb7;
+        --accent:#5eead4;--blue:#3b82f6;--gold:#fbbf24;--up:#34d399;--down:#fb7185}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
+  a{color:var(--accent)}
+  .banner{position:sticky;top:0;z-index:20;display:none;align-items:center;gap:10px;padding:10px 14px;
+          padding-top:calc(10px + env(safe-area-inset-top));background:var(--surface);border-bottom:1px solid var(--border)}
+  .banner.on{display:flex}
+  .banner img{width:40px;height:40px;border-radius:10px;flex:none}
+  .banner .t{flex:1;min-width:0;font-size:13px;line-height:1.3}
+  .banner .t b{display:block;font-size:14px}
+  .banner .t span{color:var(--muted)}
+  .btn{display:inline-block;padding:9px 16px;border-radius:999px;font-weight:700;font-size:14px;text-decoration:none;color:#04121a;
+       background:linear-gradient(135deg,#2dd4bf,#3b82f6);white-space:nowrap;border:0;cursor:pointer}
+  .x{background:none;border:0;color:var(--muted);font-size:20px;line-height:1;padding:4px 6px;cursor:pointer}
+  .wrap{max-width:760px;margin:0 auto;padding:22px 16px 60px}
+  .top{display:flex;align-items:center;gap:10px;margin-bottom:18px}
+  .top img{width:30px;height:30px;border-radius:8px}
+  .top a{color:var(--text);text-decoration:none;font-weight:800;letter-spacing:-.01em}
+  .top .sp{flex:1}
+  .top .lnk{font-size:13px;color:var(--muted);font-weight:500}
+  .badge{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;padding:3px 9px;border-radius:999px;
+         background:rgba(94,234,212,.12);color:var(--accent);margin-bottom:10px}
+  .badge.w{background:rgba(167,139,250,.15);color:#c4b5fd}
+  h1{font-size:23px;line-height:1.3;letter-spacing:-.01em;margin-bottom:6px}
+  .meta{font-size:13px;color:var(--muted);margin-bottom:18px}
+  .share{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px}
+  .share a,.share button{font-size:13px;padding:7px 13px;border-radius:999px;border:1px solid var(--border);background:var(--surface);
+         color:var(--text);text-decoration:none;cursor:pointer;font-family:inherit}
+  article{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:6px 20px 20px}
+  article h2{font-size:13px;letter-spacing:.09em;text-transform:uppercase;color:var(--accent);margin:22px 0 10px;
+             padding-top:16px;border-top:1px solid var(--border)}
+  article h2:first-child{border-top:0;padding-top:8px}
+  article h3{font-size:16px;margin:16px 0 6px}
+  article p{margin:0 0 10px;font-size:15.5px;overflow-wrap:anywhere}
+  article p.li{padding-left:16px;position:relative}
+  article p.li::before{content:"•";position:absolute;left:2px;color:var(--accent)}
+  article b{color:#fff}
+  .box{background:var(--surface2);border:1px solid var(--border);border-left:3px solid var(--gold);border-radius:10px;
+       padding:10px 14px;margin:6px 0 14px;font-size:14.5px}
+  .box-t{font-weight:700;color:var(--gold);margin-bottom:4px}
+  .cta{margin-top:22px;background:linear-gradient(135deg,rgba(45,212,191,.10),rgba(59,130,246,.08));border:1px solid rgba(94,234,212,.25);
+       border-radius:16px;padding:18px 20px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+  .cta img{width:52px;height:52px;border-radius:12px}
+  .cta .t{flex:1;min-width:200px}
+  .cta .t b{display:block;font-size:16px;margin-bottom:2px}
+  .cta .t span{font-size:13.5px;color:var(--muted)}
+  .arch{margin-top:28px}
+  .arch h4{font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+  .arch a{display:flex;gap:10px;justify-content:space-between;padding:9px 2px;border-bottom:1px solid var(--border);
+          color:var(--text);text-decoration:none;font-size:14px}
+  .arch a span{color:var(--muted);white-space:nowrap}
+  .arch a.cur{color:var(--accent)}
+  .disc{font-size:12px;color:var(--muted);margin-top:22px;line-height:1.55}
+  .empty{text-align:center;padding:60px 0;color:var(--muted)}
+</style>
+</head>
+<body>
+{% if not in_app %}
+<div class="banner" id="banner">
+  <img src="/static/icons/icon-192.png" alt="">
+  <div class="t"><b>3N Finans</b><span>Bülten her sabah 09:30'da bildirim olarak gelsin · Ücretsiz</span></div>
+  <a class="btn store" href="#">İndir</a>
+  <button class="x" id="bx" aria-label="Kapat">×</button>
+</div>
+{% endif %}
+
+<div class="wrap">
+  <div class="top">
+    <img src="/static/icons/icon-192.png" alt="">
+    <a href="/">3N Finans</a>
+    <span class="sp"></span>
+    <a class="lnk" href="{{ '/dashboard#market-briefs' if logged_in else '/bulten' }}">{{ 'Tüm bültenler' if logged_in else 'Son bülten' }}</a>
+  </div>
+
+{% if rep %}
+  <span class="badge {{ 'w' if rep.type == 'weekly' else '' }}">{{ 'HAFTALIK BÜLTEN' if rep.type == 'weekly' else 'GÜNLÜK BÜLTEN' }}</span>
+  <h1>{{ rep.title }}</h1>
+  <div class="meta">{{ rep.date_label }} · 3N Finans piyasa bülteni</div>
+
+  <div class="share">
+    <a href="https://twitter.com/intent/tweet?text={{ (rep.title ~ ' — 3N Finans')|urlencode }}&url={{ url|urlencode }}" target="_blank" rel="noopener">X'te paylaş</a>
+    <a href="https://t.me/share/url?url={{ url|urlencode }}&text={{ rep.title|urlencode }}" target="_blank" rel="noopener">Telegram</a>
+    <a href="https://wa.me/?text={{ (rep.title ~ '\n' ~ url)|urlencode }}" target="_blank" rel="noopener">WhatsApp</a>
+    <button id="copy">Linki kopyala</button>
+  </div>
+
+  <article>{{ body|safe }}</article>
+
+  {% if not in_app %}
+  <div class="cta" id="cta">
+    <img src="/static/icons/icon-192.png" alt="">
+    <div class="t"><b>Bülteni her sabah telefonuna al</b>
+      <span>3N Finans uygulaması: 09:30 bülten bildirimi, takip listesi ve fiyat alarmları, TEFAS fon akışları. Ücretsiz.</span></div>
+    <a class="btn store" href="{{ ios_url }}" id="ctaBtn">App Store'dan indir</a>
+  </div>
+  {% endif %}
+{% else %}
+  <div class="empty">Bu tarihte bülten bulunamadı. <a href="/bulten">Son bültene git →</a></div>
+{% endif %}
+
+  {% if archive %}
+  <div class="arch">
+    <h4>Son bültenler</h4>
+    {% for r in archive %}
+    {% set q = '?t=weekly' if r.type == 'weekly' else '' %}
+    <a href="/bulten/{{ r.date }}{{ q }}" class="{{ 'cur' if rep and r.id == rep.id else '' }}">{{ r.title }}<span>{{ 'Haftalık' if r.type == 'weekly' else r.date_label }}</span></a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="disc">Bu bülten yapay zekâ destekli olarak derlenir; bilgi amaçlıdır, yatırım tavsiyesi değildir.</div>
+</div>
+
+<script>
+(function () {
+  var IOS = {{ ios_url|tojson }}, AND = {{ android_url|tojson }};
+  var ua = navigator.userAgent || '';
+  var ios = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  var android = /Android/i.test(ua);
+  var store = ios ? IOS : (android ? AND : '');
+  document.querySelectorAll('a.store').forEach(function (a) { if (store) a.href = store; });
+
+  // Alttaki çağrı: telefonda o cihazın mağazası; Android henüz mağazada değilse ve masaüstünde App Store
+  var cta = document.getElementById('cta'), cb = document.getElementById('ctaBtn');
+  if (cta && android && !AND) cta.style.display = 'none';
+  if (cb && android && AND) cb.textContent = "Google Play'den indir";
+
+  // Üst bant: yalnızca telefonda, kapatılınca 7 gün gösterme
+  var b = document.getElementById('banner'), KEY = 'bultenBannerClosed';
+  var closed = 0; try { closed = +localStorage.getItem(KEY) || 0; } catch (e) {}
+  if (b && store && Date.now() - closed > 7 * 864e5) b.classList.add('on');
+  var bx = document.getElementById('bx');
+  if (bx) bx.onclick = function () { b.classList.remove('on'); try { localStorage.setItem(KEY, Date.now()); } catch (e) {} };
+
+  var cp = document.getElementById('copy');
+  if (cp) cp.onclick = function () {
+    var u = {{ url|tojson }};
+    (navigator.clipboard ? navigator.clipboard.writeText(u) : Promise.reject()).then(
+      function () { cp.textContent = 'Kopyalandı ✓'; },
+      function () { prompt('Linki kopyala:', u); });
+  };
+})();
+</script>
+</body>
+</html>

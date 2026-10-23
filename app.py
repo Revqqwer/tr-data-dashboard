@@ -1602,9 +1602,10 @@ _PUBLIC_EXACT = {
     '/api/subscribe', '/api/track', '/api/subscribers/count',
     '/auth/discord', '/auth/discord/callback', '/auth/discord/setup',
     '/portfoy-paylas', '/api/izleyici/submit',   # izleyici portföy gönderimi (üyeliksiz)
+    '/bulten',   # paylaşılan bülten linkleri herkese açık (X / Telegram / WhatsApp)
 }
 _PUBLIC_PREFIXES = (
-    '/static/', '/admin/', '/confirm-subscription/', '/unsubscribe/', '/e/o/', '/favicon',
+    '/static/', '/admin/', '/confirm-subscription/', '/unsubscribe/', '/e/o/', '/favicon', '/bulten/',
     '/api/m/',   # mağaza uygulamasının API'si (herkese açık veri)
 )
 
@@ -1667,6 +1668,42 @@ def app_preview():
     return resp
 
 
+@app.route('/bulten')
+@app.route('/bulten/<date>')
+def public_brief(date=None):
+    """Girişsiz okunabilen bülten sayfası (paylaşım linki). Telefondan girene uygulama bandı gösterir.
+    /bulten → en son bülten · /bulten/2026-10-24 → o günün bülteni (?t=weekly → haftalık)."""
+    import re as _re
+    from tefas_backend.market_agent.reports import get_by_date, get_reports, web_html, app_plain
+    t = request.args.get('t') if request.args.get('t') in ('daily', 'weekly') else None
+    if date:
+        if not _re.fullmatch(r'\d{4}-\d{2}-\d{2}', date):
+            return redirect('/bulten')
+        rep = get_by_date(date, t)
+    else:
+        recent = get_reports(limit=2)
+        rep = max(recent, key=lambda r: r.get('created_at', '')) if recent else None
+    archive = sorted(get_reports(limit=16), key=lambda r: r.get('created_at', ''), reverse=True)
+    import json as _j
+    stores = {}
+    try:
+        with open(os.path.join(app.root_path, 'data', 'app_version.json'), encoding='utf-8') as f:
+            stores = _j.load(f)
+    except Exception:
+        pass
+    desc = ''
+    if rep:
+        lines = [l.strip() for l in app_plain(rep.get('content', '')).split('\n')]
+        desc = ' '.join(l for l in lines if l and not l.startswith('▍') and not l.startswith('📌'))
+        desc = (desc[:197] + '…') if len(desc) > 200 else desc
+    return render_template(
+        'bulten.html', rep=rep, body=web_html(rep.get('content', '')) if rep else '', desc=desc,
+        archive=archive, ios_url=stores.get('ios_url', ''),
+        # Android mağazada yayına çıkınca .env'de BULTEN_ANDROID_BANNER=1 yapılır
+        android_url=stores.get('android_url', '') if os.environ.get('BULTEN_ANDROID_BANNER') == '1' else '',
+        in_app=_is_native_app(), logged_in=bool(session.get('logged_in'))), 200 if rep else 404
+
+
 @app.route('/sitemap.xml')
 def sitemap():
     from flask import Response
@@ -1677,6 +1714,14 @@ def sitemap():
         ('/register', '0.7', 'monthly'),
         ('/login', '0.6', 'monthly'),
     ]
+    try:
+        from tefas_backend.market_agent.reports import get_reports
+        pages.append(('/bulten', '0.9', 'daily'))
+        for r in get_reports(limit=60):
+            q = '?t=weekly' if r.get('type') == 'weekly' else ''
+            pages.append((f"/bulten/{r['date']}{q}", '0.6', 'never'))
+    except Exception:
+        pass
     xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
     xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
     for loc, pri, freq in pages:

@@ -75,10 +75,12 @@ def main():
 
     if DRY:
         print('[dry] gönderilecek: Kahveni kap gel!', body, '—', rep.get('title'))
-        print('[dry] telegram: ☀️ Günaydın, ' + body[0].lower() + body[1:])
+    link = f"https://www.3nfinans.com/bulten/{today}" + ('?t=weekly' if rep.get('type') == 'weekly' else '')
+    if DRY:
+        print('[dry] telegram: ☀️ Günaydın, ' + body[0].lower() + body[1:] + ' | ' + link)
         return
 
-    _telegram(today, 'Günaydın, ' + body[0].lower() + body[1:])
+    _telegram(today, 'Günaydın, ' + body[0].lower() + body[1:] + '\n' + link)
 
     import push
     res = push.send_push(
