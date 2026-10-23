@@ -1359,6 +1359,18 @@ def api_fi_class_funds():
                                           request.args.get('scope', 'monthly')))
 
 
+@app.route('/api/fonicerik/big-moves')
+def api_fi_big_moves():
+    import fon_icerik
+    try:
+        min_pct = max(1.0, min(100.0, float(request.args.get('min_pct', 10))))
+        min_tl = max(0.0, float(request.args.get('min_tl', 1e6)))
+    except ValueError:
+        min_pct, min_tl = 10.0, 1e6
+    return jsonify(fon_icerik.big_moves(request.args.get('period') or None, min_pct, min_tl,
+                                        request.args.get('cls') or None, request.args.get('q') or None))
+
+
 @app.route('/api/fonicerik/fund')
 def api_fi_fund():
     import fon_icerik

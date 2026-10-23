@@ -429,6 +429,67 @@ def top_moves(period: str = None, limit: int = 25, cls: str = None, q: str = Non
         con.close()
 
 
+def big_moves(period: str = None, min_pct: float = 10.0, min_tl: float = 1e6, cls: str = None, q: str = None,
+              limit: int = 300) -> dict:
+    """
+    Fonlardaki büyük hareketler: bir fonun o ay TEK hissede, fon büyüklüğüne göre eşik üstü alım/satımı.
+    Δ değer = Δ lot × dönem sonu fiyatı (fondaki değer ÷ lot; çıkışta o ay diğer fonlardaki fiyat, yoksa önceki ay).
+    Oran = |Δ değer| ÷ fon büyüklüğü (KAP raporundaki fon toplam değeri). Yalnızca iki ayda da raporu olan fonlar.
+    """
+    con = _con()
+    if not con:
+        return {'empty': True}
+    try:
+        periods = _periods(con)
+        per = period if period in periods else (periods[0] if periods else None)
+        prev = _prev(periods, per) if per else None
+        if not per or not prev:
+            return {'empty': True, 'periods': periods}
+        fv = {r[0]: r[1] for r in con.execute(
+            'SELECT a.fund_code, a.fund_value FROM kap_reports a JOIN kap_reports b ON a.fund_code=b.fund_code AND b.period=? '
+            'WHERE a.period=? AND a.fund_value > 0', (prev, per))}
+        names = {r[0]: r[1] for r in con.execute('SELECT code, name FROM kap_funds')}
+        if cls:
+            fv = {c: v for c, v in fv.items() if classify(names.get(c)) == cls}
+        px = {r[0]: r[1] for r in con.execute(
+            'SELECT stock, SUM(value) / SUM(lots) FROM kap_holdings WHERE period=? AND lots > 0 GROUP BY stock', (per,))}
+        rows = con.execute("""
+            SELECT fund_code, stock, MAX(name) name,
+                   SUM(CASE WHEN period=? THEN lots ELSE 0 END) cl, SUM(CASE WHEN period=? THEN lots ELSE 0 END) pl,
+                   SUM(CASE WHEN period=? THEN value ELSE 0 END) cv, SUM(CASE WHEN period=? THEN value ELSE 0 END) pv,
+                   SUM(CASE WHEN period=? THEN weight_pct ELSE 0 END) cw, SUM(CASE WHEN period=? THEN weight_pct ELSE 0 END) pw
+            FROM kap_holdings WHERE period IN (?, ?) GROUP BY fund_code, stock
+        """, (per, prev, per, prev, per, prev, per, prev)).fetchall()
+        qq = (q or '').strip().upper()
+        out = []
+        for r in rows:
+            f = r['fund_code']
+            size = fv.get(f)
+            d = (r['cl'] or 0) - (r['pl'] or 0)
+            if not size or not d:
+                continue
+            price = (r['cv'] / r['cl']) if r['cl'] else (px.get(r['stock']) or ((r['pv'] / r['pl']) if r['pl'] else None))
+            if not price:
+                continue
+            dv = d * price
+            pct = abs(dv) / size * 100
+            if pct < min_pct or abs(dv) < min_tl:
+                continue
+            if qq and qq not in r['stock'] and qq not in f and qq not in (names.get(f) or '').upper():
+                continue
+            out.append({'fund': f, 'fund_name': names.get(f), 'fclass': classify(names.get(f)), 'fund_value': size,
+                        'code': r['stock'], 'name': r['name'], 'prev_lots': r['pl'], 'lots': r['cl'], 'delta_lots': d,
+                        'price': price, 'delta_value': dv, 'pct': pct, 'prev_weight': r['pw'], 'weight': r['cw'],
+                        'status': 'new' if not r['pl'] else 'exit' if not r['cl'] else 'up' if d > 0 else 'down'})
+        out.sort(key=lambda x: -x['pct'])
+        return {'empty': False, 'period': per, 'prev': prev, 'periods': periods, 'comparable_funds': len(fv),
+                'min_pct': min_pct, 'min_tl': min_tl, 'count': len(out),
+                'n_buy': sum(1 for x in out if x['delta_value'] > 0), 'n_sell': sum(1 for x in out if x['delta_value'] < 0),
+                'funds': len({x['fund'] for x in out}), 'moves': out[:limit]}
+    finally:
+        con.close()
+
+
 def class_funds(cls: str, period: str = None, scope: str = 'monthly') -> dict:
     """Bir sınıftaki fonlar: KAP'taki toplam, raporu olanlar ve hisse portföyü okunanlar (liste + sayaçlar)."""
     if scope == 'asof':
