@@ -152,7 +152,7 @@
       <div class="row" style="justify-content:space-between;margin-bottom:8px"><h2 style="margin:0">Büyük hareketler <span class="dim" id="bigCount" style="text-transform:none;letter-spacing:0"></span></h2></div>
       <div class="tscroll"><table id="bigTbl"></table></div>
       <div class="hint">Bir fonun o ay <b>tek bir hissedeki</b> alım/satımının fon büyüklüğüne oranı. Δ değer = Δ lot × dönem sonu fiyatı (yaklaşık; ay içi işlem fiyatları raporda yok).
-        Fon büyüklüğü KAP raporundaki fon toplam değeridir. Yalnızca iki ayda da raporu olan fonlar karşılaştırılır. Fon ya da hisse koduna tıklayınca ilgili sayfa açılır.</div>
+        Fon büyüklüğü: KAP raporundaki fon toplam değeri; raporda yoksa TEFAS'taki ay sonu portföy büyüklüğü. Yalnızca iki ayda da raporu olan fonlar karşılaştırılır. Fon ya da hisse koduna tıklayınca ilgili sayfa açılır.</div>
     </div>
   </div>
 
@@ -386,7 +386,7 @@ async function showFund(code) {
   $('fundOut').innerHTML = `
     <div class="stats">
       <div class="stat"><div class="lbl">${esc(d.fund.code)} · ${pname(d.period)}</div><div class="val" style="font-size:15px">${esc(d.fund.name)}</div><div class="note">${clsTag(d.fund.fclass)}</div></div>
-      <div class="stat"><div class="lbl">Fon büyüklüğü</div><div class="val">${rep.fund_value ? tl(rep.fund_value) + ' TL' : '—'}</div></div>
+      <div class="stat"><div class="lbl">Fon büyüklüğü</div><div class="val">${(rep.fund_value || d.fund_size) ? tl(rep.fund_value || d.fund_size) + ' TL' : '—'}</div></div>
       <div class="stat"><div class="lbl">Hisse oranı</div><div class="val">%${f2(rep.stock_pct)}</div><div class="note">${d.holdings.length} hisse</div></div>
       <div class="stat"><div class="lbl">Yeni giriş / çıkış</div><div class="val"><span class="pos">${d.holdings.filter(h => h.status === 'new').length}</span> / <span class="neg">${d.exited.length}</span></div><div class="note">${d.prev ? pname(d.prev) + ' → ' + pname(d.period) : 'önceki ay yok'}</div></div>
       ${d.prev ? (() => { const v = [...d.holdings, ...d.exited].map(h => h.delta_value || 0), buy = v.filter(x => x > 0).reduce((a, x) => a + x, 0), sell = v.filter(x => x < 0).reduce((a, x) => a + x, 0);

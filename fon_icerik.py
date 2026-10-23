@@ -429,12 +429,42 @@ def top_moves(period: str = None, limit: int = 25, cls: str = None, q: str = Non
         con.close()
 
 
+TEFAS_DB = os.path.join(_ROOT, 'data', 'tefas.db')
+
+
+def _fund_sizes(con, per: str) -> dict:
+    """{fon: ay sonu fon büyüklüğü TL}. KAP raporlarının çoğunda fon toplam değeri boş geldiği için sırayla:
+    1) KAP rapordaki fund_value, 2) TEFAS ay sonu portföy büyüklüğü (fund_daily.aum),
+    3) hisse toplamı ÷ hisse oranı (stock_pct)."""
+    out, stock_based = {}, {}
+    for r in con.execute("""SELECT r.fund_code, r.fund_value, r.stock_pct,
+                                   (SELECT SUM(value) FROM kap_holdings h WHERE h.fund_code=r.fund_code AND h.period=r.period) sv
+                            FROM kap_reports r WHERE r.period=?""", (per,)):
+        if r['fund_value'] and r['fund_value'] > 0:
+            out[r['fund_code']] = r['fund_value']
+        elif r['sv'] and r['stock_pct'] and r['stock_pct'] > 1:
+            stock_based[r['fund_code']] = r['sv'] / (r['stock_pct'] / 100)
+    if os.path.exists(TEFAS_DB):
+        try:
+            t = sqlite3.connect(f'file:{TEFAS_DB}?mode=ro', uri=True, timeout=30)
+            last = t.execute('SELECT MAX(trade_date) FROM fund_daily WHERE trade_date <= ?', (per + '-31',)).fetchone()[0]
+            if last:
+                for code, aum in t.execute('SELECT code, aum FROM fund_daily WHERE trade_date=? AND aum > 0', (last,)):
+                    out.setdefault(code, aum)
+            t.close()
+        except sqlite3.Error:
+            pass
+    for code, v in stock_based.items():
+        out.setdefault(code, v)
+    return out
+
+
 def big_moves(period: str = None, min_pct: float = 10.0, min_tl: float = 1e6, cls: str = None, q: str = None,
               limit: int = 300) -> dict:
     """
     Fonlardaki büyük hareketler: bir fonun o ay TEK hissede, fon büyüklüğüne göre eşik üstü alım/satımı.
     Δ değer = Δ lot × dönem sonu fiyatı (fondaki değer ÷ lot; çıkışta o ay diğer fonlardaki fiyat, yoksa önceki ay).
-    Oran = |Δ değer| ÷ fon büyüklüğü (KAP raporundaki fon toplam değeri). Yalnızca iki ayda da raporu olan fonlar.
+    Oran = |Δ değer| ÷ ay sonu fon büyüklüğü (_fund_sizes). Yalnızca iki ayda da raporu olan fonlar.
     """
     con = _con()
     if not con:
@@ -445,9 +475,10 @@ def big_moves(period: str = None, min_pct: float = 10.0, min_tl: float = 1e6, cl
         prev = _prev(periods, per) if per else None
         if not per or not prev:
             return {'empty': True, 'periods': periods}
-        fv = {r[0]: r[1] for r in con.execute(
-            'SELECT a.fund_code, a.fund_value FROM kap_reports a JOIN kap_reports b ON a.fund_code=b.fund_code AND b.period=? '
-            'WHERE a.period=? AND a.fund_value > 0', (prev, per))}
+        sizes = _fund_sizes(con, per)
+        both = [r[0] for r in con.execute(
+            'SELECT a.fund_code FROM kap_reports a JOIN kap_reports b ON a.fund_code=b.fund_code AND b.period=? WHERE a.period=?', (prev, per))]
+        fv = {c: sizes[c] for c in both if sizes.get(c)}
         names = {r[0]: r[1] for r in con.execute('SELECT code, name FROM kap_funds')}
         if cls:
             fv = {c: v for c, v in fv.items() if classify(names.get(c)) == cls}
@@ -597,6 +628,7 @@ def fund_detail(code: str, period: str = None) -> dict:
         for r in con.execute('SELECT period, stock, weight_pct FROM kap_holdings WHERE fund_code=?', (code,)):
             weights.setdefault(r['stock'], {})[r['period']] = r['weight_pct']
         return {'empty': False, 'fund': {'code': f['code'], 'name': f['name'], 'type': f['type'], 'fclass': classify(f['name'])}, 'period': per, 'prev': prev,
+                'fund_size': _fund_sizes(con, per).get(code),
                 'periods': periods, 'reports': [dict(r) for r in rep], 'holdings': holdings, 'exited': exited, 'weights': weights}
     finally:
         con.close()
