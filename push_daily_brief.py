@@ -30,13 +30,14 @@ TG_MARK = MARK.with_name('.daily_brief_telegram_sent')
 
 def _telegram(today: str, text: str):
     """"3N Finans - Market Review" Telegram kanalına kısa duyuru (günde bir kez).
-    env: MARKET_TELEGRAM_BOT_TOKEN (bot), MARKET_REVIEW_TELEGRAM_CHAT_ID (kanal).
-    MARKET_TELEGRAM_CHAT_ID başka bir gruba (3N Crypto) ait — burada KULLANILMAZ."""
+    Bot: @n3finans_yayin_bot. env: MARKET_REVIEW_TELEGRAM_BOT_TOKEN, MARKET_REVIEW_TELEGRAM_CHAT_ID.
+    (MARKET_TELEGRAM_* başka bot/grup — 3N Crypto — burada KULLANILMAZ.)
+    parse_mode gönderilmez: metindeki * / _ tüm mesajı reddettirir."""
     import os
     import requests
-    token, chat = os.environ.get('MARKET_TELEGRAM_BOT_TOKEN', ''), os.environ.get('MARKET_REVIEW_TELEGRAM_CHAT_ID', '')
+    token, chat = os.environ.get('MARKET_REVIEW_TELEGRAM_BOT_TOKEN', ''), os.environ.get('MARKET_REVIEW_TELEGRAM_CHAT_ID', '')
     if not token or not chat:
-        print('telegram: MARKET_TELEGRAM_BOT_TOKEN / MARKET_REVIEW_TELEGRAM_CHAT_ID eksik, atlandı')
+        print('telegram: MARKET_REVIEW_TELEGRAM_BOT_TOKEN / MARKET_REVIEW_TELEGRAM_CHAT_ID eksik, atlandı')
         return
     if TG_MARK.exists() and TG_MARK.read_text().strip() == today:
         print('telegram: bugün zaten gönderildi')
