@@ -93,9 +93,9 @@
         <input id="code" type="text" placeholder="THYAO" maxlength="10"
           style="width:96px;margin-left:4px;padding:6px 9px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);text-transform:uppercase"></label>
       <button class="chip" id="codeClear">Tümüne dön</button>
-      <span id="unitRow" class="row hidden" style="margin-left:8px;gap:6px">
+      <span id="unitRow" class="row" style="margin-left:8px;gap:6px">
         <span class="dim" style="font-size:12px">Birim:</span>
-        <button class="chip on" data-u="tl">TL</button><button class="chip" data-u="lot">Lot</button>
+        <button class="chip on" data-u="tl">TL</button><button class="chip" data-u="usd">USD</button><button class="chip hidden" data-u="lot" id="lotChip">Lot</button>
       </span>
     </div>
     <div class="chartbox"><canvas id="cumChart"></canvas></div>
@@ -245,23 +245,29 @@ const lotf = (v, signed) => {
   if (a >= 1e4) return s + (a / 1e3).toFixed(0) + ' bin';
   return s + nf.format(a);
 };
-let unit = 'tl';                                   // yalnızca tek hissede 'lot' seçilebilir; genelde her zaman TL
+const usdf = (v, sg) => tl(v, sg).replace(/^([+−]?)/, '$1$$');   // −$1,2 mr
+let unit = 'tl';                                   // tl | usd her zaman; 'lot' yalnızca tek hissede
 
 async function loadCum() {
   const code = $('code').value.trim().toUpperCase();
-  if (!code) unit = 'tl';                          // hisse boşaltılınca TL'ye dön
-  $('unitRow').classList.toggle('hidden', !code);
+  if (!code && unit === 'lot') unit = 'tl';        // hisse boşaltılınca lot'tan TL'ye dön
+  $('lotChip').classList.toggle('hidden', !code);
   document.querySelectorAll('#unitRow .chip').forEach(b => b.classList.toggle('on', b.dataset.u === unit));
   const q = new URLSearchParams({start: range.start, end: range.end, limit: 10, funds: $('funds').checked ? '1' : '0'});
   if (code) q.set('code', code);
+  if (unit === 'usd') q.set('usd', '1');
   const d = await (await fetch(`${API}/data?` + q)).json();
-  const lot = unit === 'lot';
-  const s = d.cum.series, key = lot ? 'cum_lot' : 'cum', dkey = lot ? 'net_lot' : 'net';
-  const fmt = (v, sg) => lot ? lotf(v, sg) + ' lot' : tl(v, sg) + ' TL';
+  let u = unit;
+  if (u === 'usd' && d.cum.series.length && d.cum.series[0].cum_usd == null) u = 'tl';   // kur alınamadıysa TL göster
+  const lot = u === 'lot', usd = u === 'usd';
+  const s = d.cum.series, key = lot ? 'cum_lot' : usd ? 'cum_usd' : 'cum', dkey = lot ? 'net_lot' : usd ? 'net_usd' : 'net';
+  const fmt = (v, sg) => lot ? lotf(v, sg) + ' lot' : usd ? usdf(v, sg) : tl(v, sg) + ' TL';
   const up = s.length && s[s.length - 1][key] >= 0, col = up ? css('--green') : css('--red');
-  $('cumTitle').textContent = 'Kümülatif net alım / satım (' + (lot ? 'lot' : 'TL') + ')';
+  $('cumTitle').textContent = 'Kümülatif net alım / satım (' + (lot ? 'lot' : usd ? 'USD' : 'TL') + ')';
   $('cumHint').textContent = lot
     ? 'Seçili aralığın başından itibaren günlük net lot adetlerinin toplamı (+ net alıcı, − net satıcı). Fiyat değiştikçe aynı lot farklı TL eder; bu yüzden TL ve lot çizgileri ters yönde gidebilir.'
+    : usd ? "Her günün net TL'si o günün USD/TRY kapanışına (TradingView) bölünüp toplanır (+ net alıcı, − net satıcı). Kur yükseldikçe aynı TL daha az dolar eder; bu yüzden TL ve USD çizgileri farklı seyredebilir."
+    : unit === 'usd' ? 'USD/TRY kuru şu an alınamadı; grafik TL olarak gösteriliyor.'
     : "Seçili aralığın başından itibaren günlük net TL'lerin toplamı (+ net alıcı, − net satıcı).";
   mk('cumChart', {
     type: 'line',
@@ -269,9 +275,9 @@ async function loadCum() {
     options: {responsive: true, maintainAspectRatio: false, interaction: {mode: 'index', intersect: false},
       plugins: {legend: {display: false}, tooltip: {callbacks: {
         label: c => (code ? code + ' ' : '') + 'kümülatif: ' + fmt(c.parsed.y, true),
-        afterLabel: c => 'Günlük: ' + fmt(s[c.dataIndex][dkey], true)}}},
+        afterLabel: c => 'Günlük: ' + fmt(s[c.dataIndex][dkey], true) + (usd ? ' · USD/TRY ' + px(s[c.dataIndex].usdtry) : '')}}},
       scales: {x: {ticks: {color: css('--muted'), maxTicksLimit: 9, maxRotation: 0}, grid: {color: css('--grid')}},
-               y: {ticks: {color: css('--muted'), callback: v => lot ? lotf(v) : tl(v)}, grid: {color: css('--grid')}}}}
+               y: {ticks: {color: css('--muted'), callback: v => lot ? lotf(v) : usd ? usdf(v) : tl(v)}, grid: {color: css('--grid')}}}}
   });
   tbl($('tBuy'), d.top.bought); tbl($('tSell'), d.top.sold);
 }

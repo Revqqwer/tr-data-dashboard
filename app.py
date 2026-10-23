@@ -1165,6 +1165,44 @@ def admin_bofa_page(secret):
     return render_template('admin_bofa.html', secret=secret)
 
 
+_USDTRY_CACHE = {'data': {}, 'ts': 0.0}
+
+
+def _usdtry_daily() -> dict:
+    """TradingView FX_IDC:USDTRY günlük kapanışları {YYYY-MM-DD: kur}. 1 saat cache."""
+    import time
+    if _USDTRY_CACHE['data'] and time.time() - _USDTRY_CACHE['ts'] < 3600:
+        return _USDTRY_CACHE['data']
+    try:
+        from tv_ws import _fetch_tv_ws
+        from tefas_api import _fetch_with_timeout
+        data = _fetch_with_timeout(lambda: _fetch_tv_ws('USDTRY', 'FX_IDC', n_bars=1500)) or {}
+    except Exception:
+        data = {}
+    if data:
+        _USDTRY_CACHE.update(data=data, ts=time.time())
+    return data or _USDTRY_CACHE['data']
+
+
+def _add_usd(cum: dict) -> None:
+    """Seriye günlük/kümülatif USD ekler: her günün net TL'si o günün USDTRY kapanışına bölünür
+    (o gün kur yoksa en yakın önceki gün). Kur alınamazsa seri olduğu gibi kalır."""
+    import bisect
+    fx = _usdtry_daily()
+    if not fx or not cum.get('series'):
+        return
+    days = sorted(fx)
+    run = 0.0
+    for p in cum['series']:
+        i = bisect.bisect_right(days, p['date']) - 1
+        rate = fx[days[i]] if i >= 0 else fx[days[0]]
+        p['usdtry'] = rate
+        p['net_usd'] = p['net'] / rate
+        run += p['net_usd']
+        p['cum_usd'] = run
+    cum['total_usd'] = run
+
+
 def _bofa_data_payload():
     """Kümülatif net seri + en çok aldığı/sattığı tablosu (bofa_db.py, SQLite)."""
     import bofa_db
@@ -1179,9 +1217,12 @@ def _bofa_data_payload():
         limit = max(1, min(100, int(request.args.get('limit', 20))))
     except ValueError:
         limit = 20
+    cum = bofa_db.cumulative(start, end, funds, code)
+    if request.args.get('usd') == '1':
+        _add_usd(cum)
     return {
         'meta': m, 'start': start, 'end': end,
-        'cum': bofa_db.cumulative(start, end, funds, code),
+        'cum': cum,
         'top': bofa_db.top(start, end, funds, limit, 'lot' if request.args.get('by') == 'lot' else 'tl'),
     }
 
