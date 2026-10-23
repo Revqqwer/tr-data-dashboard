@@ -514,9 +514,11 @@ def login():
         session['logged_in'] = True
         session['username']  = user['username']
         session['user_name'] = user['name'] or user['username']
-        return redirect(url_for('index'))
+        return redirect(_safe_next(session.pop('next', None)) or url_for('index'))
     if session.get('logged_in'):
         return redirect(url_for('index'))
+    if _safe_next(request.args.get('next')):
+        session['next'] = request.args.get('next')
     return render_template('login.html', error=False)
 
 
@@ -552,8 +554,10 @@ def register():
                     session['logged_in'] = True
                     session['username']  = username
                     session['user_name'] = username
-                    return redirect(url_for('dashboard'))
+                    return redirect(_safe_next(session.pop('next', None)) or url_for('dashboard'))
         return render_template('register.html', error=error)
+    if _safe_next(request.args.get('next')):
+        session['next'] = request.args.get('next')
     return render_template('register.html', error=None)
 
 
@@ -1591,23 +1595,8 @@ def torba_img(item_id):
     return resp
 
 
-# ── Giriş kapısı: girişsiz kullanıcı sadece public yolları açabilir ──────────
-_PUBLIC_EXACT = {
-    '/', '/login', '/register', '/logout', '/forgot-password', '/reset-password',
-    '/sitemap.xml', '/robots.txt', '/gizlilik', '/destek',
-    # PWA: giriş yapmamış ziyaretçi de kurabilmeli. Bunlar login'e yönlendirilirse
-    # tarayıcı manifest yerine HTML alır, site "kurulabilir" sayılmaz ve service
-    # worker hiç kaydolmaz.
-    '/sw.js', '/manifest.json',
-    '/api/subscribe', '/api/track', '/api/subscribers/count',
-    '/auth/discord', '/auth/discord/callback', '/auth/discord/setup',
-    '/portfoy-paylas', '/api/izleyici/submit',   # izleyici portföy gönderimi (üyeliksiz)
-    '/bulten',   # paylaşılan bülten linkleri herkese açık (X / Telegram / WhatsApp)
-}
-_PUBLIC_PREFIXES = (
-    '/static/', '/admin/', '/confirm-subscription/', '/unsubscribe/', '/e/o/', '/favicon', '/bulten/',
-    '/api/m/',   # mağaza uygulamasının API'si (herkese açık veri)
-)
+# ── Giriş kapısı: site geneli açık; yalnızca _MEMBER_PREFIXES / _ACCOUNT_PREFIXES giriş ister (aşağıda) ──
+# Admin yolları (/admin/..., /api/bofa-sync/...) ve yazma uçları (_require_auth) kendi kontrolünü yapar.
 
 
 # iOS/Android uygulaması kendini User-Agent'a eklenen etiketle tanıtır (capacitor.config appendUserAgent).
@@ -1621,24 +1610,51 @@ def _is_native_app() -> bool:
     return _NATIVE_UA_TAG in (request.headers.get('User-Agent') or '')
 
 
+# ── Üyelik (ücretsiz) isteyen bölümler — 2026-10-23 kararı: site geneli açık, yalnızca bunlar üyeye özel ──
+# BOFA Takip · BIST Portföy · Fon İçerikleri · TEFAS fonlarına para girişi (TEFAS Flow: Liderboard/Akış/Fon Ara/İstatistikler)
+_MEMBER_PREFIXES = (
+    '/bofa', '/api/bofa/',
+    '/fon-icerik', '/api/fonicerik/',
+    '/api/portfolio',                                   # BIST Portföy verisi
+    '/api/leaderboard', '/api/flow/', '/api/funds', '/api/categories', '/api/stats/', '/api/custom-funds',
+)
+# /tefas/ altında herkese açık kalanlar: Kripto ETF, Global Piyasa ve derlenmiş dosyalar
+_TEFAS_OPEN = ('/tefas/crypto', '/tefas/global', '/tefas/assets/')
+# Hesaba bağlı / gizli sayfalar (üyelik ister — "gizlenmesi gerekenler")
+_ACCOUNT_PREFIXES = ('/profile', '/carkifelek', '/api/wheel/', '/torba', '/api/torba/', '/uygulama-onizleme')
+
+
+def _needs_member(p: str) -> bool:
+    if p.startswith(_MEMBER_PREFIXES) or p.startswith(_ACCOUNT_PREFIXES):
+        return True
+    if p == '/tefas' or p.startswith('/tefas/'):
+        return not p.startswith(_TEFAS_OPEN) and '.' not in p.rsplit('/', 1)[-1]   # favicon vb. dosyalar açık
+    return False
+
+
+def _safe_next(p) -> str | None:
+    return p if isinstance(p, str) and p.startswith('/') and not p.startswith('//') and '\\' not in p else None
+
+
 @app.before_request
 def _require_login():
-    """Giriş yapmamış kullanıcıyı public olmayan tüm yollarda login'e yönlendir."""
+    """Site geneli herkese açık; yalnızca üye bölümleri (ücretsiz üyelik) ve hesap sayfaları giriş ister."""
     if session.get('logged_in'):
         return  # girişli → serbest
     p = request.path
     if _is_native_app() and not p.startswith(_ACCOUNT_ONLY_PREFIXES):
         return  # mağaza uygulaması → misafir erişimi
-    if p in _PUBLIC_EXACT or p.startswith(_PUBLIC_PREFIXES):
-        return  # public yol → serbest
     if p == '/carkifelek/admin':
         return  # kendi ID/şifre kapısı var, site girişi gerekmez
     if session.get('wheel_admin') and (p.startswith('/carkifelek') or p.startswith('/api/wheel/')):
         return  # çarkıfelek yöneticisi → site hesabı olmadan da serbest
-    # Girişsiz + public değil → engelle
+    if not _needs_member(p):
+        return  # herkese açık
     if p.startswith('/api/'):
-        return jsonify({'error': 'unauthorized'}), 401
-    return redirect(url_for('login'))
+        return jsonify({'error': 'unauthorized', 'message': 'Bu bölüm üyelere özel (üyelik ücretsiz).'}), 401
+    # İframe içinden gelen istek (panel) → panelde zaten "Ücretsiz üye ol" kartı var; tam sayfa ise girişe yönlendir
+    session['next'] = _safe_next(request.full_path.rstrip('?'))
+    return redirect(url_for('login', uye=1))
 
 
 @app.route('/')
@@ -1760,12 +1776,12 @@ def robots():
 
 @app.route('/dashboard')
 def dashboard():
-    if not session.get('logged_in') and not _is_native_app():
-        return redirect(url_for('login'))
+    # Panel herkese açık; üye bölümlerinde misafire "Ücretsiz üye ol" kartı gösterilir (index.html)
     return render_template('index.html',
                            username=session.get('username', ''),
                            user_name=session.get('user_name', ''),
-                           logged_in=session.get('logged_in', False))
+                           logged_in=session.get('logged_in', False),
+                           guest_gate=not session.get('logged_in') and not _is_native_app())
 
 
 _PORTFOLIO_JSON      = os.path.join(os.path.dirname(__file__), 'data', 'portfolio.json')
