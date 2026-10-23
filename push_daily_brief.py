@@ -25,6 +25,32 @@ SEND_AFTER = (9, 30)
 MARK = Path(__file__).resolve().parent / 'data' / '.daily_brief_push_sent'
 
 
+TG_MARK = MARK.with_name('.daily_brief_telegram_sent')
+
+
+def _telegram(today: str, text: str):
+    """"3N Finans - Market Review" Telegram kanalına kısa duyuru (günde bir kez).
+    env: MARKET_TELEGRAM_BOT_TOKEN, MARKET_TELEGRAM_CHAT_ID"""
+    import os
+    import requests
+    token, chat = os.environ.get('MARKET_TELEGRAM_BOT_TOKEN', ''), os.environ.get('MARKET_TELEGRAM_CHAT_ID', '')
+    if not token or not chat:
+        print('telegram: MARKET_TELEGRAM_BOT_TOKEN / MARKET_TELEGRAM_CHAT_ID eksik, atlandı')
+        return
+    if TG_MARK.exists() and TG_MARK.read_text().strip() == today:
+        print('telegram: bugün zaten gönderildi')
+        return
+    try:
+        r = requests.post(f'https://api.telegram.org/bot{token}/sendMessage',
+                          data={'chat_id': chat, 'text': '☀️ ' + text}, timeout=20)
+        print('telegram:', 'ok' if r.ok else r.text[:200])
+        if r.ok:
+            TG_MARK.parent.mkdir(parents=True, exist_ok=True)
+            TG_MARK.write_text(today)
+    except Exception as e:
+        print('telegram hatası:', e)
+
+
 def main():
     now = datetime.now(TZ)
     today = now.strftime('%Y-%m-%d')
@@ -47,7 +73,10 @@ def main():
 
     if DRY:
         print('[dry] gönderilecek: Kahveni kap gel!', body, '—', rep.get('title'))
+        print('[dry] telegram: ☀️ Günaydın, ' + body[0].lower() + body[1:])
         return
+
+    _telegram(today, 'Günaydın, ' + body[0].lower() + body[1:])
 
     import push
     res = push.send_push(
