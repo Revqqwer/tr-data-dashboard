@@ -106,7 +106,14 @@ body.sidebar-collapsed .sb-toggle-btn svg { transform: rotate(180deg); }
 .sidebar-logo { padding: 24px 20px 20px; border-bottom: 1px solid var(--sb-border); }
 .logo-text { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; color: var(--sb-text); }
 .logo-accent { color: #6ba3ff; }
-.sidebar-nav { padding: 12px 12px; flex: 1; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
+.sidebar-nav { padding: 12px 6px 12px 12px; flex: 1; display: flex; flex-direction: column; gap: 2px; overflow-y: auto;
+  /* Bölüm açılıp menü taşınca çıkan kaydırma çubuğu genişliği daraltıp yazıları kaydırmasın:
+     ince çubuk + yeri her zaman ayrılmış (açık/kapalı fark etmez) */
+  scrollbar-gutter: stable; scrollbar-width: thin; scrollbar-color: rgba(148,163,184,.25) transparent; }
+.sidebar-nav::-webkit-scrollbar { width: 6px; }
+.sidebar-nav::-webkit-scrollbar-track { background: transparent; }
+.sidebar-nav::-webkit-scrollbar-thumb { background: rgba(148,163,184,.25); border-radius: 3px; }
+.sidebar-nav::-webkit-scrollbar-thumb:hover { background: rgba(148,163,184,.45); }
 .nav-section { margin-top: 8px; }
 .nav-section-title {
   display: flex; align-items: center; gap: 10px;
