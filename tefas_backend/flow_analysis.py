@@ -445,6 +445,9 @@ def category_history(
         dc = day_cat.get(d, {})
         for cat in top_cats:
             row[cat] = dc.get(cat, 0.0)
+        # Tüm kategorilerin günlük toplamı — grafik "Diğer kategoriler"i (toplam − ilk top_n) buradan hesaplar.
+        # Eksik olursa ön yüz toplamı 0 sayar ve çizgi, çizilen kategorilerin aynalı tersine döner.
+        row["total"] = round(sum(dc.values()), 0)
         result.append(row)
 
     return result
