@@ -1696,6 +1696,17 @@ def app_preview():
     return resp
 
 
+@app.context_processor
+def _asset_version():
+    """Şablonlarda /static dosyalarına ?v=<değişme zamanı> — tarayıcı önbelleği (4 saat) yeni sürümü kaçırmasın."""
+    def asset_v(rel: str) -> int:
+        try:
+            return int(os.path.getmtime(os.path.join(app.root_path, 'static', rel)))
+        except OSError:
+            return 0
+    return {'asset_v': asset_v}
+
+
 @app.route('/bulten')
 @app.route('/bulten/<date>')
 def public_brief(date=None):
