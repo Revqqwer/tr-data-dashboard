@@ -125,11 +125,27 @@
           </div>
         </div>
         <div class="nav-section">
-          <a href="#" class="nav-item nav-section-title" data-page="tefas" style="text-transform:uppercase;font-size:10px;letter-spacing:0.08em;font-weight:700;">
+          <div class="nav-section-title" id="section-title-tefas" style="text-transform:uppercase;font-size:10px;letter-spacing:0.08em;font-weight:700;cursor:pointer;">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/><circle cx="19" cy="9" r="2"/></svg>
             TEFAS Fonlarına Para Girişi
-          </a>
-          <div class="nav-section-items">
+          </div>
+          <div class="nav-section-items" id="section-items-tefas">
+            <a href="#" class="nav-item" data-page="tefas">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>
+              Liderboard
+            </a>
+            <a href="#" class="nav-item" data-page="tefas-akis">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>
+              Akış
+            </a>
+            <a href="#" class="nav-item" data-page="tefas-fon-ara">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+              Fon Ara
+            </a>
+            <a href="#" class="nav-item" data-page="tefas-istatistik">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+              İstatistikler
+            </a>
             <a href="#" class="nav-item" data-page="fon-icerik">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-9-9v9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/></svg>
               Fon İçerikleri
@@ -249,7 +265,7 @@
   {% if guest_gate %}
   <script>
     // Misafir: üye bölümlerinin yanında kilit (üyelik ücretsiz)
-    ['tefas', 'bist', 'bofa', 'fon-icerik'].forEach(function (p) {
+    ['tefas', 'tefas-akis', 'tefas-fon-ara', 'tefas-istatistik', 'bist', 'bofa', 'fon-icerik'].forEach(function (p) {
       document.querySelectorAll('.nav-item[data-page="' + p + '"]').forEach(function (a) {
         a.insertAdjacentHTML('beforeend', ' <span title="Üyelere özel · üyelik ücretsiz" style="margin-left:auto;font-size:10px;opacity:.7;">🔒</span>');
       });
@@ -269,10 +285,12 @@
         document.getElementById('group-items-'+g).classList.toggle('collapsed');
       });
     });
-    // BİST Endeksleri başlığına tıklayınca aç/kapat
-    document.getElementById('section-title-bist-endeks').addEventListener('click', function() {
-      this.classList.toggle('collapsed');
-      document.getElementById('section-items-bist-endeks').classList.toggle('collapsed');
+    // BİST Endeksleri / TEFAS başlığına tıklayınca aç/kapat
+    ['bist-endeks', 'tefas'].forEach(function (s) {
+      document.getElementById('section-title-' + s).addEventListener('click', function() {
+        this.classList.toggle('collapsed');
+        document.getElementById('section-items-' + s).classList.toggle('collapsed');
+      });
     });
   </script>
   <div class="sb-theme-row">
