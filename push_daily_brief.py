@@ -75,7 +75,7 @@ def main():
 
     if DRY:
         print('[dry] gönderilecek: Kahveni kap gel!', body, '—', rep.get('title'))
-    link = f"https://www.3nfinans.com/bulten/{today}" + ('?t=weekly' if rep.get('type') == 'weekly' else '')
+    link = 'https://www.3nfinans.com/dashboard#market-briefs'   # kullanıcı tercihi (2026-10-24): panel linki
     if DRY:
         print('[dry] telegram: ☀️ Günaydın, ' + body[0].lower() + body[1:] + ' | ' + link)
         return
