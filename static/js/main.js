@@ -195,6 +195,14 @@ function switchPage(page) {
     el.classList.toggle('active', el.dataset.page === page);
   });
 
+  // TEFAS alt sayfaları aynı iframe'i kullanır; yalnızca React yolunu değiştir
+  const TEFAS_SUB = {'tefas': '/', 'tefas-akis': '/flow', 'tefas-fon-ara': '/funds', 'tefas-istatistik': '/stats'};
+  if (TEFAS_SUB[page] !== undefined) {
+    const f = document.getElementById('tefas-iframe'), want = '/tefas' + TEFAS_SUB[page];
+    if (f && f.getAttribute('src') !== want) f.setAttribute('src', want);
+    page = 'tefas';
+  }
+
   // Topbars
   document.querySelectorAll('.topbar').forEach(el => el.classList.add('hidden'));
   const topbar = document.getElementById('topbar-' + page);
