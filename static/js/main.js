@@ -2778,7 +2778,9 @@ function renderMakro() {
   const fcInputs = adminMakroForecast.length
     ? adminMakroForecast.map(r => ({ ...r }))   // shallow copy — in-memory düzenleme
     : [];
-  while (fcInputs.length < 12) fcInputs.push({ mom_enf:'', mom_kur:'', pol_faiz:'', tr2y:'', tr10y:'', note:'' });
+  // Admin formuyla aynı satır sayısı (templates/admin.html MF_MONTHS) — Nisan 2028'e kadar
+  const MAKRO_FC_MONTHS = 19;
+  while (fcInputs.length < MAKRO_FC_MONTHS) fcInputs.push({ mom_enf:'', mom_kur:'', pol_faiz:'', tr2y:'', tr10y:'', note:'' });
   const fcRows = makroComputeForecast(allMakro, fcInputs);
   const has3n = adminMakroForecast.some(r => r.mom_enf || r.mom_kur || r.pol_faiz || r.tr2y || r.tr10y);
 

@@ -309,29 +309,6 @@
   </table>
 </div>
 
-<!-- ── Özel Fonlar ── -->
-<h2 style="font-size:14px;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:8px;margin-top:32px;">🎯 Özel Fonlar</h2>
-<p style="font-size:12px;color:#475569;margin-bottom:14px;">
-  Buraya eklediğin fonlar TEFAS sayfasındaki <b>Özel Fonlar</b> sekmesinde akış + getiri grafiğiyle gösterilir. Fon kodunu (örn. <code>TP2</code>, <code>PRY</code>) Liderboard'daki KOD sütunundan görebilirsin.
-</p>
-<div class="add-card" style="margin-bottom:14px;">
-  <div>
-    <label>Fon Kodu</label>
-    <input type="text" id="cfCode" placeholder="TP2" maxlength="12"
-           oninput="this.value=this.value.toUpperCase()"
-           onkeydown="if(event.key==='Enter')addCustomFund()" style="width:160px;">
-  </div>
-  <button class="btn btn-gold" onclick="addCustomFund()">+ Ekle</button>
-</div>
-<div class="table-wrap" style="margin-bottom:32px;">
-  <table>
-    <thead><tr><th>Kod</th><th>Fon Adı</th><th style="text-align:right;">İşlem</th></tr></thead>
-    <tbody id="cfTableBody">
-      <tr><td colspan="3" class="muted" style="text-align:center;padding:20px;">Yükleniyor…</td></tr>
-    </tbody>
-  </table>
-</div>
-
 <!-- ── Push Bildirimi ── -->
 <h2 style="font-size:14px;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:8px;margin-top:32px;">🔔 Push Bildirimi</h2>
 <p style="font-size:12px;color:#475569;margin-bottom:14px;">
@@ -443,7 +420,7 @@
     <b>Bu bölüm sadece admin tarafından düzenlenebilir.</b>
     Burada girilen tahminler <em>3N Finans Tahmini</em> olarak tüm üyelere gösterilir.
     Üyeler kendi sayfalarında bu değerleri geçici olarak değiştirebilir, ancak sayfa yenilendiğinde
-    otomatik olarak bu tahminler geri yüklenir. · <b>12 ay</b> ilerisi için giriş yapılabilir.
+    otomatik olarak bu tahminler geri yüklenir. · Son gerçekleşen aydan sonraki <b>19 ay</b> (Nisan 2028'e kadar) için giriş yapılabilir.
   </div>
   <div class="mf-table-wrap">
     <table class="mf-table">
@@ -615,49 +592,6 @@ function toggleUsers(){
   chev.style.transform = open ? '' : 'rotate(90deg)';
 }
 
-async function loadCustomFunds(){
-  const body = document.getElementById('cfTableBody');
-  try{
-    const r = await fetch(`/admin/${SECRET}/custom-funds`);
-    const d = await r.json();
-    const funds = d.funds || [];
-    if (!funds.length){
-      body.innerHTML = '<tr><td colspan="3" class="muted" style="text-align:center;padding:20px;">Henüz özel fon eklenmemiş.</td></tr>';
-      return;
-    }
-    body.innerHTML = funds.map(f => `<tr>
-      <td style="font-family:monospace;font-weight:700;color:#f0b429;">${f.code}</td>
-      <td>${f.found ? (f.name||'').replace(/</g,'&lt;') : '<span style="color:#f59e0b;">(kayıt bulunamadı — veri gelince görünür)</span>'}</td>
-      <td style="text-align:right;"><button class="btn btn-red" onclick="removeCustomFund('${f.code}')">✕ Kaldır</button></td>
-    </tr>`).join('');
-  }catch(e){ body.innerHTML = `<tr><td colspan="3" style="color:#ef4444;text-align:center;padding:20px;">${e.message}</td></tr>`; }
-}
-
-async function addCustomFund(){
-  const el = document.getElementById('cfCode');
-  const code = el.value.trim().toUpperCase();
-  if (!code) { toast('Fon kodu giriniz', false); return; }
-  try{
-    const r = await fetch(`/admin/${SECRET}/custom-funds`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({code})
-    });
-    const d = await r.json();
-    if (d.ok) { toast(`${code} eklendi ✓`); el.value=''; loadCustomFunds(); }
-    else toast(d.error || 'Hata', false);
-  }catch(e){ toast(e.message, false); }
-}
-
-async function removeCustomFund(code){
-  if (!confirm(`${code} özel fonlardan kaldırılsın mı?`)) return;
-  try{
-    const r = await fetch(`/admin/${SECRET}/custom-funds/${code}/delete`, { method:'POST' });
-    const d = await r.json();
-    if (d.ok) { toast(`${code} kaldırıldı`); loadCustomFunds(); }
-    else toast(d.error || 'Hata', false);
-  }catch(e){ toast(e.message, false); }
-}
-
 // ── Push Bildirimi ──
 async function loadPushCount(){
   try{
@@ -718,7 +652,7 @@ async function resetWheel(){
   finally{ btn.disabled = false; btn.textContent = old; }
 }
 
-window.addEventListener('DOMContentLoaded', () => { loadSubscribers(); loadPageviews(); loadEmailStats(); loadCustomFunds(); loadPushCount(); loadWheelStats(); });
+window.addEventListener('DOMContentLoaded', () => { loadSubscribers(); loadPageviews(); loadEmailStats(); loadPushCount(); loadWheelStats(); });
 
 function toast(msg, ok=true) {
   const el = document.getElementById('toast');
@@ -735,8 +669,13 @@ function fmtF(v,d=2) { return v.toLocaleString('tr-TR', {minimumFractionDigits:d
 //  MAKRO TAHMİN — 3N FİNANS
 // ═══════════════════════════════════════════════════════
 
+// Tahmin satırı sayısı: son gerçekleşen aydan sonraki 19 ay (Eyl 2026 verisiyle Eki 2026 → Nis 2028).
+// Panel (static/js/main.js MAKRO_FC_MONTHS) ile aynı olmalı.
+const MF_MONTHS = 19;
+// Satır i = son gerçekleşen ay + (i+1). Panel tabloyu böyle eşliyor; etiket bugünün tarihinden değil buradan.
+let MF_BASE = null;   // son gerçekleşen ay (Date, ayın 1'i)
 function mfMonthLabel(offset) {
-  const d = new Date();
+  const d = MF_BASE ? new Date(MF_BASE) : new Date();
   d.setDate(1);
   d.setMonth(d.getMonth() + offset);
   return d.toLocaleDateString('tr-TR', { month: 'short', year: 'numeric' });
@@ -744,8 +683,13 @@ function mfMonthLabel(offset) {
 
 async function loadMakroFc() {
   try {
-    const res = await fetch(`/admin/${SECRET}/makro-forecast`);
+    const [res, hist] = await Promise.all([fetch(`/admin/${SECRET}/makro-forecast`), fetch('/api/makro').catch(() => null)]);
     const j   = await res.json();
+    try {
+      const h = hist ? await hist.json() : [];
+      const [, mm, yyyy] = h[h.length - 1].tarih.split('-');   // 'gg-aa-yyyy'
+      MF_BASE = new Date(+yyyy, +mm - 1, 1);
+    } catch (e) { MF_BASE = null; }
     const rows = j.rows || [];
     renderMakroFcTable(rows);
   } catch(e) { toast('Makro tahmin yüklenemedi: ' + e.message, false); }
@@ -754,9 +698,8 @@ async function loadMakroFc() {
 function renderMakroFcTable(rows) {
   const tbody = document.getElementById('mfTbody');
   if (!tbody) return;
-  // Ensure 12 rows
-  while (rows.length < 12) rows.push({ mom_enf:'', mom_kur:'', pol_faiz:'', tr2y:'', tr10y:'', note:'' });
-  tbody.innerHTML = rows.slice(0, 12).map((r, i) => `
+  while (rows.length < MF_MONTHS) rows.push({ mom_enf:'', mom_kur:'', pol_faiz:'', tr2y:'', tr10y:'', note:'' });
+  tbody.innerHTML = rows.slice(0, MF_MONTHS).map((r, i) => `
     <tr data-mf-idx="${i}">
       <td><span class="mf-month-badge">Ay +${i+1}</span> <span style="color:#64748b;font-size:11px;margin-left:6px">${mfMonthLabel(i+1)}</span></td>
       <td><input class="mf-input" data-key="mom_enf"  value="${r.mom_enf  || ''}" placeholder="%" step="0.01"></td>
