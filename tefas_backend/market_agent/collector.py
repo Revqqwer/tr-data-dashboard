@@ -241,25 +241,35 @@ def fetch_tr_news(hours: int = 28, limit: int = 40) -> list[dict]:
 
 
 def fetch_market_snapshot() -> list[dict]:
-    """TradingView tarayıcısından son fiyat, günlük ve haftalık % değişim."""
+    """TradingView tarayıcısından son fiyat, günlük ve haftalık % değişim.
+
+    Haftalık = HAFTA BAŞINDAN BERİ (geçen haftanın son kapanışından son seansa): "change|1W" — haftalık
+    mumun değişimi. "Perf.W" kayan 7 gündür (Salı günü geçen Salı'ya kıyaslar) — kullanma.
+    Son seans bu haftadan değilse (Pazartesi sabahı, bu hafta henüz seans yok) değer geçen haftanın
+    tamamıdır → week_scope='last_week'."""
+    from zoneinfo import ZoneInfo
     syms = [s for _, items in MARKET_GROUPS for s, _ in items]
     try:
         r = requests.post("https://scanner.tradingview.com/global/scan", timeout=15,
                           headers={"Origin": "https://www.tradingview.com", "User-Agent": "Mozilla/5.0"},
                           json={"symbols": {"tickers": syms, "query": {"types": []}},
-                                "columns": ["close", "change", "Perf.W", "time"]})
+                                "columns": ["close", "change", "change|1W", "time"]})
         got = {x["s"]: x["d"] for x in r.json().get("data", [])}
     except Exception as e:
         log.warning("Piyasa verisi alınamadı: %s", e)
         return []
+    tz = ZoneInfo("Europe/Istanbul")
+    today = datetime.now(tz).date()
+    this_monday = today - timedelta(days=today.weekday())
     out = []
     for group, items in MARKET_GROUPS:
         for sym, name in items:
             d = got.get(sym)
             if d and d[0] is not None:
-                from zoneinfo import ZoneInfo
-                day = datetime.fromtimestamp(d[3], ZoneInfo("Europe/Istanbul")).date() if len(d) > 3 and d[3] else None
+                day = datetime.fromtimestamp(d[3], tz).date() if len(d) > 3 and d[3] else None
+                scope = "last_week" if day and day < this_monday else "wtd"
                 out.append({"group": group, "name": name, "price": d[0], "change": d[1], "week": d[2],
+                            "week_scope": scope,
                             "date": day.isoformat() if day else None})   # verinin ait olduğu seans günü
     return out
 

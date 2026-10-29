@@ -279,11 +279,15 @@ def _format_markets(markets: list[dict] | None) -> str:
             lines.append(f"[{group}]")
         ch = f"{m['change']:+.2f}%" if m.get("change") is not None else "?"
         wk = f"{m['week']:+.2f}%" if m.get("week") is not None else "?"
+        # Haftalık = hafta başından beri (Pzt→son seans). Bu hafta henüz seans yoksa geçen haftanın tamamı.
+        wk_lbl = "geçen hafta (tam)" if m.get("week_scope") == "last_week" else "hafta başından beri"
         dt = ''
         if m.get('date'):
             d = datetime.strptime(m['date'], '%Y-%m-%d')
             dt = f" | seans tarihi {['Pzt','Sal','Çar','Per','Cum','Cmt','Paz'][d.weekday()]} {d:%d.%m}"
-        lines.append(f"- {m['name']}: {m['price']:,.2f} | günlük {ch} | haftalık {wk}{dt}")
+        lines.append(f"- {m['name']}: {m['price']:,.2f} | günlük {ch} | {wk_lbl} {wk}{dt}")
+    lines.append("(Not: 'hafta başından beri' = bu haftanın Pazartesi'sinden son seansa kadar; 'son 7 gün' ya da "
+                 "'haftalık' diye kayan bir dönem anlatma. 'geçen hafta (tam)' yazan değeri 'bu hafta' diye sunma.)")
     return "\n".join(lines)
 
 
