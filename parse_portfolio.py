@@ -17,7 +17,7 @@ from datetime import datetime, date, timedelta
 from collections import defaultdict
 
 OLD_PDF_PATH  = os.path.join(os.path.dirname(__file__), '..', '..', 'Downloads', 'Ekstre3 (1).pdf')
-NEW_PDF_PATH  = os.path.join(os.path.dirname(__file__), '..', '..', 'Downloads', 'Ekstre3 (8).pdf')
+NEW_PDF_PATH  = os.path.join(os.path.dirname(__file__), '..', '..', 'Downloads', 'Ekstre3 (1) (1).pdf')
 CUTOVER_DATE  = date(2026, 1, 1)
 OUT_PATH      = os.path.join(os.path.dirname(__file__), 'data', 'portfolio.json')
 
@@ -39,7 +39,20 @@ MANUAL_MMF_PRICES = {
 # Ekstre sonundaki gerçek nakit (kullanıcı beyanı). Teorik nakit (işlem tutarları) komisyon,
 # stopaj, saklama vb. küçük kalemleri içermediği için zamanla kayar; None değilse tüm seri
 # sabit bir farkla kaydırılıp son gün bu değere oturtulur.
-FINAL_CASH = 0.0
+FINAL_CASH = 242.16   # 2026-11-05: Pusula'da kalan 240,12 vergi iadesi + PEKGY/AKCNS satışı − DMLKTG alımı artığı (~2,04)
+
+# Pusula hesabı Ekim 2026'da kapandı (NSP/MPK satılıp EFT ile, hisseler virmanla başka kuruma
+# taşındı); sonraki işlemler ekstrede yok, kullanıcının bildirdiği şekilde buradan eklenir.
+# Hisse: {ticker, date (işlem günü), qty, price, type 'alis'|'satis'}; tutar = qty × price.
+POST_STATEMENT_TRADES = [
+    {'ticker': 'PEKGY',  'date': '2026-10-12', 'qty': 509,  'price': 1.96,  'type': 'satis'},
+    {'ticker': 'AKCNS',  'date': '2026-11-02', 'qty': 49,   'price': 172.6, 'type': 'satis'},
+    {'ticker': 'DMLKTG', 'date': '2026-11-02', 'qty': 1370, 'price': 6.9,   'type': 'alis'},
+]
+# Para piyasası fonu: NSP/MPK satışından kalan net 84.324 TL (brüt 86.325 − stopaj 2.001) yeniden NSP'ye.
+POST_STATEMENT_MMF_TRADES = [
+    {'code': 'NSP', 'date': '2026-10-08', 'units': 43578, 'price': 1.935008, 'type': 'alis'},
+]
 
 # GENKMH is a rights-derived lot, treat as same stock GENKM
 TICKER_NORM = {'GENKMH': 'GENKM', 'GOLDAH': 'GOLDA', 'SOHOEH': 'SOHOE', 'INTETH': 'INTET'}
@@ -804,6 +817,13 @@ def main():
         new_rows, date_filter=lambda d: d >= CUTOVER_DATE, apply_ipo_allocations=True)
 
     trades          = trades_old + trades_new
+    for p in POST_STATEMENT_TRADES:   # ekstre dışı (hesap taşındıktan sonraki) işlemler
+        trades.append({'date': p['date'], 'settle_date': p['date'], 'ticker': p['ticker'],
+                       'qty': p['qty'], 'price': p['price'], 'type': p['type'],
+                       'amount': round(p['qty'] * p['price'], 2), 'is_rights': False, 'is_manual': True})
+    for p in POST_STATEMENT_MMF_TRADES:
+        mmf_trades_new.setdefault(p['code'], []).append(
+            {'date': p['date'], 'units': float(p['units']), 'price': p['price'], 'type': p['type']})
     dividends       = divs_old + divs_new
     total_komis     = komis_old + komis_new
     balance_history = sorted(balance_old + balance_new, key=lambda x: x['date'])
