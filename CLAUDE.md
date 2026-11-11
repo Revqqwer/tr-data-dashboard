@@ -20,8 +20,8 @@ fon akışı panosu — üretimde **www.3nfinans.com**:
 | Bilgi | Değer |
 |-------|-------|
 | GitHub | `https://github.com/Revqqwer/tr-data-dashboard` |
-| Üretim sunucusu | PythonAnywhere — kullanıcı: `pa-user` |
-| Üretim URL | `https://www.3nfinans.com` (PA: `pa-user.pythonanywhere.com`) |
+| Üretim sunucusu | PythonAnywhere (kullanıcı adı burada yazılmıyor) |
+| Üretim URL | `https://www.3nfinans.com` |
 | Yerel repo | `C:\Users\hakan\OneDrive\Masaüstü\.claude\tr-data-dashboard` |
 | React kaynağı | `C:\Users\hakan\OneDrive\Masaüstü\.claude\tefas-flow\frontend` (ayrı klasör, git'te değil) |
 | DNS / CDN | Cloudflare (robots.txt'e AI-bot bloklarını Cloudflare enjekte eder) |

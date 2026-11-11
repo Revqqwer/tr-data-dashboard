@@ -3,7 +3,7 @@ Kripto ETF akış verilerini farside.co.uk'tan çeker.
 PythonAnywhere'de günlük çalıştırılır.
 
 Komut:
-  cd /home/pa-user/tr-data-dashboard && python daily_crypto_collect.py
+  cd ~/tr-data-dashboard && python daily_crypto_collect.py
 """
 
 import logging
