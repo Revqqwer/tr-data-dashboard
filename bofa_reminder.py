@@ -44,7 +44,7 @@ def business_days_between(last: date, end: date) -> int:
 
 
 def admin_emails() -> list:
-    admins = {u.strip().lower() for u in os.environ.get('ADMIN_USERS', 'admin').split(',') if u.strip()}
+    admins = {u.strip().lower() for u in os.environ.get('ADMIN_USERS', '').split(',') if u.strip()}
     with sqlite3.connect(str(ROOT / 'data' / 'cache.db')) as c:
         rows = c.execute('SELECT username, email FROM users WHERE active=1 AND email IS NOT NULL AND email != ""').fetchall()
     return [e for u, e in rows if (u or '').lower() in admins]

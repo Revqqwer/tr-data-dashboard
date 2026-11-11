@@ -331,7 +331,7 @@ def tefas_static(path):
     return send_from_directory(_TEFAS_BUILD, 'index.html')
 # Admin yetkisi site hesabına bağlı: yalnızca bu kullanıcı adlarıyla giriş yapmış oturumlar.
 # URL'deki /admin/<x>/ parçası artık gizli değil, sadece yol (ör. /admin/panel).
-ADMIN_USERS = {u.strip().lower() for u in os.environ.get('ADMIN_USERS', 'admin').split(',') if u.strip()}
+ADMIN_USERS = {u.strip().lower() for u in os.environ.get('ADMIN_USERS', '').split(',') if u.strip()}
 
 
 def _admin_ok(secret=None) -> bool:

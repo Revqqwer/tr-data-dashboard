@@ -296,7 +296,7 @@ python build_tefas.py
 - **Giriş şartı:** `SELECT ... WHERE username=? AND active=1`. Bir üyeyi engellemenin
   tek yolu admin panelinden pasife almaktır (`active=0`).
 - **Admin paneli:** `/admin` (→ `/admin/panel`). Yetki **site hesabına bağlı**: yalnızca
-  `ADMIN_USERS` (env, varsayılan `admin`) kullanıcısıyla giriş yapmış oturum girebilir.
+  `ADMIN_USERS` (env, varsayılan yok — PA `.env` içinde tanımlı olmalı) kullanıcısıyla giriş yapmış oturum girebilir.
   URL'deki `/admin/<x>/` parçası artık gizli değil (eski `ADMIN_SECRET` kullanılmıyor).
   Admin oturumunda sidebar'da ad yerine "ADMİN" + "Admin Paneli" linki görünür.
 - **`SECRET_KEY`** `.env`'den okunur; yoksa repo'daki sabit yedeğe düşer (güvensiz —
